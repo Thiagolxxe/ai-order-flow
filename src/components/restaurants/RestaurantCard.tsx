@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { 
   ClockIcon, 
   ArrowRightIcon, 
-  RestaurantIcon
+  RestaurantIcon,
+  StarIcon
 } from '@/assets/icons';
 import { Badge } from '@/components/ui/badge';
 
@@ -21,20 +22,6 @@ interface RestaurantCardProps {
   isNew?: boolean;
   className?: string;
 }
-
-// Componente de ícone de estrela personalizado
-const StarIcon = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    width="16" 
-    height="16" 
-    fill="currentColor"
-    className={className}
-  >
-    <path d="M12 2l2.2 6.6h7.1l-5.7 4.2 2.2 6.6-5.7-4.2-5.7 4.2 2.2-6.6L2.8 8.6h7.1z"/>
-  </svg>
-);
 
 const RestaurantCard = ({
   id,
@@ -89,7 +76,7 @@ const RestaurantCard = ({
         <div className="flex justify-between items-start mb-1">
           <h3 className="font-semibold text-foreground">{name}</h3>
           <div className="flex items-center text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded text-sm">
-            <StarIcon className="mr-1" />
+            <StarIcon className="mr-1 w-4 h-4" />
             <span>{rating.toFixed(1)}</span>
           </div>
         </div>

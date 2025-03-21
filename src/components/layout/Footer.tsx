@@ -22,8 +22,8 @@ const Footer = () => {
               <span>DeliverAI</span>
             </Link>
             <p className="text-sm text-foreground/70 max-w-xs">
-              A revolutionary AI-powered food delivery platform connecting customers, 
-              restaurants, and delivery partners.
+              Uma plataforma revolucionária de entrega de comida com tecnologia de IA
+              conectando clientes, restaurantes e entregadores parceiros.
             </p>
             <div className="flex space-x-4 pt-2">
               <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
@@ -45,68 +45,68 @@ const Footer = () => {
           </div>
           
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">For Users</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Para Usuários</h3>
             <ul className="space-y-3">
               <li>
                 <Link to="/how-it-works" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  How it works
+                  Como Funciona
                 </Link>
               </li>
               <li>
                 <Link to="/restaurants" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  Restaurants
+                  Restaurantes
                 </Link>
               </li>
               <li>
                 <Link to="/pricing" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  Pricing
+                  Preços
                 </Link>
               </li>
               <li>
                 <Link to="/faq" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  FAQs
+                  Perguntas Frequentes
                 </Link>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Partners</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Parceiros</h3>
             <ul className="space-y-3">
               <li>
                 <Link to="/restaurant/signup" className="text-foreground/70 hover:text-primary text-sm transition-colors flex items-center gap-1.5">
                   <RestaurantIcon className="w-4 h-4" />
-                  Become a Restaurant Partner
+                  Seja um Parceiro Restaurante
                 </Link>
               </li>
               <li>
                 <Link to="/delivery/signup" className="text-foreground/70 hover:text-primary text-sm transition-colors flex items-center gap-1.5">
                   <DeliveryIcon className="w-4 h-4" />
-                  Become a Delivery Partner
+                  Seja um Parceiro Entregador
                 </Link>
               </li>
               <li>
                 <Link to="/developer" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  Developer API
+                  API para Desenvolvedores
                 </Link>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Contact</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Contato</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-2">
                 <LocationIcon className="w-5 h-5 text-primary mt-0.5" />
                 <span className="text-foreground/70 text-sm">
-                  1234 Delivery Street<br />
-                  Tech City, AI 98765
+                  Rua da Entrega, 1234<br />
+                  Cidade Tech, AI 98765
                 </span>
               </li>
               <li className="flex items-center gap-2">
                 <ChatIcon className="w-5 h-5 text-primary" />
-                <a href="mailto:support@deliverai.example" className="text-foreground/70 hover:text-primary text-sm transition-colors">
-                  support@deliverai.example
+                <a href="mailto:contato@deliverai.exemplo" className="text-foreground/70 hover:text-primary text-sm transition-colors">
+                  contato@deliverai.exemplo
                 </a>
               </li>
             </ul>
@@ -115,17 +115,17 @@ const Footer = () => {
         
         <div className="border-t pt-8 mt-12 flex flex-col md:flex-row justify-between items-center">
           <p className="text-foreground/60 text-sm">
-            &copy; {currentYear} DeliverAI. All rights reserved.
+            &copy; {currentYear} DeliverAI. Todos os direitos reservados.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <Link to="/privacy" className="text-foreground/60 hover:text-primary text-sm transition-colors">
-              Privacy Policy
+              Política de Privacidade
             </Link>
             <Link to="/terms" className="text-foreground/60 hover:text-primary text-sm transition-colors">
-              Terms of Service
+              Termos de Serviço
             </Link>
             <Link to="/cookies" className="text-foreground/60 hover:text-primary text-sm transition-colors">
-              Cookie Policy
+              Política de Cookies
             </Link>
           </div>
         </div>

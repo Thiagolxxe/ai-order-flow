@@ -21,7 +21,7 @@ const Navbar = () => {
   const { userRole, isAuthenticated } = useUser();
   const location = useLocation();
   
-  // Handle scroll effect
+  // Lidar com o efeito de rolagem
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -31,41 +31,41 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Close mobile menu when route changes
+  // Fechar menu móvel quando a rota muda
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
   
-  // Navigation links based on user role
+  // Links de navegação baseados no papel do usuário
   const getNavLinks = () => {
     switch(userRole) {
       case 'restaurant':
         return [
-          { name: 'Dashboard', path: '/restaurant/dashboard' },
-          { name: 'Orders', path: '/restaurant/orders' },
-          { name: 'Menu', path: '/restaurant/menu' },
-          { name: 'Settings', path: '/restaurant/settings' },
+          { name: 'Painel', path: '/restaurant/dashboard' },
+          { name: 'Pedidos', path: '/restaurant/orders' },
+          { name: 'Cardápio', path: '/restaurant/menu' },
+          { name: 'Configurações', path: '/restaurant/settings' },
         ];
       case 'delivery':
         return [
-          { name: 'Available Orders', path: '/delivery/orders' },
-          { name: 'My Deliveries', path: '/delivery/my-deliveries' },
-          { name: 'Earnings', path: '/delivery/earnings' },
+          { name: 'Pedidos Disponíveis', path: '/delivery/orders' },
+          { name: 'Minhas Entregas', path: '/delivery/my-deliveries' },
+          { name: 'Ganhos', path: '/delivery/earnings' },
         ];
       case 'customer':
       default:
         return [
-          { name: 'Home', path: '/' },
-          { name: 'Restaurants', path: '/restaurants' },
-          { name: 'Orders', path: '/orders' },
-          { name: 'Help', path: '/help' },
+          { name: 'Início', path: '/' },
+          { name: 'Restaurantes', path: '/restaurants' },
+          { name: 'Pedidos', path: '/orders' },
+          { name: 'Ajuda', path: '/help' },
         ];
     }
   };
   
   const navLinks = getNavLinks();
   
-  // Render role indicator based on user role
+  // Renderizar indicador de função com base no papel do usuário
   const renderRoleIndicator = () => {
     if (!isAuthenticated) return null;
     
@@ -73,6 +73,12 @@ const Navbar = () => {
       customer: <UserIcon className="w-4 h-4" />,
       restaurant: <RestaurantIcon className="w-4 h-4" />,
       delivery: <DeliveryIcon className="w-4 h-4" />,
+    };
+    
+    const roleLabels = {
+      customer: 'Cliente',
+      restaurant: 'Restaurante',
+      delivery: 'Entregador',
     };
     
     const roleColors = {
@@ -87,7 +93,7 @@ const Navbar = () => {
         roleColors[userRole as keyof typeof roleColors]
       )}>
         {roleIcons[userRole as keyof typeof roleIcons]}
-        <span className="capitalize">{userRole}</span>
+        <span className="capitalize">{roleLabels[userRole as keyof typeof roleLabels]}</span>
       </div>
     );
   };
@@ -111,7 +117,7 @@ const Navbar = () => {
           <span className="hidden sm:inline">DeliverAI</span>
         </Link>
         
-        {/* Desktop Navigation */}
+        {/* Navegação Desktop */}
         <nav className="hidden md:flex items-center space-x-1">
           {navLinks.map((link) => (
             <Link
@@ -129,7 +135,7 @@ const Navbar = () => {
           ))}
         </nav>
         
-        {/* Right side - auth buttons or user menu */}
+        {/* Lado direito - botões de autenticação ou menu do usuário */}
         <div className="flex items-center gap-3">
           {renderRoleIndicator()}
           
@@ -153,15 +159,15 @@ const Navbar = () => {
           ) : (
             <div className="hidden md:flex items-center gap-3">
               <Button variant="outline" asChild>
-                <Link to="/login">Log in</Link>
+                <Link to="/login">Entrar</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">Sign up</Link>
+                <Link to="/signup">Cadastrar</Link>
               </Button>
             </div>
           )}
           
-          {/* Mobile menu button */}
+          {/* Botão do menu móvel */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -177,7 +183,7 @@ const Navbar = () => {
         </div>
       </div>
       
-      {/* Mobile menu */}
+      {/* Menu móvel */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-zinc-900 shadow-lg border-t animate-slide-down">
           <div className="container mx-auto px-4 py-4 flex flex-col space-y-2">
@@ -199,10 +205,10 @@ const Navbar = () => {
             {!isAuthenticated && (
               <div className="pt-4 mt-2 border-t flex flex-col gap-3">
                 <Button variant="outline" asChild className="w-full">
-                  <Link to="/login">Log in</Link>
+                  <Link to="/login">Entrar</Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link to="/signup">Sign up</Link>
+                  <Link to="/signup">Cadastrar</Link>
                 </Button>
               </div>
             )}
