@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Input, InputProps } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { InputHTMLAttributes } from 'react';
 
-interface InputWithIconProps extends InputProps {
+interface InputWithIconProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
 }
 
@@ -12,7 +13,7 @@ const InputWithIcon = React.forwardRef<HTMLInputElement, InputWithIconProps>(
     return (
       <div className="relative">
         {icon && (
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground">
             {icon}
           </div>
         )}

@@ -1,324 +1,224 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchIcon, PlusIcon, MinusIcon } from 'lucide-react';
-import MenuItemCard from '@/components/food/MenuItemCard';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Restaurant {
-  id: string;
-  nome: string;
-}
-
-interface Category {
-  id: string;
-  nome: string;
-  descricao?: string;
-  restaurante_id: string;
-  ordem_exibicao: number;
-}
+import { useParams } from 'react-router-dom';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { RestaurantIcon } from '@/assets/icons';
+import { useToast } from "@/hooks/use-toast";
 
 interface MenuItem {
   id: string;
-  nome: string;
-  descricao?: string;
-  preco: number;
-  imagem_url?: string;
-  categoria_id: string;
-  restaurante_id: string;
-  disponivel: boolean;
-  destaque: boolean;
-  category?: string;
-  popular?: boolean;
-  vegetarian?: boolean;
-  spicy?: boolean;
-}
-
-interface CartItem {
-  id: string;
-  quantity: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string;
+  restaurant_id: string;
 }
 
 const Menu = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
-  
-  // Buscar dados do restaurante, categorias e itens do cardápio
+  const [categories, setCategories] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { toast } = useToast();
+
   useEffect(() => {
-    const fetchRestaurantData = async () => {
-      if (!id) return;
-      
+    const fetchMenu = async () => {
       try {
-        setLoading(true);
-        
-        // Buscar detalhes do restaurante
-        const { data: restaurantData, error: restaurantError } = await supabase
-          .from('restaurantes')
-          .select('id, nome')
-          .eq('id', id)
-          .single();
-        
-        if (restaurantError) throw restaurantError;
-        
-        // Buscar categorias do cardápio
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categorias')
-          .select('*')
-          .eq('restaurante_id', id)
-          .order('ordem_exibicao', { ascending: true });
-        
-        if (categoriesError) throw categoriesError;
-        
-        // Buscar itens do cardápio
-        const { data: menuItemsData, error: menuItemsError } = await supabase
-          .from('itens_cardapio')
-          .select(`
-            *,
-            categorias (nome)
-          `)
-          .eq('restaurante_id', id)
-          .eq('disponivel', true);
-        
-        if (menuItemsError) throw menuItemsError;
-        
-        // Formatar os dados dos itens do cardápio
-        const formattedMenuItems = menuItemsData.map((item: any) => ({
-          ...item,
-          category: item.categoria_id,
-          categoryName: item.categorias?.nome || 'Sem categoria',
-          // Exemplos de atributos fictícios (em um sistema real, estes estariam no banco de dados)
-          popular: item.destaque,
-          vegetarian: false,
-          spicy: false,
-          image: item.imagem_url || `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop`
-        }));
-        
-        setRestaurant(restaurantData);
-        setCategories(categoriesData);
-        setMenuItems(formattedMenuItems);
-        
-        // Se houver categorias, definir a primeira como ativa
-        if (categoriesData.length > 0) {
-          setActiveCategory(categoriesData[0].id);
-        }
-        
-        // Verificar se há itens no carrinho no localStorage
-        const savedCart = localStorage.getItem(`cart_${id}`);
-        if (savedCart) {
-          setCartItems(JSON.parse(savedCart));
-        }
+        const mockMenu = [
+          {
+            id: '1',
+            name: 'Classic Burger',
+            description: 'Delicious burger with lettuce, tomato, and cheese',
+            price: 26.90,
+            category: 'Hambúrgueres',
+            image_url: '/burger.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '2',
+            name: 'Margherita Pizza',
+            description: 'Classic pizza with tomato sauce, mozzarella, and basil',
+            price: 32.90,
+            category: 'Pizzas',
+            image_url: '/pizza.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '3',
+            name: 'Caesar Salad',
+            description: 'Fresh salad with romaine lettuce, croutons, and Caesar dressing',
+            price: 14.90,
+            category: 'Saladas',
+            image_url: '/salad.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '4',
+            name: 'Chocolate Cake',
+            description: 'Rich chocolate cake with chocolate frosting',
+            price: 16.90,
+            category: 'Sobremesas',
+            image_url: '/cake.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '5',
+            name: 'Coca-Cola',
+            description: 'Refreshing Coca-Cola',
+            price: 8.90,
+            category: 'Bebidas',
+            image_url: '/coke.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '6',
+            name: 'Cheeseburger Bacon',
+            description: 'Delicious burger with lettuce, tomato, and cheese',
+            price: 35.90,
+            category: 'Hambúrgueres',
+            image_url: '/burger.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '7',
+            name: 'Portuguesa Pizza',
+            description: 'Classic pizza with tomato sauce, mozzarella, and basil',
+            price: 42.90,
+            category: 'Pizzas',
+            image_url: '/pizza.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '8',
+            name: 'Salada Tropical',
+            description: 'Fresh salad with romaine lettuce, croutons, and Caesar dressing',
+            price: 24.90,
+            category: 'Saladas',
+            image_url: '/salad.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '9',
+            name: 'Mousse de Maracujá',
+            description: 'Rich chocolate cake with chocolate frosting',
+            price: 26.90,
+            category: 'Sobremesas',
+            image_url: '/cake.jpg',
+            restaurant_id: id,
+          },
+          {
+            id: '10',
+            name: 'Suco de Laranja',
+            description: 'Refreshing Coca-Cola',
+            price: 18.90,
+            category: 'Bebidas',
+            image_url: '/coke.jpg',
+            restaurant_id: id,
+          },
+        ];
+
+        setMenuItems(mockMenu);
+
+        // Extract unique categories
+        const uniqueCategories = ['Todos', ...new Set(mockMenu.map((item) => item.category))];
+        setCategories(uniqueCategories);
       } catch (error) {
-        console.error('Erro ao buscar dados do restaurante:', error);
-        toast.error('Não foi possível carregar o cardápio');
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch menu items", error);
+        toast({
+          title: "Erro ao carregar cardápio",
+          description: "Não foi possível carregar os itens do cardápio.",
+          variant: "destructive",
+        });
       }
     };
-    
-    fetchRestaurantData();
-  }, [id]);
-  
-  // Filtrar itens do menu com base na categoria e pesquisa
-  const filteredItems = menuItems.filter(item =>
-    (activeCategory === 'all' || item.categoria_id === activeCategory) &&
-    (item.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     (item.descricao && item.descricao.toLowerCase().includes(searchQuery.toLowerCase())))
-  );
 
-  // Adicionar item ao carrinho
-  const addToCart = (itemId: string) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === itemId);
-      
-      let newItems;
-      if (existingItem) {
-        newItems = prevItems.map(item => 
-          item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      } else {
-        newItems = [...prevItems, { id: itemId, quantity: 1 }];
-      }
-      
-      // Armazenar no localStorage
-      localStorage.setItem(`cart_${id}`, JSON.stringify(newItems));
-      return newItems;
-    });
-    
-    const item = menuItems.find(item => item.id === itemId);
-    if (item) {
-      toast.success(`${item.nome} adicionado ao carrinho`);
-    }
-  };
+    fetchMenu();
+  }, [id, toast]);
 
-  // Remover item do carrinho
-  const removeFromCart = (itemId: string) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === itemId);
-      
-      let newItems;
-      if (existingItem && existingItem.quantity > 1) {
-        newItems = prevItems.map(item => 
-          item.id === itemId ? { ...item, quantity: item.quantity - 1 } : item
-        );
-      } else {
-        newItems = prevItems.filter(item => item.id !== itemId);
-      }
-      
-      // Armazenar no localStorage
-      localStorage.setItem(`cart_${id}`, JSON.stringify(newItems));
-      return newItems;
-    });
-  };
-
-  // Obter a quantidade de um item no carrinho
-  const getItemQuantity = (itemId: string) => {
-    const item = cartItems.find(item => item.id === itemId);
-    return item ? item.quantity : 0;
-  };
-
-  // Calcular o total do carrinho
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, cartItem) => {
-      const item = menuItems.find(menuItem => menuItem.id === cartItem.id);
-      return total + (item ? item.preco * cartItem.quantity : 0);
-    }, 0);
-  };
-
-  // Total de itens no carrinho
-  const getTotalItems = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  // Ir para a página do carrinho
-  const viewCart = () => {
-    // Salvar estado do carrinho no localStorage
-    localStorage.setItem('currentRestaurant', id || '');
-    localStorage.setItem(`cart_${id}`, JSON.stringify(cartItems));
-    
-    // Navegar para o carrinho
-    navigate('/carrinho');
-  };
-
-  if (loading) {
+  const filteredMenuItems = menuItems.filter((item) => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const itemNameLower = item.name.toLowerCase();
     return (
-      <div className="container px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-6 bg-muted animate-pulse rounded w-1/4"></div>
-          <div className="h-10 bg-muted animate-pulse rounded w-1/3"></div>
-        </div>
-        <div className="h-12 bg-muted animate-pulse rounded mb-6"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((_, index) => (
-            <div key={index} className="h-40 bg-muted animate-pulse rounded"></div>
-          ))}
-        </div>
-      </div>
+      (activeCategory === 'Todos' || item.category === activeCategory) &&
+      (searchTerm === '' || itemNameLower.includes(searchTermLower))
     );
-  }
+  });
 
   return (
-    <div className="container px-4 py-4 pb-20">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold">{restaurant?.nome}</h1>
-        
-        {/* Barra de pesquisa */}
-        <div className="relative max-w-xs w-full">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            type="text"
-            placeholder="Buscar no cardápio..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-secondary"
-          />
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-4">Cardápio</h1>
+
+      <div className="flex flex-col md:flex-row items-center justify-between mb-6">
+        <div className="flex items-center mb-4 md:mb-0">
+          <RestaurantIcon className="mr-2 h-6 w-6 text-gray-500" />
+          <p className="text-gray-600">
+            {id ? `Mostrando itens do restaurante com ID: ${id}` : 'Mostrando todos os itens'}
+          </p>
         </div>
+
+        <Input
+          type="text"
+          placeholder="Buscar item..."
+          className="max-w-md"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
-      
-      {/* Categorias */}
-      <Tabs
-        value={activeCategory}
-        onValueChange={setActiveCategory}
-        className="mb-6"
-      >
-        <TabsList className="w-full overflow-x-auto flex gap-1 justify-start px-1 py-1 h-auto bg-secondary/80">
-          <TabsTrigger value="all" className="px-3 py-1.5 text-sm">
-            Todos
-          </TabsTrigger>
-          {categories.map(category => (
-            <TabsTrigger 
-              key={category.id} 
-              value={category.id}
-              className="px-3 py-1.5 text-sm whitespace-nowrap"
+
+      <Tabs defaultValue="todos" className="space-y-4">
+        <TabsList>
+          {categories.map((category) => (
+            <TabsTrigger
+              key={category}
+              value={category.toLowerCase()}
+              onClick={() => setActiveCategory(category)}
+              className="capitalize"
             >
-              {category.nome}
+              {category}
             </TabsTrigger>
           ))}
         </TabsList>
-        
-        {/* Itens do menu filtrados por categoria */}
-        <TabsContent value={activeCategory} className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredItems.map(item => (
-              <MenuItemCard 
-                key={item.id}
-                item={{
-                  id: item.id,
-                  name: item.nome,
-                  description: item.descricao || '',
-                  price: item.preco,
-                  image: item.imagem_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
-                  category: item.categoryName,
-                  popular: item.destaque,
-                  vegetarian: item.vegetarian || false,
-                  spicy: item.spicy || false
-                }}
-                quantity={getItemQuantity(item.id)}
-                onAdd={() => addToCart(item.id)}
-                onRemove={() => removeFromCart(item.id)}
-              />
-            ))}
-          </div>
-          
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12 bg-secondary/50 rounded-lg">
-              <SearchIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-medium">Nenhum item encontrado</h3>
-              <p className="text-muted-foreground">Tente ajustar sua busca ou selecione outra categoria</p>
-            </div>
-          )}
-        </TabsContent>
+
+        {categories.map((category) => (
+          <TabsContent key={category} value={category.toLowerCase()}>
+            {filteredMenuItems.filter(item => activeCategory === 'Todos' || item.category === category).length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredMenuItems.filter(item => activeCategory === 'Todos' || item.category === category).map((item) => (
+                  <Card key={item.id} className="bg-white shadow-md rounded-md overflow-hidden">
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <CardContent className="p-4">
+                      <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
+                      <p className="text-gray-600 text-sm mb-2">{item.description}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xl font-bold text-primary">
+                          R$ {item.price.toFixed(2).replace('.', ',')}
+                        </span>
+                        <Button size="sm">Adicionar</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-lg text-gray-500">
+                  Nenhum item encontrado nesta categoria.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
-      
-      {/* Carrinho fixo na parte inferior (visível apenas se houver itens) */}
-      {cartItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4 shadow-elevation-3">
-          <div className="container flex justify-between items-center">
-            <div>
-              <div className="font-medium">{getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}</div>
-              <div className="text-xl font-semibold">R$ {getTotalPrice().toFixed(2).replace('.', ',')}</div>
-            </div>
-            <Button onClick={viewCart} size="lg">
-              Ver Carrinho
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

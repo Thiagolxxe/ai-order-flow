@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { 
   BagIcon, 
   ClockIcon,
@@ -11,8 +12,8 @@ import {
   StatsIcon,
   SearchIcon,
   AlertIcon,
+  StarIcon
 } from "@/assets/icons";
-import { Star as StarIcon } from "lucide-react";
 import { 
   Table,
   TableBody,
@@ -60,7 +61,7 @@ const MenuManagement = () => {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <Input 
+        <InputWithIcon 
           placeholder="Buscar item..." 
           className="max-w-xs"
           icon={<SearchIcon className="h-4 w-4" />}
@@ -249,7 +250,11 @@ const OrdersManagement = () => {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <Input placeholder="Buscar pedido..." className="max-w-xs" />
+        <InputWithIcon 
+          placeholder="Buscar pedido..." 
+          className="max-w-xs" 
+          icon={<SearchIcon className="h-4 w-4" />}
+        />
         <Button variant="outline">Filtrar</Button>
       </div>
 

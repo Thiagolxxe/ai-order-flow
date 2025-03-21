@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -58,13 +58,16 @@ const App = () => (
                 <Route path="/pedidos" element={<OrderHistory />} />
                 <Route path="/pedido/:id" element={<OrderDetails />} />
                 
-                {/* Novas rotas */}
+                {/* Corrigindo as rotas */}
                 <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
                 <Route path="/entregador" element={<DeliveryDashboard />} />
                 <Route path="/avaliacoes/:id?" element={<Reviews />} />
                 <Route path="/favoritos" element={<Favorites />} />
                 <Route path="/notificacoes" element={<Notifications />} />
                 <Route path="/promocoes" element={<Promotions />} />
+                
+                {/* Adicionando redirecionamentos para rotas em inglês */}
+                <Route path="/restaurants" element={<Navigate to="/restaurantes" replace />} />
                 <Route path="/restaurantes" element={<RestaurantsExplore />} />
                 <Route path="/chat/:id?" element={<Chat />} />
                 <Route path="/rastreamento/:id" element={<LiveTrackingMap />} />

@@ -16,6 +16,31 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
+  // Função para sugerir uma rota baseado na rota atual
+  const getSuggestion = (path: string) => {
+    // Mapeamento de rotas em inglês para português
+    const routeMap: Record<string, string> = {
+      '/restaurants': '/restaurantes',
+      '/orders': '/pedidos',
+      '/profile': '/perfil',
+      '/cart': '/carrinho',
+      '/checkout': '/finalizar',
+      '/register': '/cadastro',
+      '/restaurant': '/restaurante'
+    };
+
+    // Verifica se alguma das chaves é um prefixo da rota atual
+    for (const [engRoute, ptRoute] of Object.entries(routeMap)) {
+      if (path.startsWith(engRoute)) {
+        return path.replace(engRoute, ptRoute);
+      }
+    }
+
+    return null;
+  };
+
+  const suggestedRoute = getSuggestion(location.pathname);
+
   return (
     <div className="min-h-[calc(100vh-16rem)] flex items-center justify-center py-12 px-4">
       <Card className="max-w-md w-full">
@@ -28,7 +53,12 @@ const NotFound = () => {
             Oops! Página não encontrada
           </p>
           <p className="text-muted-foreground mb-8">
-            A página que você está procurando não existe ou pode ter sido movida.
+            A página {location.pathname} não existe ou pode ter sido movida.
+            {suggestedRoute && (
+              <span className="block mt-2">
+                Você quis dizer: <Link to={suggestedRoute} className="text-primary font-medium hover:underline">{suggestedRoute}</Link>?
+              </span>
+            )}
           </p>
           <div className="flex justify-center gap-4">
             <Button variant="outline" onClick={() => window.history.back()}>

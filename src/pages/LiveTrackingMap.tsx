@@ -1,193 +1,160 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  LocationIcon, 
-  DeliveryIcon, 
-  RestaurantIcon,
-  HomeIcon,
-  ChatIcon,
-  ClockIcon
-} from '@/assets/icons';
-import OrderTracker from '@/components/orders/OrderTracker';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ClockIcon, LocationIcon, SuccessIcon } from "@/assets/icons";
+
+// Fix: Leaflet marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png')
+});
 
 const LiveTrackingMap = () => {
   const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState({
-    id: id || '41293',
-    status: 'preparing' as 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered',
-    restaurant: {
-      name: 'Urban Burger Bistro',
-      address: 'Av. Paulista, 1000',
-      phone: '(11) 91234-5678'
-    },
-    customer: {
-      name: 'João Silva',
-      address: 'Rua Augusta, 500, Apto 42',
-      phone: '(11) 98765-4321'
-    },
-    delivery: {
-      name: 'Carlos Oliveira',
-      phone: '(11) 99876-5432',
-      eta: '15 minutos',
-      currentLocation: { lat: -23.562, lng: -46.655 }
-    },
-    items: [
-      { name: 'Classic Burger', quantity: 1, price: 26.90 },
-      { name: 'Batata Frita', quantity: 1, price: 14.90 },
-      { name: 'Refrigerante', quantity: 1, price: 6.90 }
-    ],
-    total: 48.70,
-    estimatedDelivery: '19:30'
-  });
+  const [order, setOrder] = useState(null);
+  const [position, setPosition] = useState([51.505, -0.09]); // Default coordinates
+  const [deliveryStatus, setDeliveryStatus] = useState('preparing'); // Default status
 
-  // Esta função seria substituída por uma chamada real a uma API de mapas
-  const renderMap = () => {
-    return (
-      <div className="relative bg-muted w-full h-[300px] md:h-[500px] rounded-lg overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <p className="text-muted-foreground text-sm">
-            Aqui seria renderizado um mapa de rastreamento em tempo real usando 
-            uma biblioteca como Google Maps, Mapbox ou Leaflet.
-          </p>
-        </div>
-        
-        {/* Marcadores de localização simplificados para demonstração */}
-        <div className="absolute left-1/4 top-1/3 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2">
-          <RestaurantIcon className="w-5 h-5" />
-        </div>
-        
-        <div className="absolute left-1/2 top-1/2 w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2">
-          <DeliveryIcon className="w-5 h-5" />
-        </div>
-        
-        <div className="absolute right-1/4 bottom-1/3 w-10 h-10 flex items-center justify-center bg-green-500 text-white rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2">
-          <HomeIcon className="w-5 h-5" />
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    // Mock order data loading
+    const mockOrder = {
+      id: id,
+      restaurantName: 'Burger Joint',
+      deliveryAddress: '123 Main St, Anytown',
+      estimatedTime: '30-40 minutes',
+      status: deliveryStatus,
+      deliveryGuy: {
+        name: 'John Doe',
+        phone: '123-456-7890',
+        location: position,
+      },
+    };
+    setOrder(mockOrder);
+
+    // Mock location updates
+    const intervalId = setInterval(() => {
+      // Simulate delivery guy moving
+      setPosition([
+        position[0] + (Math.random() - 0.5) * 0.01,
+        position[1] + (Math.random() - 0.5) * 0.01,
+      ]);
+    }, 5000);
+
+    // Mock status update
+    setTimeout(() => {
+      setDeliveryStatus('en route');
+      mockOrder.status = 'en route';
+    }, 10000);
+
+    setTimeout(() => {
+      setDeliveryStatus('arriving');
+      mockOrder.status = 'arriving';
+    }, 20000);
+
+    setTimeout(() => {
+      setDeliveryStatus('delivered');
+      mockOrder.status = 'delivered';
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [id, position, deliveryStatus]);
+
+  // Function to get status label
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'preparing': return 'Preparando';
+      case 'en route': return 'A caminho';
+      case 'arriving': return 'Chegando';
+      case 'delivered': return 'Entregue';
+      default: return status;
+    }
   };
 
+  // Function to get status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'preparing': return <ClockIcon className="h-4 w-4 mr-2" />;
+      case 'en route': return <LocationIcon className="h-4 w-4 mr-2" />;
+      case 'arriving': return <LocationIcon className="h-4 w-4 mr-2" />;
+      case 'delivered': return <SuccessIcon className="h-4 w-4 mr-2" />;
+      default: return null;
+    }
+  };
+
+  if (!order) {
+    return <div>Carregando mapa...</div>;
+  }
+
   return (
-    <div className="container py-6 space-y-6">
-      <h1 className="text-3xl font-bold">Rastreamento do Pedido #{id}</h1>
-      
-      {/* Mapa */}
-      <div className="w-full">
-        {renderMap()}
-      </div>
-      
-      {/* Rastreador de status */}
-      <OrderTracker orderId={id || '41293'} initialStatus={order.status} />
-      
-      {/* Cards de informações */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Informações do pedido */}
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-6">Rastreamento do Pedido #{order.id}</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Map */}
+        <Card className="h-[500px]">
+          <CardHeader>
+            <CardTitle>Localização do Entregador</CardTitle>
+            <CardDescription>Acompanhe em tempo real</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MapContainer center={position} zoom={13} style={{ height: '400px', width: '100%' }}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              <Marker position={position}>
+                <Popup>
+                  {order.deliveryGuy.name} está aqui!
+                </Popup>
+              </Marker>
+            </MapContainer>
+          </CardContent>
+        </Card>
+
+        {/* Order Details */}
         <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Detalhes do Pedido</h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <ClockIcon className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Hora estimada de entrega</p>
-                  <p className="font-medium">{order.estimatedDelivery}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <RestaurantIcon className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Restaurante</p>
-                  <p className="font-medium">{order.restaurant.name}</p>
-                  <p className="text-sm">{order.restaurant.address}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <HomeIcon className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Endereço de entrega</p>
-                  <p className="font-medium">{order.customer.address}</p>
-                </div>
-              </div>
-              
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-2">Itens</h3>
-                <ul className="space-y-2">
-                  {order.items.map((item, index) => (
-                    <li key={index} className="flex justify-between text-sm">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span>R$ {item.price.toFixed(2).replace('.', ',')}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex justify-between font-semibold mt-3 pt-3 border-t">
-                  <span>Total</span>
-                  <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
-                </div>
-              </div>
+          <CardHeader>
+            <CardTitle>Detalhes do Pedido</CardTitle>
+            <CardDescription>Informações sobre sua entrega</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center">
+              <span className="font-semibold w-32">Restaurante:</span>
+              <span>{order.restaurantName}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold w-32">Endereço:</span>
+              <span>{order.deliveryAddress}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold w-32">Tempo Estimado:</span>
+              <span>{order.estimatedTime}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold w-32">Entregador:</span>
+              <span>{order.deliveryGuy.name} ({order.deliveryGuy.phone})</span>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold w-32">Status:</span>
+              <span className="inline-flex items-center font-medium">
+                {getStatusIcon(order.status)}
+                {getStatusLabel(order.status)}
+              </span>
             </div>
           </CardContent>
         </Card>
-        
-        {/* Informações do entregador */}
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Entregador</h2>
-            
-            {order.status === 'out-for-delivery' || order.status === 'preparing' ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <DeliveryIcon className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{order.delivery.name}</p>
-                    <p className="text-sm text-muted-foreground">Entregador</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full">
-                    <ChatIcon className="w-4 h-4 mr-2" />
-                    Enviar Mensagem
-                  </Button>
-                  
-                  <Button variant="outline" className="w-full">
-                    Ligar para o Entregador
-                  </Button>
-                </div>
-                
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-sm text-center">
-                    O entregador chegará em aproximadamente {order.delivery.eta}
-                  </p>
-                </div>
-              </div>
-            ) : order.status === 'delivered' ? (
-              <div className="text-center py-6">
-                <SuccessIcon className="w-12 h-12 mx-auto text-green-500 mb-3" />
-                <h3 className="text-xl font-medium mb-2">Pedido Entregue!</h3>
-                <p className="text-muted-foreground">
-                  Seu pedido foi entregue com sucesso.
-                </p>
-                <Button className="mt-4">Avaliar Entrega</Button>
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <DeliveryIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium mb-2">Aguardando atribuição</h3>
-                <p className="text-muted-foreground">
-                  Assim que seu pedido estiver pronto, um entregador será designado.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <Button variant="outline" onClick={() => window.history.back()}>
+          Voltar
+        </Button>
       </div>
     </div>
   );
