@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,136 +10,134 @@ import { SearchIcon, PlusIcon, MinusIcon } from 'lucide-react';
 import MenuItemCard from '@/components/food/MenuItemCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-// Dados fictícios do restaurante (em um app real, viria de uma API)
-const mockRestaurant = {
-  id: '1',
-  name: 'Urban Burger Bistro',
-  categories: [
-    { id: 'burgers', name: 'Hambúrgueres' },
-    { id: 'sides', name: 'Acompanhamentos' },
-    { id: 'drinks', name: 'Bebidas' },
-    { id: 'desserts', name: 'Sobremesas' }
-  ]
-};
+interface Restaurant {
+  id: string;
+  nome: string;
+}
 
-// Dados fictícios dos itens do menu
-const mockMenuItems = [
-  {
-    id: '1',
-    name: 'Classic Burger',
-    description: 'Hambúrguer artesanal, queijo cheddar, alface, tomate e molho especial',
-    price: 26.90,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
-    category: 'burgers',
-    popular: true,
-    vegetarian: false,
-    spicy: false
-  },
-  {
-    id: '2',
-    name: 'Cheeseburger Bacon',
-    description: 'Hambúrguer artesanal, queijo cheddar, bacon crocante, cebola caramelizada e molho barbecue',
-    price: 32.90,
-    image: 'https://images.unsplash.com/photo-1594728553171-e93fe616108a?q=80&w=500&auto=format&fit=crop',
-    category: 'burgers',
-    popular: true,
-    vegetarian: false,
-    spicy: false
-  },
-  {
-    id: '3',
-    name: 'Vegetarian Burger',
-    description: 'Hambúrguer de grão-de-bico, queijo, rúcula, tomate seco e maionese de ervas',
-    price: 29.90,
-    image: 'https://images.unsplash.com/photo-1585238342024-78d387f4a707?q=80&w=500&auto=format&fit=crop',
-    category: 'burgers',
-    popular: false,
-    vegetarian: true,
-    spicy: false
-  },
-  {
-    id: '4',
-    name: 'Spicy Burger',
-    description: 'Hambúrguer artesanal, queijo pepper jack, pimenta jalapeño, cebola roxa e molho picante',
-    price: 34.90,
-    image: 'https://images.unsplash.com/photo-1551782450-17144efb9c50?q=80&w=500&auto=format&fit=crop',
-    category: 'burgers',
-    popular: true,
-    vegetarian: false,
-    spicy: true
-  },
-  {
-    id: '5',
-    name: 'Batata Frita',
-    description: 'Porção de batatas fritas crocantes',
-    price: 14.90,
-    image: 'https://images.unsplash.com/photo-1630384060421-cb20321727cb?q=80&w=500&auto=format&fit=crop',
-    category: 'sides',
-    popular: true,
-    vegetarian: true,
-    spicy: false
-  },
-  {
-    id: '6',
-    name: 'Onion Rings',
-    description: 'Anéis de cebola empanados e fritos',
-    price: 18.90,
-    image: 'https://images.unsplash.com/photo-1639024471283-03518883512d?q=80&w=500&auto=format&fit=crop',
-    category: 'sides',
-    popular: false,
-    vegetarian: true,
-    spicy: false
-  },
-  {
-    id: '7',
-    name: 'Refrigerante',
-    description: 'Lata 350ml (Coca-Cola, Guaraná, Sprite)',
-    price: 6.90,
-    image: 'https://images.unsplash.com/photo-1581098365948-6a5a912b7a49?q=80&w=500&auto=format&fit=crop',
-    category: 'drinks',
-    popular: false,
-    vegetarian: true,
-    spicy: false
-  },
-  {
-    id: '8',
-    name: 'Milk Shake',
-    description: 'Milk shake cremoso nos sabores chocolate, morango ou baunilha (400ml)',
-    price: 16.90,
-    image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=500&auto=format&fit=crop',
-    category: 'drinks',
-    popular: true,
-    vegetarian: true,
-    spicy: false
-  },
-  {
-    id: '9',
-    name: 'Brownie',
-    description: 'Brownie de chocolate com sorvete de baunilha',
-    price: 18.90,
-    image: 'https://images.unsplash.com/photo-1564355808539-22fda35bed7e?q=80&w=500&auto=format&fit=crop',
-    category: 'desserts',
-    popular: true,
-    vegetarian: true,
-    spicy: false
-  }
-];
+interface Category {
+  id: string;
+  nome: string;
+  descricao?: string;
+  restaurante_id: string;
+  ordem_exibicao: number;
+}
+
+interface MenuItem {
+  id: string;
+  nome: string;
+  descricao?: string;
+  preco: number;
+  imagem_url?: string;
+  categoria_id: string;
+  restaurante_id: string;
+  disponivel: boolean;
+  destaque: boolean;
+  category?: string;
+  popular?: boolean;
+  vegetarian?: boolean;
+  spicy?: boolean;
+}
+
+interface CartItem {
+  id: string;
+  quantity: number;
+}
 
 const Menu = () => {
   const { id } = useParams<{ id: string }>();
-  const [restaurant, setRestaurant] = useState(mockRestaurant);
-  const [menuItems, setMenuItems] = useState(mockMenuItems);
+  const navigate = useNavigate();
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('burgers');
-  const [cartItems, setCartItems] = useState<{ id: string, quantity: number }[]>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
+  
+  // Buscar dados do restaurante, categorias e itens do cardápio
+  useEffect(() => {
+    const fetchRestaurantData = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        
+        // Buscar detalhes do restaurante
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from('restaurantes')
+          .select('id, nome')
+          .eq('id', id)
+          .single();
+        
+        if (restaurantError) throw restaurantError;
+        
+        // Buscar categorias do cardápio
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categorias')
+          .select('*')
+          .eq('restaurante_id', id)
+          .order('ordem_exibicao', { ascending: true });
+        
+        if (categoriesError) throw categoriesError;
+        
+        // Buscar itens do cardápio
+        const { data: menuItemsData, error: menuItemsError } = await supabase
+          .from('itens_cardapio')
+          .select(`
+            *,
+            categorias (nome)
+          `)
+          .eq('restaurante_id', id)
+          .eq('disponivel', true);
+        
+        if (menuItemsError) throw menuItemsError;
+        
+        // Formatar os dados dos itens do cardápio
+        const formattedMenuItems = menuItemsData.map((item: any) => ({
+          ...item,
+          category: item.categoria_id,
+          categoryName: item.categorias?.nome || 'Sem categoria',
+          // Exemplos de atributos fictícios (em um sistema real, estes estariam no banco de dados)
+          popular: item.destaque,
+          vegetarian: false,
+          spicy: false,
+          image: item.imagem_url || `https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop`
+        }));
+        
+        setRestaurant(restaurantData);
+        setCategories(categoriesData);
+        setMenuItems(formattedMenuItems);
+        
+        // Se houver categorias, definir a primeira como ativa
+        if (categoriesData.length > 0) {
+          setActiveCategory(categoriesData[0].id);
+        }
+        
+        // Verificar se há itens no carrinho no localStorage
+        const savedCart = localStorage.getItem(`cart_${id}`);
+        if (savedCart) {
+          setCartItems(JSON.parse(savedCart));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do restaurante:', error);
+        toast.error('Não foi possível carregar o cardápio');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRestaurantData();
+  }, [id]);
   
   // Filtrar itens do menu com base na categoria e pesquisa
   const filteredItems = menuItems.filter(item =>
-    (activeCategory === 'all' || item.category === activeCategory) &&
-    (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    (activeCategory === 'all' || item.categoria_id === activeCategory) &&
+    (item.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     (item.descricao && item.descricao.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
   // Adicionar item ao carrinho
@@ -147,18 +145,23 @@ const Menu = () => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === itemId);
       
+      let newItems;
       if (existingItem) {
-        return prevItems.map(item => 
+        newItems = prevItems.map(item => 
           item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
         );
       } else {
-        return [...prevItems, { id: itemId, quantity: 1 }];
+        newItems = [...prevItems, { id: itemId, quantity: 1 }];
       }
+      
+      // Armazenar no localStorage
+      localStorage.setItem(`cart_${id}`, JSON.stringify(newItems));
+      return newItems;
     });
     
     const item = menuItems.find(item => item.id === itemId);
     if (item) {
-      toast.success(`${item.name} adicionado ao carrinho`);
+      toast.success(`${item.nome} adicionado ao carrinho`);
     }
   };
 
@@ -167,13 +170,18 @@ const Menu = () => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === itemId);
       
+      let newItems;
       if (existingItem && existingItem.quantity > 1) {
-        return prevItems.map(item => 
+        newItems = prevItems.map(item => 
           item.id === itemId ? { ...item, quantity: item.quantity - 1 } : item
         );
       } else {
-        return prevItems.filter(item => item.id !== itemId);
+        newItems = prevItems.filter(item => item.id !== itemId);
       }
+      
+      // Armazenar no localStorage
+      localStorage.setItem(`cart_${id}`, JSON.stringify(newItems));
+      return newItems;
     });
   };
 
@@ -187,7 +195,7 @@ const Menu = () => {
   const getTotalPrice = () => {
     return cartItems.reduce((total, cartItem) => {
       const item = menuItems.find(menuItem => menuItem.id === cartItem.id);
-      return total + (item ? item.price * cartItem.quantity : 0);
+      return total + (item ? item.preco * cartItem.quantity : 0);
     }, 0);
   };
 
@@ -196,11 +204,38 @@ const Menu = () => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  // Ir para a página do carrinho
+  const viewCart = () => {
+    // Salvar estado do carrinho no localStorage
+    localStorage.setItem('currentRestaurant', id || '');
+    localStorage.setItem(`cart_${id}`, JSON.stringify(cartItems));
+    
+    // Navegar para o carrinho
+    navigate('/carrinho');
+  };
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div className="h-6 bg-muted animate-pulse rounded w-1/4"></div>
+          <div className="h-10 bg-muted animate-pulse rounded w-1/3"></div>
+        </div>
+        <div className="h-12 bg-muted animate-pulse rounded mb-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((_, index) => (
+            <div key={index} className="h-40 bg-muted animate-pulse rounded"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container px-4 py-4 pb-20">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold">{restaurant.name}</h1>
+        <h1 className="text-xl font-semibold">{restaurant?.nome}</h1>
         
         {/* Barra de pesquisa */}
         <div className="relative max-w-xs w-full">
@@ -217,7 +252,6 @@ const Menu = () => {
       
       {/* Categorias */}
       <Tabs
-        defaultValue="burgers"
         value={activeCategory}
         onValueChange={setActiveCategory}
         className="mb-6"
@@ -226,13 +260,13 @@ const Menu = () => {
           <TabsTrigger value="all" className="px-3 py-1.5 text-sm">
             Todos
           </TabsTrigger>
-          {restaurant.categories.map(category => (
+          {categories.map(category => (
             <TabsTrigger 
               key={category.id} 
               value={category.id}
               className="px-3 py-1.5 text-sm whitespace-nowrap"
             >
-              {category.name}
+              {category.nome}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -243,7 +277,17 @@ const Menu = () => {
             {filteredItems.map(item => (
               <MenuItemCard 
                 key={item.id}
-                item={item}
+                item={{
+                  id: item.id,
+                  name: item.nome,
+                  description: item.descricao || '',
+                  price: item.preco,
+                  image: item.imagem_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
+                  category: item.categoryName,
+                  popular: item.destaque,
+                  vegetarian: item.vegetarian || false,
+                  spicy: item.spicy || false
+                }}
                 quantity={getItemQuantity(item.id)}
                 onAdd={() => addToCart(item.id)}
                 onRemove={() => removeFromCart(item.id)}
@@ -269,8 +313,8 @@ const Menu = () => {
               <div className="font-medium">{getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}</div>
               <div className="text-xl font-semibold">R$ {getTotalPrice().toFixed(2).replace('.', ',')}</div>
             </div>
-            <Button asChild size="lg">
-              <a href="/carrinho">Ver Carrinho</a>
+            <Button onClick={viewCart} size="lg">
+              Ver Carrinho
             </Button>
           </div>
         </div>

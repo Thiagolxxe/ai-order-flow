@@ -9,73 +9,200 @@ import { ArrowLeftIcon, TrashIcon, MinusIcon, PlusIcon, PercentIcon, ShoppingBag
 import { toast } from 'sonner';
 import CartItemCard from '@/components/food/CartItemCard';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 
-// Dados de exemplo do carrinho (em um app real, isso viria do estado global ou localStorage)
-const initialCartItems = [
-  {
-    id: '1',
-    name: 'Classic Burger',
-    price: 26.90,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
-    quantity: 2
-  },
-  {
-    id: '5',
-    name: 'Batata Frita',
-    price: 14.90,
-    image: 'https://images.unsplash.com/photo-1630384060421-cb20321727cb?q=80&w=500&auto=format&fit=crop',
-    quantity: 1
-  },
-  {
-    id: '8',
-    name: 'Milk Shake',
-    price: 16.90,
-    image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=500&auto=format&fit=crop',
-    quantity: 1
-  }
-];
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
+interface Restaurant {
+  id: string;
+  nome: string;
+  taxa_entrega: number;
+}
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
+  // Carregar dados do carrinho do localStorage
+  useEffect(() => {
+    const loadCartData = async () => {
+      try {
+        setLoading(true);
+        
+        // Obter o ID do restaurante atual
+        const restaurantId = localStorage.getItem('currentRestaurant');
+        if (!restaurantId) {
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Obter os itens do carrinho
+        const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+        if (!savedCart) {
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+        
+        const parsedCart: { id: string; quantity: number }[] = JSON.parse(savedCart);
+        if (parsedCart.length === 0) {
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Buscar detalhes do restaurante
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from('restaurantes')
+          .select('id, nome, taxa_entrega')
+          .eq('id', restaurantId)
+          .single();
+        
+        if (restaurantError) throw restaurantError;
+        
+        // Buscar detalhes dos itens do cardápio
+        const itemIds = parsedCart.map(item => item.id);
+        const { data: menuItemsData, error: menuItemsError } = await supabase
+          .from('itens_cardapio')
+          .select('id, nome, preco, imagem_url')
+          .in('id', itemIds);
+        
+        if (menuItemsError) throw menuItemsError;
+        
+        // Montar os itens do carrinho com os detalhes
+        const cartItemsWithDetails = parsedCart.map(cartItem => {
+          const menuItem = menuItemsData.find(mi => mi.id === cartItem.id);
+          return {
+            id: cartItem.id,
+            name: menuItem?.nome || 'Item não encontrado',
+            price: menuItem?.preco || 0,
+            image: menuItem?.imagem_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
+            quantity: cartItem.quantity
+          };
+        });
+        
+        setRestaurant(restaurantData);
+        setCartItems(cartItemsWithDetails);
+      } catch (error) {
+        console.error('Erro ao carregar dados do carrinho:', error);
+        toast.error('Não foi possível carregar os dados do carrinho');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCartData();
+  }, []);
+  
   // Aumentar quantidade
   const increaseQuantity = (itemId: string) => {
-    setCartItems(prevItems => 
-      prevItems.map(item => 
+    setCartItems(prevItems => {
+      const updatedItems = prevItems.map(item => 
         item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
+      );
+      
+      // Atualizar localStorage
+      if (restaurant) {
+        const simplifiedItems = updatedItems.map(({ id, quantity }) => ({ id, quantity }));
+        localStorage.setItem(`cart_${restaurant.id}`, JSON.stringify(simplifiedItems));
+      }
+      
+      return updatedItems;
+    });
   };
   
   // Diminuir quantidade
   const decreaseQuantity = (itemId: string) => {
-    setCartItems(prevItems => 
-      prevItems.map(item => 
+    setCartItems(prevItems => {
+      const updatedItems = prevItems.map(item => 
         item.id === itemId && item.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : item
-      )
-    );
+      );
+      
+      // Atualizar localStorage
+      if (restaurant) {
+        const simplifiedItems = updatedItems.map(({ id, quantity }) => ({ id, quantity }));
+        localStorage.setItem(`cart_${restaurant.id}`, JSON.stringify(simplifiedItems));
+      }
+      
+      return updatedItems;
+    });
   };
   
   // Remover item
   const removeItem = (itemId: string) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    setCartItems(prevItems => {
+      const updatedItems = prevItems.filter(item => item.id !== itemId);
+      
+      // Atualizar localStorage
+      if (restaurant) {
+        const simplifiedItems = updatedItems.map(({ id, quantity }) => ({ id, quantity }));
+        localStorage.setItem(`cart_${restaurant.id}`, JSON.stringify(simplifiedItems));
+      }
+      
+      return updatedItems;
+    });
     toast.success('Item removido do carrinho');
   };
   
   // Aplicar cupom
-  const applyCoupon = () => {
-    if (couponCode.toLowerCase() === 'desc10') {
-      setDiscount(10);
-      toast.success('Cupom aplicado: 10% de desconto');
-    } else if (couponCode.toLowerCase() === 'desc20') {
-      setDiscount(20);
-      toast.success('Cupom aplicado: 20% de desconto');
-    } else {
-      toast.error('Cupom inválido');
+  const applyCoupon = async () => {
+    if (!couponCode) return;
+    
+    try {
+      // Verificar se o cupom existe e é válido
+      const { data: promoData, error: promoError } = await supabase
+        .from('promocoes')
+        .select('*')
+        .eq('codigo', couponCode.toUpperCase())
+        .eq('ativo', true)
+        .lte('data_inicio', new Date().toISOString())
+        .gte('data_fim', new Date().toISOString())
+        .maybeSingle();
+      
+      if (promoError) throw promoError;
+      
+      if (!promoData) {
+        toast.error('Cupom inválido ou expirado');
+        return;
+      }
+      
+      // Verificar se o cupom é para o restaurante atual
+      if (promoData.restaurante_id && promoData.restaurante_id !== restaurant?.id) {
+        toast.error('Este cupom não é válido para este restaurante');
+        return;
+      }
+      
+      // Verificar se o valor mínimo do pedido é suficiente
+      if (promoData.valor_pedido_minimo > 0 && promoData.valor_pedido_minimo > subtotal) {
+        toast.error(`Valor mínimo para este cupom: R$${promoData.valor_pedido_minimo.toFixed(2).replace('.', ',')}`);
+        return;
+      }
+      
+      // Aplicar desconto
+      if (promoData.tipo === 'percentual') {
+        setDiscount(promoData.valor);
+        toast.success(`Cupom aplicado: ${promoData.valor}% de desconto`);
+      } else {
+        // Para descontos de valor fixo, calculamos o equivalente em percentual para simplificar
+        const percentDiscount = (promoData.valor / subtotal) * 100;
+        setDiscount(percentDiscount);
+        toast.success(`Cupom aplicado: R$${promoData.valor.toFixed(2).replace('.', ',')} de desconto`);
+      }
+    } catch (error) {
+      console.error('Erro ao aplicar cupom:', error);
+      toast.error('Não foi possível aplicar o cupom');
     }
   };
   
@@ -86,7 +213,7 @@ const Cart = () => {
   const discountValue = (subtotal * discount) / 100;
   
   // Calcular taxa de entrega
-  const deliveryFee = subtotal > 0 ? 6.90 : 0;
+  const deliveryFee = restaurant ? restaurant.taxa_entrega : 0;
   
   // Calcular total
   const total = subtotal - discountValue + deliveryFee;
@@ -99,9 +226,37 @@ const Cart = () => {
     if (isCartEmpty) {
       toast.error('Adicione itens ao carrinho para continuar');
     } else {
+      // Salvar dados do pedido para o checkout
+      localStorage.setItem('checkout_data', JSON.stringify({
+        restaurantId: restaurant?.id,
+        items: cartItems,
+        subtotal,
+        discount,
+        discountValue,
+        deliveryFee,
+        total
+      }));
+      
       navigate('/finalizar');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8">
+        <div className="h-8 bg-muted animate-pulse rounded mb-6 w-1/3"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="h-40 bg-muted animate-pulse rounded mb-4"></div>
+            <div className="h-40 bg-muted animate-pulse rounded"></div>
+          </div>
+          <div>
+            <div className="h-60 bg-muted animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container px-4 py-6 pb-20">
@@ -131,7 +286,7 @@ const Cart = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-6">
-                <h2 className="font-medium mb-4 text-lg">Itens do Pedido</h2>
+                <h2 className="font-medium mb-4 text-lg">{restaurant?.nome} - Itens do Pedido</h2>
                 
                 <div className="space-y-4">
                   {cartItems.map(item => (
@@ -212,7 +367,7 @@ const Cart = () => {
                   className="w-full mt-2" 
                   asChild
                 >
-                  <Link to="/">Adicionar mais itens</Link>
+                  <Link to={`/restaurante/${restaurant?.id}/menu`}>Adicionar mais itens</Link>
                 </Button>
               </CardContent>
             </Card>

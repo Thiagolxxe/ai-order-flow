@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +11,8 @@ import {
   StatsIcon,
   SearchIcon,
   AlertIcon,
-  SuccessIcon
 } from "@/assets/icons";
+import { Star as StarIcon } from "lucide-react";
 import { 
   Table,
   TableBody,

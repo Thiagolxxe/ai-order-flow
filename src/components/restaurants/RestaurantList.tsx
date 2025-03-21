@@ -1,79 +1,25 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RestaurantCard from './RestaurantCard';
 import { cn } from '@/lib/utils';
 import { SearchIcon, RestaurantIcon } from '@/assets/icons';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Dados de exemplo de restaurantes
-const restaurants = [
-  {
-    id: '1',
-    name: 'Urban Burger Bistro',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Hambúrgueres, Americana',
-    rating: 4.8,
-    deliveryTime: '20-35 min',
-    minOrder: 'R$25',
-    featured: true,
-    isNew: false,
-  },
-  {
-    id: '2',
-    name: 'Sake Sushi House',
-    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Japonesa, Sushi',
-    rating: 4.9,
-    deliveryTime: '25-40 min',
-    minOrder: 'R$30',
-    featured: false,
-    isNew: true,
-  },
-  {
-    id: '3',
-    name: 'Pasta Paradise',
-    image: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Italiana, Massas',
-    rating: 4.5,
-    deliveryTime: '30-45 min',
-    minOrder: 'R$28',
-    featured: false,
-    isNew: false,
-  },
-  {
-    id: '4',
-    name: 'Taco Fiesta',
-    image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Mexicana, Tacos',
-    rating: 4.6,
-    deliveryTime: '15-30 min',
-    minOrder: 'R$20',
-    featured: true,
-    isNew: false,
-  },
-  {
-    id: '5',
-    name: 'Green Bowl',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Saudável, Saladas',
-    rating: 4.7,
-    deliveryTime: '15-25 min',
-    minOrder: 'R$22',
-    featured: false,
-    isNew: true,
-  },
-  {
-    id: '6',
-    name: 'Spice of India',
-    image: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?q=80&w=1600&auto=format&fit=crop',
-    cuisine: 'Indiana, Curry',
-    rating: 4.4,
-    deliveryTime: '35-50 min',
-    minOrder: 'R$35',
-    featured: false,
-    isNew: false,
-  }
-];
+interface Restaurant {
+  id: string;
+  nome: string;
+  logo_url: string;
+  banner_url?: string;
+  tipo_cozinha: string;
+  taxa_entrega: number;
+  valor_pedido_minimo: number;
+  tempo_entrega_estimado: number;
+  faixa_preco: number;
+  featured?: boolean;
+  isNew?: boolean;
+}
 
 // Filtros de categorias
 const cuisineFilters = [
@@ -98,22 +44,64 @@ interface RestaurantListProps {
 const RestaurantList = ({
   title = 'Restaurantes Próximos de Você',
   subtitle,
-  maxItems = restaurants.length,
+  maxItems = 100,
   showFilters = true,
   showSearch = true,
   className
 }: RestaurantListProps) => {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Buscar restaurantes do Supabase
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('restaurantes')
+          .select('*')
+          .eq('ativo', true);
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Transformar dados para o formato esperado pelo componente
+        const formattedData = data.map(restaurant => ({
+          id: restaurant.id,
+          nome: restaurant.nome,
+          logo_url: restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop',
+          tipo_cozinha: restaurant.tipo_cozinha,
+          taxa_entrega: restaurant.taxa_entrega || 0,
+          valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
+          tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
+          faixa_preco: restaurant.faixa_preco || 2,
+          featured: Math.random() > 0.7, // Exemplo: alguns restaurantes são destacados aleatoriamente
+          isNew: (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
+        }));
+        
+        setRestaurants(formattedData);
+      } catch (error) {
+        console.error('Erro ao buscar restaurantes:', error);
+        toast.error('Não foi possível carregar os restaurantes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRestaurants();
+  }, []);
   
   // Filtrar restaurantes com base no filtro ativo e consulta de pesquisa
   const filteredRestaurants = restaurants
     .filter(restaurant => 
-      activeFilter === 'Todos' || restaurant.cuisine.includes(activeFilter)
+      activeFilter === 'Todos' || restaurant.tipo_cozinha.includes(activeFilter)
     )
     .filter(restaurant =>
-      restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+      restaurant.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      restaurant.tipo_cozinha.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .slice(0, maxItems);
   
@@ -165,12 +153,26 @@ const RestaurantList = ({
       )}
       
       {/* Grade de restaurantes */}
-      {filteredRestaurants.length > 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((_, index) => (
+            <div key={index} className="h-72 rounded-xl bg-muted animate-pulse"></div>
+          ))}
+        </div>
+      ) : filteredRestaurants.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRestaurants.map(restaurant => (
             <RestaurantCard
               key={restaurant.id}
-              {...restaurant}
+              id={restaurant.id}
+              name={restaurant.nome}
+              image={restaurant.logo_url}
+              cuisine={restaurant.tipo_cozinha}
+              rating={4.5 + Math.random() * 0.5} // Exemplo: rating aleatório entre 4.5 e 5.0
+              deliveryTime={`${restaurant.tempo_entrega_estimado-10}-${restaurant.tempo_entrega_estimado} min`}
+              minOrder={`R$${restaurant.valor_pedido_minimo.toFixed(2).replace('.', ',')}`}
+              featured={restaurant.featured}
+              isNew={restaurant.isNew}
             />
           ))}
         </div>

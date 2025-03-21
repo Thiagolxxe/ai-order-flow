@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,59 +13,250 @@ import { ArrowLeftIcon, CreditCard, BanknoteIcon, QrCode as QrCodeIcon, CheckIco
 import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 
-// Exemplo de dados do pedido
-const orderSummary = {
-  subtotal: 68.70,
-  discount: 6.87,
-  deliveryFee: 6.90,
-  total: 68.73
-};
+interface CheckoutData {
+  restaurantId: string;
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  discountValue: number;
+  deliveryFee: number;
+  total: number;
+}
 
-// Exemplo de endereços
-const addresses = [
-  {
-    id: '1',
-    label: 'Casa',
-    street: 'Av. Paulista, 1578',
-    complement: 'Apto 202',
-    neighborhood: 'Bela Vista',
-    city: 'São Paulo',
-    state: 'SP',
-    zipcode: '01310-200'
-  },
-  {
-    id: '2',
-    label: 'Trabalho',
-    street: 'Rua Augusta, 1234',
-    complement: 'Sala 45',
-    neighborhood: 'Consolação',
-    city: 'São Paulo',
-    state: 'SP',
-    zipcode: '01304-001'
-  }
-];
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
+interface Address {
+  id: string;
+  label: string;
+  street: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipcode: string;
+}
 
 const Checkout = () => {
-  const [selectedAddress, setSelectedAddress] = useState('1');
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedPayment, setSelectedPayment] = useState('credit');
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isAuthenticated } = useUser();
+  const [loading, setLoading] = useState(true);
+  
+  // Formulário de endereço para usuários não autenticados
+  const [street, setStreet] = useState('');
+  const [complement, setComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipcode, setZipcode] = useState('');
+  
+  const { user, isAuthenticated } = useUser();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
+  // Carregar dados do checkout e endereços do usuário
+  useEffect(() => {
+    const loadCheckoutData = async () => {
+      try {
+        setLoading(true);
+        
+        // Obter dados do checkout
+        const savedCheckoutData = localStorage.getItem('checkout_data');
+        if (!savedCheckoutData) {
+          toast.error('Dados do pedido não encontrados');
+          navigate('/carrinho');
+          return;
+        }
+        
+        const parsedCheckoutData = JSON.parse(savedCheckoutData);
+        setCheckoutData(parsedCheckoutData);
+        
+        // Buscar endereços do usuário se autenticado
+        if (isAuthenticated && user) {
+          const { data, error } = await supabase
+            .from('enderecos')
+            .select('*')
+            .eq('usuario_id', user.id)
+            .order('criado_em', { ascending: false });
+          
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            const formattedAddresses = data.map(addr => ({
+              id: addr.id,
+              label: addr.label || 'Endereço',
+              street: addr.endereco,
+              complement: addr.complemento,
+              neighborhood: addr.bairro,
+              city: addr.cidade,
+              state: addr.estado,
+              zipcode: addr.cep
+            }));
+            
+            setAddresses(formattedAddresses);
+            setSelectedAddress(formattedAddresses[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do checkout:', error);
+        toast.error('Não foi possível carregar os dados do pedido');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCheckoutData();
+  }, [isAuthenticated, user, navigate]);
+  
   // Processar o pedido
-  const processOrder = () => {
+  const processOrder = async () => {
+    if (!checkoutData) {
+      toast.error('Dados do pedido não encontrados');
+      return;
+    }
+    
     setIsProcessing(true);
     
-    // Simulação de processamento de pedido
-    setTimeout(() => {
-      setIsProcessing(false);
-      navigate('/pedido/12345');
+    try {
+      // Validar endereço
+      let enderecoEntrega, cidadeEntrega, estadoEntrega, cepEntrega;
+      
+      if (isAuthenticated && selectedAddress) {
+        const address = addresses.find(addr => addr.id === selectedAddress);
+        if (!address) {
+          toast.error('Selecione um endereço válido');
+          setIsProcessing(false);
+          return;
+        }
+        
+        enderecoEntrega = `${address.street}, ${address.complement || ''} - ${address.neighborhood}`;
+        cidadeEntrega = address.city;
+        estadoEntrega = address.state;
+        cepEntrega = address.zipcode;
+      } else {
+        // Validar campos de endereço para usuários não autenticados
+        if (!street || !neighborhood || !city || !state || !zipcode) {
+          toast.error('Preencha o endereço completo para entrega');
+          setIsProcessing(false);
+          return;
+        }
+        
+        enderecoEntrega = `${street}, ${complement || ''} - ${neighborhood}`;
+        cidadeEntrega = city;
+        estadoEntrega = state;
+        cepEntrega = zipcode;
+      }
+      
+      // Gerar número de pedido
+      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
+      
+      // Criar o pedido no banco de dados
+      const { data: orderData, error: orderError } = await supabase
+        .from('pedidos')
+        .insert({
+          restaurante_id: checkoutData.restaurantId,
+          cliente_id: user?.id,
+          subtotal: checkoutData.subtotal,
+          taxa_entrega: checkoutData.deliveryFee,
+          taxa_servico: 0,
+          imposto: 0,
+          gorjeta: 0,
+          total: checkoutData.total,
+          metodo_pagamento: selectedPayment,
+          numero_pedido: orderNumber.toString(),
+          status_pagamento: selectedPayment === 'pix' ? 'pendente' : 'aprovado',
+          status: 'pendente',
+          endereco_entrega: enderecoEntrega,
+          cidade_entrega: cidadeEntrega,
+          estado_entrega: estadoEntrega,
+          cep_entrega: cepEntrega,
+          instrucoes_entrega: notes
+        })
+        .select()
+        .single();
+      
+      if (orderError) throw orderError;
+      
+      // Criar os itens do pedido
+      const orderItems = checkoutData.items.map(item => ({
+        pedido_id: orderData.id,
+        item_cardapio_id: item.id,
+        nome_item_cardapio: item.name,
+        quantidade: item.quantity,
+        preco_unitario: item.price,
+        preco_total: item.price * item.quantity
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('itens_pedido')
+        .insert(orderItems);
+      
+      if (itemsError) throw itemsError;
+      
+      // Adicionar entrada ao histórico de status
+      const { error: historyError } = await supabase
+        .from('historico_status_pedido')
+        .insert({
+          pedido_id: orderData.id,
+          status: 'pendente',
+          observacoes: 'Pedido recebido'
+        });
+      
+      if (historyError) throw historyError;
+      
+      // Limpar dados do carrinho
+      localStorage.removeItem('checkout_data');
+      localStorage.removeItem(`cart_${checkoutData.restaurantId}`);
+      
+      // Redirecionar para a página de detalhes do pedido
       toast.success('Pedido realizado com sucesso!');
-    }, 2000);
+      navigate(`/pedido/${orderData.id}`);
+    } catch (error) {
+      console.error('Erro ao processar pedido:', error);
+      toast.error('Não foi possível processar o pedido');
+      setIsProcessing(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8">
+        <div className="h-8 bg-muted animate-pulse rounded mb-6 w-1/3"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-60 bg-muted animate-pulse rounded"></div>
+            <div className="h-60 bg-muted animate-pulse rounded"></div>
+          </div>
+          <div>
+            <div className="h-80 bg-muted animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!checkoutData) {
+    return (
+      <div className="container px-4 py-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Dados do pedido não encontrados</h2>
+        <p className="mb-6">Volte para o carrinho e tente novamente.</p>
+        <Button asChild>
+          <Link to="/carrinho">Voltar para o carrinho</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container px-4 py-6 pb-20">
@@ -87,9 +278,9 @@ const Checkout = () => {
             <CardContent className="p-6">
               <h2 className="font-medium mb-4 text-lg">Endereço de Entrega</h2>
               
-              {isAuthenticated ? (
+              {isAuthenticated && addresses.length > 0 ? (
                 <RadioGroup 
-                  defaultValue={selectedAddress}
+                  value={selectedAddress}
                   onValueChange={setSelectedAddress}
                   className="space-y-3"
                 >
@@ -106,7 +297,7 @@ const Checkout = () => {
                             <CheckIcon className="h-4 w-4 text-primary" />
                           )}
                         </Label>
-                        <p className="text-sm text-foreground/70 mt-1">{address.street}, {address.complement}</p>
+                        <p className="text-sm text-foreground/70 mt-1">{address.street}, {address.complement || ''}</p>
                         <p className="text-sm text-foreground/70">{address.neighborhood}, {address.city} - {address.state}</p>
                         <p className="text-sm text-foreground/70">CEP: {address.zipcode}</p>
                       </div>
@@ -118,39 +309,77 @@ const Checkout = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <Label htmlFor="street">Rua/Avenida</Label>
-                      <Input id="street" placeholder="Ex: Av. Paulista, 1578" />
+                      <Input 
+                        id="street" 
+                        placeholder="Ex: Av. Paulista, 1578" 
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="complement">Complemento</Label>
-                      <Input id="complement" placeholder="Ex: Apto 202" />
+                      <Input 
+                        id="complement" 
+                        placeholder="Ex: Apto 202" 
+                        value={complement}
+                        onChange={(e) => setComplement(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <Label htmlFor="neighborhood">Bairro</Label>
-                      <Input id="neighborhood" placeholder="Ex: Bela Vista" />
+                      <Input 
+                        id="neighborhood" 
+                        placeholder="Ex: Bela Vista" 
+                        value={neighborhood}
+                        onChange={(e) => setNeighborhood(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="zipcode">CEP</Label>
-                      <Input id="zipcode" placeholder="Ex: 01310-200" />
+                      <Input 
+                        id="zipcode" 
+                        placeholder="Ex: 01310-200" 
+                        value={zipcode}
+                        onChange={(e) => setZipcode(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label htmlFor="city">Cidade</Label>
-                      <Input id="city" placeholder="Ex: São Paulo" />
+                      <Input 
+                        id="city" 
+                        placeholder="Ex: São Paulo" 
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="state">Estado</Label>
-                      <Input id="state" placeholder="Ex: SP" />
+                      <Input 
+                        id="state" 
+                        placeholder="Ex: SP" 
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
               )}
               
-              <Button variant="link" className="mt-3 h-8 p-0">
-                {isAuthenticated ? '+ Adicionar novo endereço' : 'Fazer login para usar endereços salvos'}
-              </Button>
+              {isAuthenticated ? (
+                <Button variant="link" className="mt-3 h-8 p-0">
+                  + Adicionar novo endereço
+                </Button>
+              ) : (
+                <Button variant="link" className="mt-3 h-8 p-0" asChild>
+                  <Link to="/login?redirect=/finalizar">
+                    Fazer login para usar endereços salvos
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
           
@@ -248,14 +477,12 @@ const Checkout = () => {
               
               {/* Itens do pedido */}
               <div className="mb-4">
-                <div className="flex justify-between mb-2">
-                  <span>2x Classic Burger</span>
-                  <span>R$ 53,80</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>1x Batata Frita</span>
-                  <span>R$ 14,90</span>
-                </div>
+                {checkoutData.items.map(item => (
+                  <div key={item.id} className="flex justify-between mb-2">
+                    <span>{item.quantity}x {item.name}</span>
+                    <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                ))}
               </div>
               
               <Separator className="my-4" />
@@ -264,24 +491,26 @@ const Checkout = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-foreground/70">Subtotal</span>
-                  <span>R$ {orderSummary.subtotal.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {checkoutData.subtotal.toFixed(2).replace('.', ',')}</span>
                 </div>
                 
-                <div className="flex justify-between text-green-600">
-                  <span>Desconto (10%)</span>
-                  <span>- R$ {orderSummary.discount.toFixed(2).replace('.', ',')}</span>
-                </div>
+                {checkoutData.discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Desconto ({checkoutData.discount}%)</span>
+                    <span>- R$ {checkoutData.discountValue.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
                 
                 <div className="flex justify-between">
                   <span className="text-foreground/70">Taxa de Entrega</span>
-                  <span>R$ {orderSummary.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {checkoutData.deliveryFee.toFixed(2).replace('.', ',')}</span>
                 </div>
                 
                 <Separator className="my-3" />
                 
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>R$ {orderSummary.total.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {checkoutData.total.toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>
               
