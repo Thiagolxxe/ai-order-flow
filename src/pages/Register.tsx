@@ -20,7 +20,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { setIsAuthenticated, setUserRole } = useUser();
+  const { setIsAuthenticated, setUserRole, setUser } = useUser();
   const navigate = useNavigate();
   
   const handleRegister = async (e: React.FormEvent) => {
@@ -69,6 +69,10 @@ const Register = () => {
       
       setIsAuthenticated(true);
       setUserRole('customer');
+      if (data.user) {
+        setUser({ id: data.user.id });
+      }
+      
       toast.success('Cadastro realizado com sucesso!');
       navigate('/');
     } catch (error: any) {

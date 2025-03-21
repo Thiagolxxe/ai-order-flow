@@ -32,6 +32,8 @@ export interface UserContextType {
   markNotificationAsRead: (id: string) => void;
   toggleFavorite: (restaurant: { id: string, name: string, image: string }) => void;
   isFavorite: (restaurantId: string) => boolean;
+  user: { id: string } | null;
+  setUser: (user: { id: string } | null) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -41,6 +43,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [user, setUser] = useState<{ id: string } | null>(null);
 
   // Função para adicionar notificação
   const addNotification = (notification: Omit<Notification, 'id' | 'date'>) => {
@@ -96,7 +99,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         addNotification,
         markNotificationAsRead,
         toggleFavorite,
-        isFavorite
+        isFavorite,
+        user,
+        setUser
       }}
     >
       {children}

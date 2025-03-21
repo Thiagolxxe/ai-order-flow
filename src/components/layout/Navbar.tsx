@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -162,7 +161,7 @@ const Navbar = () => {
                 <Link to="/login">Entrar</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">Cadastrar</Link>
+                <Link to="/cadastro">Cadastrar</Link>
               </Button>
             </div>
           )}
@@ -208,7 +207,7 @@ const Navbar = () => {
                   <Link to="/login">Entrar</Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link to="/signup">Cadastrar</Link>
+                  <Link to="/cadastro">Cadastrar</Link>
                 </Button>
               </div>
             )}

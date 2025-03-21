@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import HeroSection from '@/components/ui/HeroSection';
@@ -221,7 +220,7 @@ const Index = () => {
                 <a href="/restaurants">Explorar Restaurantes</a>
               </Button>
               <Button size="lg" asChild className="bg-white text-primary hover:bg-white/90">
-                <a href="/signup">Cadastre-se Agora</a>
+                <a href="/cadastro">Cadastre-se Agora</a>
               </Button>
             </div>
           </div>
