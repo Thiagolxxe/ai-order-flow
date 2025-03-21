@@ -1,103 +1,84 @@
-
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { HeroSection } from '@/components/ui/HeroSection';
-import RestaurantList from '@/components/restaurants/RestaurantList';
-import SuperUserCreator from '@/components/admin/SuperUserCreator';
+import { Button } from "@/components/ui/button";
+
+// Update the import to use the correct component
+import HeroSection from "@/components/ui/HeroSection";
 
 const Index = () => {
   return (
     <div>
-      <HeroSection 
-        title="Delicie-se com suas comidas favoritas"
-        subtitle="Descubra os melhores restaurantes da sua região e peça com apenas alguns cliques"
+      {/* Hero Section */}
+      <HeroSection
+        title="Descubra os melhores restaurantes perto de você"
+        subtitle="Entrega rápida e segura, com opções para todos os gostos"
         ctaText="Explorar Restaurantes"
         ctaLink="/restaurantes"
-        imageSrc="https://images.unsplash.com/photo-1565299507177-b0ac66763828?q=80&w=1664&auto=format&fit=crop"
+        imageSrc="/placeholder.svg"
       />
-      
-      <div className="container py-16">
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-center mb-4">Por que escolher o DeliverAI?</h2>
-          <p className="text-lg text-center text-muted-foreground max-w-3xl mx-auto">
-            Nosso sistema inteligente de delivery traz uma experiência única para você e os restaurantes parceiros
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+
+      {/* Featured Restaurants Section (Example) */}
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-8">Restaurantes em Destaque</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Example Restaurant Card */}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
+                <p className="text-gray-600">Tipo de Cozinha</p>
+                <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
+                  Ver Menu
+                </Link>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Entrega Rápida</h3>
-              <p className="text-muted-foreground">
-                Entregas otimizadas com IA para garantir que sua comida chegue quentinha e no menor tempo possível.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+            </div>
+            {/* End Example Restaurant Card */}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
+                <p className="text-gray-600">Tipo de Cozinha</p>
+                <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
+                  Ver Menu
+                </Link>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Pedidos Personalizados</h3>
-              <p className="text-muted-foreground">
-                Personalize seus pedidos com facilidade e adicione observações especiais para cada item do seu pedido.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+            </div>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
+                <p className="text-gray-600">Tipo de Cozinha</p>
+                <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
+                  Ver Menu
+                </Link>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Suporte Inteligente</h3>
-              <p className="text-muted-foreground">
-                Assistente virtual disponível 24/7 para resolver suas dúvidas e garantir a melhor experiência.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      
-      <div className="bg-muted py-16">
-        <div className="container">
-          <RestaurantList 
-            title="Restaurantes em Destaque"
-            subtitle="Os melhores lugares para pedir hoje"
-            maxItems={6}
-            showFilters={false}
-          />
-          
-          <div className="mt-8 text-center">
-            <Button asChild size="lg">
-              <Link to="/restaurantes">Ver Todos os Restaurantes</Link>
+            </div>
+          </div>
+          <div className="text-center mt-8">
+            <Button asChild>
+              <Link to="/restaurantes">Explorar Mais Restaurantes</Link>
             </Button>
           </div>
         </div>
-      </div>
-      
-      <div className="container py-16">
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-center mb-4">Criar Super Usuário</h2>
-          <p className="text-lg text-center text-muted-foreground max-w-3xl mx-auto">
-            Crie um super usuário para testar todas as funcionalidades do sistema
+      </section>
+
+      {/* Call to Action Section (Example) */}
+      <section className="py-12 bg-primary text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Pronto para pedir?
+          </h2>
+          <p className="text-lg mb-8">
+            Encontre seus pratos favoritos e aproveite a entrega rápida e fácil.
           </p>
+          <Button variant="secondary" size="lg" asChild>
+            <Link to="/restaurantes">
+              Começar a Explorar
+            </Link>
+          </Button>
         </div>
-        
-        <SuperUserCreator />
-      </div>
+      </section>
     </div>
   );
 };

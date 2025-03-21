@@ -95,7 +95,7 @@ const RestaurantList = ({ restaurants }: { restaurants: Restaurant[] }) => {
   );
 };
 
-// Componente de filtros
+// Componente de filtros - Fixed SelectItem components with empty values
 const FilterSection = ({ 
   onFilterChange 
 }: { 
@@ -120,7 +120,7 @@ const FilterSection = ({
           <SelectValue placeholder="Tipo de Cozinha" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
           <SelectItem value="brasileira">Brasileira</SelectItem>
           <SelectItem value="italiana">Italiana</SelectItem>
           <SelectItem value="japonesa">Japonesa</SelectItem>
@@ -134,7 +134,7 @@ const FilterSection = ({
           <SelectValue placeholder="Faixa de Preço" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
           <SelectItem value="1">$ (Econômico)</SelectItem>
           <SelectItem value="2">$$ (Moderado)</SelectItem>
           <SelectItem value="3">$$$ (Premium)</SelectItem>

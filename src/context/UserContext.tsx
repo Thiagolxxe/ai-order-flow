@@ -1,741 +1,431 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { AddressType, UserRole, Notification, mapDbAddressToAddressType, mapDbNotificationToNotification } from '@/integrations/supabase/custom-types';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from "react";
+import {
+  Session,
+  useSession,
+  useSupabaseClient,
+} from "@supabase/auth-helpers-react";
+import { useRouter } from "next/navigation";
+import {
+  AddressType,
+  NotificationType,
+  UserRole,
+} from "@/integrations/supabase/custom-types";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserContextType {
-  user: User | null;
-  session: Session | null;
-  userId: string | null;
   isAuthenticated: boolean;
-  userRole: UserRole;
+  user: any | null;
+  session: Session | null;
+  role: UserRole | null;
+  addresses: AddressType[] | null;
+  notifications: NotificationType[] | null;
   isLoading: boolean;
-  addresses: AddressType[];
-  defaultAddress: AddressType | null;
-  notifications: Notification[];
-  favorites: string[];
-  login: (email: string, password: string) => Promise<{ error: any }>;
-  logout: () => Promise<{ error: any }>;
-  signup: (email: string, password: string, userData: any) => Promise<{ error: any, data: any }>;
-  updateProfile: (data: any) => Promise<{ error: any }>;
-  refreshUser: () => Promise<void>;
-  setUserRole: (role: UserRole) => void;
-  loadAddresses: () => Promise<void>;
-  addAddress: (address: Omit<AddressType, 'id'>) => Promise<{ error: any, data: any }>;
-  updateAddress: (address: AddressType) => Promise<{ error: any }>;
-  deleteAddress: (addressId: string) => Promise<{ error: any }>;
-  setDefaultAddress: (addressId: string) => Promise<{ error: any }>;
-  createSuperUser: () => Promise<{ error: any, data: any }>;
-  markNotificationAsRead: (id: string) => void;
-  toggleFavorite: (restaurantId: string) => Promise<void>;
+  signIn: (provider: "google" | "github") => Promise<any>;
+  signOut: () => Promise<boolean>;
+  fetchAddresses: () => Promise<void>;
+  setDefaultAddress: (addressId: string) => Promise<void>;
+  addAddress: (
+    address: Omit<AddressType, "id" | "usuario_id" | "criado_em">
+  ) => Promise<{ data: any; error: any }>;
+  updateAddress: (address: AddressType) => Promise<{ data: any; error: any }>;
+  deleteAddress: (addressId: string) => Promise<void>;
+  fetchNotifications: () => Promise<void>;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [addresses, setAddresses] = useState<AddressType[]>([]);
-  const [defaultAddress, setDefaultAddress] = useState<AddressType | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const { toast } = useToast();
+interface Props {
+  children: ReactNode;
+}
 
-  // Inicialização e controle da sessão
+export const UserProvider: React.FC<Props> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [addresses, setAddresses] = useState<AddressType[] | null>(null);
+  const [notifications, setNotifications] = useState<NotificationType[] | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const session = useSession();
+  const supabaseClient = useSupabaseClient();
+  // const router = useRouter();
+
   useEffect(() => {
-    // Primeiro configuramos o listener para mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setUserId(session?.user?.id ?? null);
-        if (session?.user) {
-          await fetchUserRole(session.user.id);
-          await loadAddresses();
-          await loadNotifications();
-          await loadFavorites();
-        } else {
-          setUserRole(null);
-          setAddresses([]);
-          setDefaultAddress(null);
-          setNotifications([]);
-          setFavorites([]);
-        }
-      }
-    );
+    const fetchSession = async () => {
+      setIsLoading(true);
+      const {
+        data: { user: supaUser },
+      } = await supabaseClient.auth.getUser();
 
-    // Depois verificamos se já existe uma sessão
-    const initSession = async () => {
-      try {
-        setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        setUserId(session?.user?.id ?? null);
-        
-        if (session?.user) {
-          await fetchUserRole(session.user.id);
-          await loadAddresses();
-          await loadNotifications();
-          await loadFavorites();
-        }
-      } catch (error) {
-        console.error('Erro ao inicializar sessão:', error);
-      } finally {
-        setIsLoading(false);
+      if (supaUser) {
+        setUser(supaUser);
+        setIsAuthenticated(true);
+        await fetchUserProfile(supaUser.id);
+        await fetchAddresses();
+        await fetchNotifications();
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        setRole(null);
+        setAddresses(null);
+        setNotifications(null);
       }
+      setIsLoading(false);
     };
 
-    initSession();
+    fetchSession();
+  }, [session, supabaseClient]);
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const signIn = async (provider: "google" | "github") => {
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}`,
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer login",
+        description: error.message,
+        variant: "destructive",
+      });
+      console.error("Erro ao fazer login:", error);
+    }
+  };
 
-  // Buscar função do usuário (cliente, restaurante, entregador)
-  const fetchUserRole = async (userId: string) => {
+  const signOut = async (): Promise<boolean> => {
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      setIsAuthenticated(false);
+      setRole(null);
+      setAddresses(null);
+      setNotifications(null);
+      // router.push('/login');
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer logout",
+        description: error.message,
+        variant: "destructive",
+      });
+      console.error("Erro ao fazer logout:", error);
+      return false;
+    }
+  };
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (profileError) {
+        console.error("Erro ao buscar perfil:", profileError);
+        setRole("guest");
+        return;
+      }
+
+      setRole(profile?.role || "guest");
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+      setRole("guest");
+    }
+  };
+
+  const fetchAddresses = async () => {
     try {
       const { data, error } = await supabase
-        .from('funcoes_usuario')
-        .select('funcao')
-        .eq('usuario_id', userId)
+        .from("enderecos")
+        .select("*")
+        .eq("usuario_id", user?.id);
+
+      if (error) {
+        console.error("Erro ao buscar endereços:", error);
+        return { data: null, error };
+      }
+
+      return { data: data.map((address: any) => ({
+        id: address.id,
+        usuario_id: address.usuario_id,
+        label: address.label,
+        endereco: address.endereco,
+        complemento: address.complemento,
+        bairro: address.bairro,
+        cidade: address.cidade,
+        estado: address.estado,
+        cep: address.cep,
+        isdefault: address.isdefault,  // Changed to lowercase
+        criado_em: address.criado_em
+      })), error: null };
+    } catch (error) {
+      console.error("Erro ao buscar endereços:", error);
+      return { data: null, error };
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchAddresses()
+        .then((result) => {
+          if (result?.data) {
+            setAddresses(result.data);
+          }
+        })
+        .catch((error) => {
+          console.error("Erro ao buscar endereços:", error);
+        });
+    }
+  }, [user?.id]);
+
+  const setDefaultAddressInternal = async (addressId: string) => {
+    try {
+      // First, update all user addresses to set isdefault to false
+      const { error: updateError } = await supabase
+        .from("enderecos")
+        .update({ isdefault: false })  // Changed to lowercase
+        .eq("usuario_id", user?.id);
+
+      if (updateError) {
+        console.error("Erro ao atualizar endereços:", updateError);
+        return { error: updateError };
+      }
+
+      // Then, set the selected address as default
+      const { error: setDefaultError } = await supabase
+        .from("enderecos")
+        .update({ isdefault: true })  // Changed to lowercase
+        .eq("id", addressId);
+
+      if (setDefaultError) {
+        console.error("Erro ao definir endereço padrão:", setDefaultError);
+        return { error: setDefaultError };
+      }
+
+      // Update addresses in state
+      await fetchAddresses();
+      return { error: null };
+    } catch (error) {
+      console.error("Erro ao definir endereço padrão:", error);
+      return { error };
+    }
+  };
+
+  const setDefaultAddress = async (addressId: string): Promise<void> => {
+    const { error } = await setDefaultAddressInternal(addressId);
+    if (error) {
+      toast({
+        title: "Erro ao definir endereço padrão",
+        description: "Não foi possível definir o endereço como padrão.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Endereço padrão definido",
+        description: "O endereço foi definido como padrão com sucesso.",
+      });
+    }
+  };
+
+  const addAddress = async (address: Omit<AddressType, "id" | "usuario_id" | "criado_em">) => {
+    try {
+      // Check if this is the first address
+      const { data: existingAddresses } = await supabase
+        .from("enderecos")
+        .select("id")
+        .eq("usuario_id", user?.id);
+
+      // If no addresses exist, set this one as default
+      const isFirst = !existingAddresses || existingAddresses.length === 0;
+
+      const { data, error } = await supabase
+        .from("enderecos")
+        .insert({
+          ...address,
+          usuario_id: user?.id,
+          isdefault: isFirst || address.isdefault  // Changed to lowercase
+        })
+        .select()
         .single();
 
       if (error) {
-        console.error('Erro ao buscar função do usuário:', error);
-        return;
+        console.error("Erro ao adicionar endereço:", error);
+        return { data: null, error };
       }
 
-      setUserRole(data?.funcao as UserRole || 'cliente');
+      // If this address is set as default, update other addresses
+      if (address.isdefault && !isFirst) {
+        await supabase
+          .from("enderecos")
+          .update({ isdefault: false })  // Changed to lowercase
+          .neq("id", data.id)
+          .eq("usuario_id", user?.id);
+      }
+
+      // Update addresses in state
+      await fetchAddresses();
+      return { data, error: null };
     } catch (error) {
-      console.error('Erro ao buscar função do usuário:', error);
+      console.error("Erro ao adicionar endereço:", error);
+      return { data: null, error };
     }
   };
 
-  // Login de usuário
-  const login = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Erro no login",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Bem-vindo de volta!",
-      });
-
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro no login",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Logout de usuário
-  const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        toast({
-          title: "Erro ao sair",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Logout realizado com sucesso",
-        description: "Até logo!",
-      });
-
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao sair",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Cadastro de usuário
-  const signup = async (email: string, password: string, userData: any) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            nome: userData.nome,
-            sobrenome: userData.sobrenome,
-          },
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Erro no cadastro",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error, data: null };
-      }
-
-      toast({
-        title: "Cadastro realizado com sucesso",
-        description: "Seja bem-vindo ao DeliverAI!",
-      });
-
-      return { error: null, data };
-    } catch (error: any) {
-      toast({
-        title: "Erro no cadastro",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error, data: null };
-    }
-  };
-
-  // Atualizar perfil
-  const updateProfile = async (profileData: any) => {
-    try {
-      if (!user) return { error: new Error('Usuário não autenticado') };
-
-      const { error } = await supabase
-        .from('perfis')
-        .update(profileData)
-        .eq('id', user.id);
-
-      if (error) {
-        toast({
-          title: "Erro ao atualizar perfil",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram atualizadas com sucesso!",
-      });
-
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Recarregar dados do usuário
-  const refreshUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        await fetchUserRole(user.id);
-        await loadAddresses();
-        await loadNotifications();
-        await loadFavorites();
-      }
-    } catch (error) {
-      console.error('Erro ao recarregar dados do usuário:', error);
-    }
-  };
-
-  // Carregar endereços do usuário
-  const loadAddresses = async () => {
-    try {
-      if (!user) return;
-
-      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
-      const { data, error } = await supabase
-        .from('enderecos')
-        .select('*')
-        .eq('usuario_id', user.id)
-        .order('isDefault', { ascending: false });
-
-      if (error) {
-        console.error('Erro ao carregar endereços:', error);
-        return;
-      }
-
-      const formattedAddresses: AddressType[] = data.map(addr => mapDbAddressToAddressType(addr));
-
-      setAddresses(formattedAddresses);
-      
-      const defaultAddr = formattedAddresses.find(addr => addr.isDefault) || null;
-      setDefaultAddress(defaultAddr);
-    } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
-    }
-  };
-
-  // Adicionar endereço
-  const addAddress = async (address: Omit<AddressType, 'id'>) => {
-    try {
-      if (!user) return { error: new Error('Usuário não autenticado'), data: null };
-
-      // Se for o primeiro endereço ou marcado como padrão, atualiza todos os outros como não padrão
-      if (address.isDefault || addresses.length === 0) {
-        if (addresses.length > 0) {
-          await supabase
-            .from('enderecos')
-            .update({ isDefault: false })
-            .eq('usuario_id', user.id);
-        }
-      }
-
-      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
-      const { data, error } = await supabase
-        .from('enderecos')
-        .insert({
-          ...address,
-          usuario_id: user.id,
-          isDefault: address.isDefault || addresses.length === 0 // Se for o primeiro endereço, marca como padrão
-        })
-        .select();
-
-      if (error) {
-        toast({
-          title: "Erro ao adicionar endereço",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error, data: null };
-      }
-
-      toast({
-        title: "Endereço adicionado",
-        description: "Seu endereço foi adicionado com sucesso!",
-      });
-
-      // Recarrega os endereços
-      await loadAddresses();
-      return { error: null, data };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao adicionar endereço",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error, data: null };
-    }
-  };
-
-  // Atualizar endereço
   const updateAddress = async (address: AddressType) => {
     try {
-      if (!user) return { error: new Error('Usuário não autenticado') };
-
-      // Se estiver marcando como padrão, atualiza todos os outros como não padrão
-      if (address.isDefault) {
-        await supabase
-          .from('enderecos')
-          .update({ isDefault: false })
-          .eq('usuario_id', user.id)
-          .neq('id', address.id);
-      }
-
-      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
-      const { error } = await supabase
-        .from('enderecos')
-        .update(address)
-        .eq('id', address.id)
-        .eq('usuario_id', user.id);
-
-      if (error) {
-        toast({
-          title: "Erro ao atualizar endereço",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Endereço atualizado",
-        description: "Seu endereço foi atualizado com sucesso!",
-      });
-
-      // Recarrega os endereços
-      await loadAddresses();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar endereço",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Excluir endereço
-  const deleteAddress = async (addressId: string) => {
-    try {
-      if (!user) return { error: new Error('Usuário não autenticado') };
-
-      // Verifica se está excluindo o endereço padrão
-      const isDefaultAddress = addresses.find(addr => addr.id === addressId)?.isDefault;
-
-      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
-      const { error } = await supabase
-        .from('enderecos')
-        .delete()
-        .eq('id', addressId)
-        .eq('usuario_id', user.id);
-
-      if (error) {
-        toast({
-          title: "Erro ao excluir endereço",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      // Se excluiu o endereço padrão e ainda há outros endereços, define o primeiro como padrão
-      if (isDefaultAddress && addresses.length > 1) {
-        const nextDefaultAddress = addresses.find(addr => addr.id !== addressId);
-        if (nextDefaultAddress) {
-          await setDefaultAddressFunction(nextDefaultAddress.id);
-        }
-      }
-
-      toast({
-        title: "Endereço excluído",
-        description: "Seu endereço foi removido com sucesso!",
-      });
-
-      // Recarrega os endereços
-      await loadAddresses();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao excluir endereço",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Definir endereço padrão
-  const setDefaultAddressFunction = async (addressId: string) => {
-    try {
-      if (!user) return { error: new Error('Usuário não autenticado') };
-
-      // Primeiro, marca todos os endereços como não padrão
-      await supabase
-        .from('enderecos')
-        .update({ isDefault: false })
-        .eq('usuario_id', user.id);
-
-      // Em seguida, marca o endereço selecionado como padrão
-      const { error } = await supabase
-        .from('enderecos')
-        .update({ isDefault: true })
-        .eq('id', addressId)
-        .eq('usuario_id', user.id);
-
-      if (error) {
-        toast({
-          title: "Erro ao definir endereço padrão",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Endereço padrão definido",
-        description: "Seu endereço padrão foi atualizado com sucesso!",
-      });
-
-      // Recarrega os endereços
-      await loadAddresses();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao definir endereço padrão",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  // Carregar notificações
-  const loadNotifications = async () => {
-    try {
-      if (!user) return;
-
       const { data, error } = await supabase
-        .from('notificacoes')
-        .select('*')
-        .eq('usuario_id', user.id)
-        .order('data', { ascending: false });
+        .from("enderecos")
+        .update({
+          ...address,
+        })
+        .eq("id", address.id)
+        .select()
+        .single();
 
       if (error) {
-        console.error('Erro ao carregar notificações:', error);
-        return;
+        console.error("Erro ao atualizar endereço:", error);
+        return { data: null, error };
       }
 
-      const formattedNotifications: Notification[] = data.map(notif => ({
-        id: notif.id,
-        type: notif.tipo as 'order' | 'promo' | 'system',
-        title: notif.titulo,
-        message: notif.mensagem,
-        read: notif.lida,
-        date: notif.data
-      }));
-
-      setNotifications(formattedNotifications);
+      // Update addresses in state
+      await fetchAddresses();
+      return { data, error: null };
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
+      console.error("Erro ao atualizar endereço:", error);
+      return { data: null, error };
     }
   };
 
-  // Marcar notificação como lida
-  const markNotificationAsRead = async (id: string) => {
+  const deleteAddress = async (addressId: string): Promise<void> => {
     try {
-      if (!user) return;
-
       const { error } = await supabase
-        .from('notificacoes')
-        .update({ lida: true })
-        .eq('id', id)
-        .eq('usuario_id', user.id);
+        .from("enderecos")
+        .delete()
+        .eq("id", addressId);
 
       if (error) {
-        console.error('Erro ao marcar notificação como lida:', error);
+        console.error("Erro ao remover endereço:", error);
+        toast({
+          title: "Erro ao remover endereço",
+          description: "Não foi possível remover o endereço.",
+          variant: "destructive",
+        });
         return;
       }
 
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === id ? { ...notif, read: true } : notif
-        )
+      // Update addresses in state
+      await fetchAddresses();
+      toast({
+        title: "Endereço removido",
+        description: "O endereço foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao remover endereço:", error);
+      toast({
+        title: "Erro ao remover endereço",
+        description: "Não foi possível remover o endereço.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("notificacoes")
+        .select("*")
+        .eq("usuario_id", user?.id)
+        .order("criado_em", { ascending: false });
+
+      if (error) {
+        console.error("Erro ao buscar notificações:", error);
+        setNotifications([]);
+        return;
+      }
+
+      // Ensure the data structure matches NotificationType
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar notificações:", error);
+      setNotifications([]);
+    }
+  };
+
+  const markNotificationAsRead = async (
+    notificationId: string
+  ): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from("notificacoes")
+        .update({ lida: true })
+        .eq("id", notificationId);
+
+      if (error) {
+        console.error("Erro ao marcar notificação como lida:", error);
+        toast({
+          title: "Erro ao marcar notificação como lida",
+          description: "Não foi possível marcar a notificação como lida.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update notifications in state
+      setNotifications(
+        notifications?.map((notification) =>
+          notification.id === notificationId ? { ...notification, lida: true } : notification
+        ) || null
       );
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
-    }
-  };
-
-  // Carregar favoritos
-  const loadFavorites = async () => {
-    try {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('favoritos')
-        .select('restaurante_id')
-        .eq('usuario_id', user.id);
-
-      if (error) {
-        console.error('Erro ao carregar favoritos:', error);
-        return;
-      }
-
-      setFavorites(data.map(fav => fav.restaurante_id));
-    } catch (error) {
-      console.error('Erro ao carregar favoritos:', error);
-    }
-  };
-
-  // Alternar favorito (adicionar/remover)
-  const toggleFavorite = async (restaurantId: string) => {
-    try {
-      if (!user) return;
-
-      const isFavorite = favorites.includes(restaurantId);
-
-      if (isFavorite) {
-        // Remover dos favoritos
-        const { error } = await supabase
-          .from('favoritos')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('restaurante_id', restaurantId);
-
-        if (error) {
-          console.error('Erro ao remover favorito:', error);
-          return;
-        }
-
-        setFavorites(prev => prev.filter(id => id !== restaurantId));
-        toast({
-          title: "Removido dos favoritos",
-          description: "Restaurante removido dos seus favoritos!",
-        });
-      } else {
-        // Adicionar aos favoritos
-        const { error } = await supabase
-          .from('favoritos')
-          .insert({
-            usuario_id: user.id,
-            restaurante_id: restaurantId
-          });
-
-        if (error) {
-          console.error('Erro ao adicionar favorito:', error);
-          return;
-        }
-
-        setFavorites(prev => [...prev, restaurantId]);
-        toast({
-          title: "Adicionado aos favoritos",
-          description: "Restaurante adicionado aos seus favoritos!",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao alternar favorito:', error);
-    }
-  };
-
-  // Criar usuário superadmin para testes
-  const createSuperUser = async () => {
-    try {
-      // Cria um novo usuário com email superuser@teste.com
-      const { data, error } = await supabase.auth.signUp({
-        email: 'superuser@teste.com',
-        password: 'SuperUser123!',
-        options: {
-          data: {
-            nome: 'Super',
-            sobrenome: 'Admin',
-          },
-        },
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: "Usuário já existe",
-            description: "O super usuário já foi criado. Você pode fazer login com superuser@teste.com e senha SuperUser123!",
-          });
-          return { error: null, data: { email: 'superuser@teste.com', password: 'SuperUser123!' } };
-        }
-        
-        toast({
-          title: "Erro ao criar super usuário",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error, data: null };
-      }
-
-      // Adiciona todas as funções possíveis para o usuário
-      if (data.user) {
-        const userId = data.user.id;
-        
-        // Adiciona todas as funções
-        const roles: UserRole[] = ['cliente', 'restaurante', 'entregador', 'admin'];
-        
-        for (const role of roles) {
-          if (role) { // Evitar o caso de null
-            await supabase
-              .from('funcoes_usuario')
-              .insert({
-                usuario_id: userId,
-                funcao: role,
-              });
-          }
-        }
-      }
-
+      console.error("Erro ao marcar notificação como lida:", error);
       toast({
-        title: "Super usuário criado com sucesso",
-        description: "Email: superuser@teste.com, Senha: SuperUser123!",
-      });
-
-      return { 
-        error: null, 
-        data: { 
-          email: 'superuser@teste.com', 
-          password: 'SuperUser123!',
-          roles: ['cliente', 'restaurante', 'entregador', 'admin']
-        } 
-      };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar super usuário",
-        description: error.message,
+        title: "Erro ao marcar notificação como lida",
+        description: "Não foi possível marcar a notificação como lida.",
         variant: "destructive",
       });
-      return { error, data: null };
     }
   };
 
-  const contextValue: UserContextType = {
+  const value: UserContextType = {
+    isAuthenticated,
     user,
     session,
-    userId,
-    isAuthenticated: !!user,
-    userRole,
-    isLoading,
+    role,
     addresses,
-    defaultAddress,
     notifications,
-    favorites,
-    login,
-    logout,
-    signup,
-    updateProfile,
-    refreshUser,
-    setUserRole,
-    loadAddresses,
+    isLoading,
+    signIn,
+    signOut,
+    fetchAddresses,
+    setDefaultAddress,
     addAddress,
     updateAddress,
     deleteAddress,
-    setDefaultAddress: setDefaultAddressFunction,
-    createSuperUser,
+    fetchNotifications,
     markNotificationAsRead,
-    toggleFavorite
   };
 
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 };
-
-export type { UserRole, AddressType, Notification };
