@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, BagIcon, InboxIcon } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, ShoppingBag, Inbox as InboxIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Status dos pedidos

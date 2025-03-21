@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftIcon, User, MapPin, CreditCard, Edit2Icon, PlusIcon, LogOutIcon } from 'lucide-react';
+import { ArrowLeftIcon, User, MapPin, CreditCard, Edit2Icon, PlusIcon, LogOutIcon, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -132,7 +132,7 @@ const UserProfile = () => {
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/pedidos">
-                    <BagIcon className="mr-2 h-4 w-4" />
+                    <ShoppingBag className="mr-2 h-4 w-4" />
                     Meus Pedidos
                   </Link>
                 </Button>
@@ -168,7 +168,7 @@ const UserProfile = () => {
               </TabsTrigger>
               <TabsTrigger value="orders" asChild>
                 <Link to="/pedidos">
-                  <BagIcon className="h-4 w-4" />
+                  <ShoppingBag className="h-4 w-4" />
                 </Link>
               </TabsTrigger>
             </TabsList>
