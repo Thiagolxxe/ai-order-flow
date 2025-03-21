@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -22,7 +23,7 @@ const Register = () => {
   const { setIsAuthenticated, setUserRole } = useUser();
   const navigate = useNavigate();
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validar formulário
@@ -43,14 +44,39 @@ const Register = () => {
     
     setIsLoading(true);
     
-    // Simulação de cadastro
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Separar nome e sobrenome
+      const nameParts = name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      // Registrar usuário no Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nome: firstName,
+            sobrenome: lastName,
+            telefone: phone
+          }
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       setIsAuthenticated(true);
       setUserRole('customer');
       toast.success('Cadastro realizado com sucesso!');
       navigate('/');
-    }, 1500);
+    } catch (error: any) {
+      console.error('Erro ao cadastrar:', error);
+      toast.error(error.message || 'Erro ao cadastrar. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
