@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Expandindo os tipos de papéis de usuário
 export type UserRole = 'customer' | 'restaurant' | 'delivery' | 'admin' | 'guest';
 
-// Adicionando tipos para notificações e favoritos
+// Adicionando tipos para notificações, favoritos e endereços
 export interface Notification {
   id: string;
   type: 'order' | 'promo' | 'system';
@@ -21,6 +21,18 @@ export interface Favorite {
   restaurantImage: string;
 }
 
+export interface Address {
+  id: string;
+  label: string;
+  endereco: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  isDefault: boolean;
+}
+
 export interface UserContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
@@ -28,12 +40,18 @@ export interface UserContextType {
   setIsAuthenticated: (value: boolean) => void;
   notifications: Notification[];
   favorites: Favorite[];
+  addresses: Address[];
   addNotification: (notification: Omit<Notification, 'id' | 'date'>) => void;
   markNotificationAsRead: (id: string) => void;
   toggleFavorite: (restaurant: { id: string, name: string, image: string }) => void;
   isFavorite: (restaurantId: string) => boolean;
   user: { id: string } | null;
   setUser: (user: { id: string } | null) => void;
+  addAddress: (address: Omit<Address, 'id' | 'isDefault'>) => void;
+  removeAddress: (id: string) => void;
+  updateAddress: (id: string, address: Partial<Omit<Address, 'id'>>) => void;
+  setDefaultAddress: (id: string) => void;
+  getDefaultAddress: () => Address | undefined;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -43,6 +61,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [user, setUser] = useState<{ id: string } | null>(null);
 
   // Função para adicionar notificação
@@ -87,6 +106,51 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return favorites.some(fav => fav.restaurantId === restaurantId);
   };
 
+  // Funções para endereços
+  const addAddress = (address: Omit<Address, 'id' | 'isDefault'>) => {
+    const newAddress: Address = {
+      ...address,
+      id: Math.random().toString(36).substring(7),
+      isDefault: addresses.length === 0 // Primeiro endereço é o padrão
+    };
+    
+    setAddresses(prev => [...prev, newAddress]);
+    return newAddress;
+  };
+
+  const removeAddress = (id: string) => {
+    const addressToRemove = addresses.find(addr => addr.id === id);
+    
+    setAddresses(prev => {
+      const filtered = prev.filter(addr => addr.id !== id);
+      
+      // Se o endereço removido era o padrão, defina um novo padrão
+      if (addressToRemove?.isDefault && filtered.length > 0) {
+        return filtered.map((addr, index) => 
+          index === 0 ? { ...addr, isDefault: true } : addr
+        );
+      }
+      
+      return filtered;
+    });
+  };
+
+  const updateAddress = (id: string, addressUpdate: Partial<Omit<Address, 'id'>>) => {
+    setAddresses(prev => 
+      prev.map(addr => addr.id === id ? { ...addr, ...addressUpdate } : addr)
+    );
+  };
+
+  const setDefaultAddress = (id: string) => {
+    setAddresses(prev => 
+      prev.map(addr => ({ ...addr, isDefault: addr.id === id }))
+    );
+  };
+
+  const getDefaultAddress = (): Address | undefined => {
+    return addresses.find(addr => addr.isDefault);
+  };
+
   return (
     <UserContext.Provider 
       value={{ 
@@ -96,12 +160,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated,
         notifications,
         favorites,
+        addresses,
         addNotification,
         markNotificationAsRead,
         toggleFavorite,
         isFavorite,
         user,
-        setUser
+        setUser,
+        addAddress,
+        removeAddress,
+        updateAddress,
+        setDefaultAddress,
+        getDefaultAddress
       }}
     >
       {children}

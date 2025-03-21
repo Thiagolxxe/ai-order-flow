@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MinusIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import { MinusIcon, PlusIcon, Trash as TrashIcon } from 'lucide-react';
 
 interface CartItem {
   id: string;

@@ -4,7 +4,7 @@ import {
   ShoppingBag, Utensils, Truck, User, MessageSquare, Clock, Home, 
   BarChart, Package, MapPin, Search, ChevronRight, 
   CheckCircle, AlertCircle, Menu as MenuIcon, X, Bell,
-  Star, Send, MapPin as Location
+  Star, Send, MapPin as Location, Heart as HeartIcon
 } from 'lucide-react';
 
 // Exportando ícones Lucide que usaremos
@@ -28,7 +28,8 @@ export {
   Bell as NotificationIcon,
   Star as StarIcon,
   Send as SendIcon,
-  Location
+  Location,
+  HeartIcon
 };
 
 // Podemos adicionar ícones SVG personalizados aqui conforme necessário
