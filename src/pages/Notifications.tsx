@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -90,6 +90,16 @@ const NotificationItem = ({
 const Notifications = () => {
   const { notifications, markNotificationAsRead } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [localNotifications, setLocalNotifications] = useState<Notification[]>([]);
+
+  // Inicializar com mockNotifications se ainda não tiver notificações do contexto
+  useEffect(() => {
+    if (notifications.length === 0) {
+      setLocalNotifications(mockNotifications);
+    } else {
+      setLocalNotifications(notifications);
+    }
+  }, [notifications]);
 
   // Exemplo de notificações para demonstração
   const mockNotifications: Notification[] = [
@@ -126,18 +136,14 @@ const Notifications = () => {
       date: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(), // 1 dia e 1 hora atrás
     },
   ];
-
-  // Usar as notificações do mock para demonstração
-  // Em uma aplicação real, usaríamos as notificações do contexto
-  const allNotifications = mockNotifications;
   
   // Filtrar notificações com base na aba ativa
   const filteredNotifications = activeTab === 'all' 
-    ? allNotifications 
-    : allNotifications.filter(n => !n.read);
+    ? localNotifications 
+    : localNotifications.filter(n => !n.read);
 
   // Obter contagem de não lidas
-  const unreadCount = allNotifications.filter(n => !n.read).length;
+  const unreadCount = localNotifications.filter(n => !n.read).length;
 
   // Marcar todas as notificações como lidas
   const markAllAsRead = () => {
@@ -146,6 +152,23 @@ const Notifications = () => {
         markNotificationAsRead(notification.id);
       }
     });
+    
+    // Atualizar o estado local também
+    setLocalNotifications(prev => 
+      prev.map(notif => ({ ...notif, read: true }))
+    );
+  };
+  
+  // Handler local para marcar como lida
+  const handleMarkAsRead = (id: string) => {
+    markNotificationAsRead(id);
+    
+    // Atualizar o estado local também
+    setLocalNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, read: true } : notif
+      )
+    );
   };
 
   return (
@@ -181,7 +204,7 @@ const Notifications = () => {
             <NotificationItem
               key={notification.id}
               notification={notification}
-              onMarkAsRead={markNotificationAsRead}
+              onMarkAsRead={handleMarkAsRead}
             />
           ))}
         </div>

@@ -1,72 +1,61 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { SearchIcon, ArrowRightIcon } from '@/assets/icons';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button } from './button';
+import { Link } from 'react-router-dom';
 
-interface HeroSectionProps {
+export interface HeroSectionProps {
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaLink: string;
+  imageSrc: string;
   className?: string;
+  imageClassName?: string;
+  contentClassName?: string;
 }
 
-const HeroSection = ({ className }: HeroSectionProps) => {
+const HeroSection = ({
+  title,
+  subtitle,
+  ctaText,
+  ctaLink,
+  imageSrc,
+  className,
+  imageClassName,
+  contentClassName
+}: HeroSectionProps) => {
   return (
-    <div className={cn('relative overflow-hidden', className)}>
-      {/* Fundo com sobreposição de desfoque */}
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-background to-background -z-10">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-20" />
-      </div>
-      
-      <div className="container mx-auto px-4 py-24 md:py-32">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center rounded-full border bg-background/50 backdrop-blur-sm px-3 py-1 text-sm font-medium mb-6 animate-fade-in">
-            <span className="bg-primary/20 text-primary rounded-full w-6 h-6 inline-flex items-center justify-center mr-2">
-              <AIIcon />
-            </span>
-            Impulsionado por IA para entregas mais inteligentes
+    <div className={cn(
+      'relative overflow-hidden bg-background py-10 md:py-16',
+      className
+    )}>
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div className={cn(
+            'flex flex-col space-y-6 text-center md:text-left',
+            contentClassName
+          )}>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
+            <p className="text-xl text-muted-foreground">{subtitle}</p>
+            
+            <div className="flex justify-center md:justify-start">
+              <Button size="lg" asChild>
+                <Link to={ctaLink}>{ctaText}</Link>
+              </Button>
+            </div>
           </div>
           
-          {/* Título principal */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            Entrega Inteligente de Comida <br className="hidden md:inline" />
-            para o Mundo Moderno
-          </h1>
-          
-          {/* Subtítulo */}
-          <p className="text-xl text-foreground/80 mb-10 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            O DeliverAI conecta você aos seus restaurantes favoritos <br className="hidden md:inline" />
-            com entrega otimizada por IA e serviço excepcional.
-          </p>
-          
-          {/* Caixa de pesquisa */}
-          <div className="flex flex-col sm:flex-row items-center max-w-xl mx-auto gap-3 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <div className="relative w-full">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground/40 w-5 h-5" />
-              <Input 
-                type="text"
-                placeholder="Digite seu endereço"
-                className="pl-10 h-12 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm shadow-sm"
+          <div className="order-first md:order-last">
+            <div className={cn(
+              'aspect-video rounded-xl overflow-hidden shadow-lg',
+              imageClassName
+            )}>
+              <img 
+                src={imageSrc} 
+                alt="Hero" 
+                className="w-full h-full object-cover" 
               />
-            </div>
-            <Button size="lg" className="w-full sm:w-auto">
-              Encontrar Restaurantes <ArrowRightIcon className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
-          
-          {/* Estatísticas */}
-          <div className="grid grid-cols-3 gap-6 max-w-xl mx-auto mt-16 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <div>
-              <p className="text-3xl font-bold">300+</p>
-              <p className="text-sm text-foreground/60">Restaurantes</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">15K+</p>
-              <p className="text-sm text-foreground/60">Entregas</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">98%</p>
-              <p className="text-sm text-foreground/60">Satisfação</p>
             </div>
           </div>
         </div>
@@ -75,26 +64,4 @@ const HeroSection = ({ className }: HeroSectionProps) => {
   );
 };
 
-// Pequeno ícone de IA para o badge
-const AIIcon = () => (
-  <svg 
-    width="14" 
-    height="14" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="3" width="5" height="5" rx="1" />
-    <rect x="16" y="3" width="5" height="5" rx="1" />
-    <rect x="3" y="16" width="5" height="5" rx="1" />
-    <rect x="16" y="16" width="5" height="5" rx="1" />
-    <path d="M8 9v2h8V9" />
-    <path d="M16 15h-3v6l-5-6h-1" />
-    <path d="M8.3 10A5 5 0 0 1 11 6" />
-  </svg>
-);
-
-export default HeroSection;
+export { HeroSection };

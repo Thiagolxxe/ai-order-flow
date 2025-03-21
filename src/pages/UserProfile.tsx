@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,7 +64,8 @@ const UserProfile = () => {
     email: userData.email,
     phone: userData.phone
   });
-  const { setIsAuthenticated, setUserRole } = useUser();
+  const navigate = useNavigate();
+  const { logout } = useUser();
   const isMobile = useIsMobile();
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,10 +79,18 @@ const UserProfile = () => {
     toast.success('Perfil atualizado com sucesso!');
   };
   
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole('guest');
-    toast.success('Logout realizado com sucesso!');
+  const handleLogout = async () => {
+    try {
+      const { error } = await logout();
+      
+      if (error) {
+        throw error;
+      }
+      
+      navigate('/');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao fazer logout. Por favor, tente novamente.');
+    }
   };
 
   return (

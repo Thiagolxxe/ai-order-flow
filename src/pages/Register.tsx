@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
-import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -20,7 +19,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { setIsAuthenticated, setUserRole, setUser } = useUser();
+  const { signup } = useUser();
   const navigate = useNavigate();
   
   const handleRegister = async (e: React.FormEvent) => {
@@ -50,27 +49,15 @@ const Register = () => {
       const firstName = nameParts[0];
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       
-      // Registrar usuário no Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            nome: firstName,
-            sobrenome: lastName,
-            telefone: phone
-          }
-        }
+      // Registrar usuário
+      const { error, data } = await signup(email, password, {
+        nome: firstName,
+        sobrenome: lastName,
+        telefone: phone
       });
       
       if (error) {
         throw error;
-      }
-      
-      setIsAuthenticated(true);
-      setUserRole('customer');
-      if (data.user) {
-        setUser({ id: data.user.id });
       }
       
       toast.success('Cadastro realizado com sucesso!');

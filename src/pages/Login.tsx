@@ -14,10 +14,10 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { setIsAuthenticated, setUserRole } = useUser();
+  const { login } = useUser();
   const navigate = useNavigate();
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -27,14 +27,20 @@ const Login = () => {
     
     setIsLoading(true);
     
-    // Simulação de autenticação
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsAuthenticated(true);
-      setUserRole('customer');
+    try {
+      const { error } = await login(email, password);
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success('Login realizado com sucesso!');
       navigate('/');
-    }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (

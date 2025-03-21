@@ -5,9 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 // Tipos de funções de usuário
-type UserRole = 'cliente' | 'restaurante' | 'entregador' | 'admin' | null;
+export type UserRole = 'cliente' | 'restaurante' | 'entregador' | 'admin' | null;
 
-type AddressType = {
+export type AddressType = {
   id: string;
   label: string;
   endereco: string;
@@ -19,6 +19,15 @@ type AddressType = {
   isDefault: boolean;
 };
 
+export type Notification = {
+  id: string;
+  type: 'order' | 'promo' | 'system'; // Alinhado com o enum do banco de dados
+  title: string;
+  message: string;
+  read: boolean;
+  date: string;
+};
+
 interface UserContextType {
   user: User | null;
   session: Session | null;
@@ -28,6 +37,7 @@ interface UserContextType {
   isLoading: boolean;
   addresses: AddressType[];
   defaultAddress: AddressType | null;
+  notifications: Notification[];
   login: (email: string, password: string) => Promise<{ error: any }>;
   logout: () => Promise<{ error: any }>;
   signup: (email: string, password: string, userData: any) => Promise<{ error: any, data: any }>;
@@ -40,6 +50,9 @@ interface UserContextType {
   deleteAddress: (addressId: string) => Promise<{ error: any }>;
   setDefaultAddress: (addressId: string) => Promise<{ error: any }>;
   createSuperUser: () => Promise<{ error: any, data: any }>;
+  markNotificationAsRead: (id: string) => void;
+  toggleFavorite: (restaurantId: string) => Promise<void>;
+  favorites: string[];
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -52,6 +65,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [addresses, setAddresses] = useState<AddressType[]>([]);
   const [defaultAddress, setDefaultAddress] = useState<AddressType | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Inicialização e controle da sessão
@@ -65,10 +80,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           await fetchUserRole(session.user.id);
           await loadAddresses();
+          await loadNotifications();
+          await loadFavorites();
         } else {
           setUserRole(null);
           setAddresses([]);
           setDefaultAddress(null);
+          setNotifications([]);
+          setFavorites([]);
         }
       }
     );
@@ -85,6 +104,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           await fetchUserRole(session.user.id);
           await loadAddresses();
+          await loadNotifications();
+          await loadFavorites();
         }
       } catch (error) {
         console.error('Erro ao inicializar sessão:', error);
@@ -265,6 +286,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(user);
         await fetchUserRole(user.id);
         await loadAddresses();
+        await loadNotifications();
+        await loadFavorites();
       }
     } catch (error) {
       console.error('Erro ao recarregar dados do usuário:', error);
@@ -433,7 +456,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isDefaultAddress && addresses.length > 1) {
         const nextDefaultAddress = addresses.find(addr => addr.id !== addressId);
         if (nextDefaultAddress) {
-          await setDefaultAddress(nextDefaultAddress.id);
+          await setDefaultAddressFunction(nextDefaultAddress.id);
         }
       }
 
@@ -456,7 +479,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Definir endereço padrão
-  const setDefaultAddress = async (addressId: string) => {
+  const setDefaultAddressFunction = async (addressId: string) => {
     try {
       if (!user) return { error: new Error('Usuário não autenticado') };
 
@@ -500,6 +523,134 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Carregar notificações
+  const loadNotifications = async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notificacoes')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .order('data', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar notificações:', error);
+        return;
+      }
+
+      const formattedNotifications: Notification[] = data.map(notif => ({
+        id: notif.id,
+        type: notif.tipo,
+        title: notif.titulo,
+        message: notif.mensagem,
+        read: notif.lida,
+        date: notif.data
+      }));
+
+      setNotifications(formattedNotifications);
+    } catch (error) {
+      console.error('Erro ao carregar notificações:', error);
+    }
+  };
+
+  // Marcar notificação como lida
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('id', id)
+        .eq('usuario_id', user.id);
+
+      if (error) {
+        console.error('Erro ao marcar notificação como lida:', error);
+        return;
+      }
+
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === id ? { ...notif, read: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+    }
+  };
+
+  // Carregar favoritos
+  const loadFavorites = async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('favoritos')
+        .select('restaurante_id')
+        .eq('usuario_id', user.id);
+
+      if (error) {
+        console.error('Erro ao carregar favoritos:', error);
+        return;
+      }
+
+      setFavorites(data.map(fav => fav.restaurante_id));
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+    }
+  };
+
+  // Alternar favorito (adicionar/remover)
+  const toggleFavorite = async (restaurantId: string) => {
+    try {
+      if (!user) return;
+
+      const isFavorite = favorites.includes(restaurantId);
+
+      if (isFavorite) {
+        // Remover dos favoritos
+        const { error } = await supabase
+          .from('favoritos')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('restaurante_id', restaurantId);
+
+        if (error) {
+          console.error('Erro ao remover favorito:', error);
+          return;
+        }
+
+        setFavorites(prev => prev.filter(id => id !== restaurantId));
+        toast({
+          title: "Removido dos favoritos",
+          description: "Restaurante removido dos seus favoritos!",
+        });
+      } else {
+        // Adicionar aos favoritos
+        const { error } = await supabase
+          .from('favoritos')
+          .insert({
+            usuario_id: user.id,
+            restaurante_id: restaurantId
+          });
+
+        if (error) {
+          console.error('Erro ao adicionar favorito:', error);
+          return;
+        }
+
+        setFavorites(prev => [...prev, restaurantId]);
+        toast({
+          title: "Adicionado aos favoritos",
+          description: "Restaurante adicionado aos seus favoritos!",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao alternar favorito:', error);
+    }
+  };
+
   // Criar usuário superadmin para testes
   const createSuperUser = async () => {
     try {
@@ -537,15 +688,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userId = data.user.id;
         
         // Adiciona todas as funções
-        const roles = ['cliente', 'restaurante', 'entregador', 'admin'];
+        const roles: UserRole[] = ['cliente', 'restaurante', 'entregador', 'admin'];
         
         for (const role of roles) {
-          await supabase
-            .from('funcoes_usuario')
-            .insert({
-              usuario_id: userId,
-              funcao: role,
-            });
+          if (role) { // Evitar o caso de null
+            await supabase
+              .from('funcoes_usuario')
+              .insert({
+                usuario_id: userId,
+                funcao: role,
+              });
+          }
         }
       }
 
@@ -581,6 +734,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     addresses,
     defaultAddress,
+    notifications,
+    favorites,
     login,
     logout,
     signup,
@@ -591,8 +746,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addAddress,
     updateAddress,
     deleteAddress,
-    setDefaultAddress,
-    createSuperUser
+    setDefaultAddress: setDefaultAddressFunction,
+    createSuperUser,
+    markNotificationAsRead,
+    toggleFavorite
   };
 
   return (

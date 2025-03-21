@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -38,26 +39,26 @@ const Navbar = () => {
   // Links de navegação baseados no papel do usuário
   const getNavLinks = () => {
     switch(userRole) {
-      case 'restaurant':
+      case 'restaurante':
         return [
           { name: 'Painel', path: '/restaurant/dashboard' },
           { name: 'Pedidos', path: '/restaurant/orders' },
           { name: 'Cardápio', path: '/restaurant/menu' },
           { name: 'Configurações', path: '/restaurant/settings' },
         ];
-      case 'delivery':
+      case 'entregador':
         return [
           { name: 'Pedidos Disponíveis', path: '/delivery/orders' },
           { name: 'Minhas Entregas', path: '/delivery/my-deliveries' },
           { name: 'Ganhos', path: '/delivery/earnings' },
         ];
-      case 'customer':
+      case 'cliente':
       default:
         return [
           { name: 'Início', path: '/' },
-          { name: 'Restaurantes', path: '/restaurants' },
-          { name: 'Pedidos', path: '/orders' },
-          { name: 'Ajuda', path: '/help' },
+          { name: 'Restaurantes', path: '/restaurantes' },
+          { name: 'Pedidos', path: '/pedidos' },
+          { name: 'Ajuda', path: '/ajuda' },
         ];
     }
   };
@@ -69,22 +70,24 @@ const Navbar = () => {
     if (!isAuthenticated) return null;
     
     const roleIcons = {
-      customer: <UserIcon className="w-4 h-4" />,
-      restaurant: <RestaurantIcon className="w-4 h-4" />,
-      delivery: <DeliveryIcon className="w-4 h-4" />,
+      cliente: <UserIcon className="w-4 h-4" />,
+      restaurante: <RestaurantIcon className="w-4 h-4" />,
+      entregador: <DeliveryIcon className="w-4 h-4" />,
     };
     
     const roleLabels = {
-      customer: 'Cliente',
-      restaurant: 'Restaurante',
-      delivery: 'Entregador',
+      cliente: 'Cliente',
+      restaurante: 'Restaurante',
+      entregador: 'Entregador',
     };
     
     const roleColors = {
-      customer: 'bg-blue-100 text-blue-700',
-      restaurant: 'bg-green-100 text-green-700',
-      delivery: 'bg-orange-100 text-orange-700',
+      cliente: 'bg-blue-100 text-blue-700',
+      restaurante: 'bg-green-100 text-green-700',
+      entregador: 'bg-orange-100 text-orange-700',
     };
+    
+    if (!userRole || !(userRole in roleColors)) return null;
     
     return (
       <div className={cn(
@@ -144,15 +147,21 @@ const Navbar = () => {
                 variant="outline" 
                 size="icon" 
                 className="rounded-full"
+                asChild
               >
-                <NotificationIcon className="w-5 h-5" />
+                <Link to="/notificacoes">
+                  <NotificationIcon className="w-5 h-5" />
+                </Link>
               </Button>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className="rounded-full bg-secondary"
+                asChild
               >
-                <UserIcon className="w-5 h-5" />
+                <Link to="/perfil">
+                  <UserIcon className="w-5 h-5" />
+                </Link>
               </Button>
             </>
           ) : (
