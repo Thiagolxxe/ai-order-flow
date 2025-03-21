@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   ClockIcon, 
-  StarIcon, 
   ArrowRightIcon, 
   RestaurantIcon
 } from '@/assets/icons';
