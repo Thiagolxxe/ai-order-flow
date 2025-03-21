@@ -11,7 +11,7 @@ import ChatAssistant from "@/components/ui/ChatAssistant";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
-// Novas páginas
+// Páginas existentes
 import RestaurantDetails from "./pages/RestaurantDetails";
 import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
@@ -21,6 +21,17 @@ import Register from "./pages/Register";
 import UserProfile from "./pages/UserProfile";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/OrderDetails";
+
+// Novas páginas
+import RestaurantAdmin from "./pages/admin/RestaurantAdmin";
+import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
+import Reviews from "./pages/Reviews";
+import Favorites from "./pages/Favorites";
+import Notifications from "./pages/Notifications";
+import Promotions from "./pages/Promotions";
+import LiveTrackingMap from "./pages/LiveTrackingMap";
+import RestaurantsExplore from "./pages/RestaurantsExplore";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +56,18 @@ const App = () => (
                 <Route path="/perfil" element={<UserProfile />} />
                 <Route path="/pedidos" element={<OrderHistory />} />
                 <Route path="/pedido/:id" element={<OrderDetails />} />
+                
+                {/* Novas rotas */}
+                <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
+                <Route path="/entregador" element={<DeliveryDashboard />} />
+                <Route path="/avaliacoes/:id?" element={<Reviews />} />
+                <Route path="/favoritos" element={<Favorites />} />
+                <Route path="/notificacoes" element={<Notifications />} />
+                <Route path="/promocoes" element={<Promotions />} />
+                <Route path="/restaurantes" element={<RestaurantsExplore />} />
+                <Route path="/chat/:id?" element={<Chat />} />
+                <Route path="/rastreamento/:id" element={<LiveTrackingMap />} />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
