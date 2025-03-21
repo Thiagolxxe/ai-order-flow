@@ -3,30 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-// Tipos de funções de usuário
-export type UserRole = 'cliente' | 'restaurante' | 'entregador' | 'admin' | null;
-
-export type AddressType = {
-  id: string;
-  label: string;
-  endereco: string;
-  complemento?: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  cep: string;
-  isDefault: boolean;
-};
-
-export type Notification = {
-  id: string;
-  type: 'order' | 'promo' | 'system'; // Alinhado com o enum do banco de dados
-  title: string;
-  message: string;
-  read: boolean;
-  date: string;
-};
+import { AddressType, UserRole, Notification, mapDbAddressToAddressType, mapDbNotificationToNotification } from '@/integrations/supabase/custom-types';
 
 interface UserContextType {
   user: User | null;
@@ -38,6 +15,7 @@ interface UserContextType {
   addresses: AddressType[];
   defaultAddress: AddressType | null;
   notifications: Notification[];
+  favorites: string[];
   login: (email: string, password: string) => Promise<{ error: any }>;
   logout: () => Promise<{ error: any }>;
   signup: (email: string, password: string, userData: any) => Promise<{ error: any, data: any }>;
@@ -52,7 +30,6 @@ interface UserContextType {
   createSuperUser: () => Promise<{ error: any, data: any }>;
   markNotificationAsRead: (id: string) => void;
   toggleFavorite: (restaurantId: string) => Promise<void>;
-  favorites: string[];
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -299,6 +276,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) return;
 
+      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
       const { data, error } = await supabase
         .from('enderecos')
         .select('*')
@@ -310,17 +288,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const formattedAddresses: AddressType[] = data.map(addr => ({
-        id: addr.id,
-        label: addr.label,
-        endereco: addr.endereco,
-        complemento: addr.complemento,
-        bairro: addr.bairro,
-        cidade: addr.cidade,
-        estado: addr.estado,
-        cep: addr.cep,
-        isDefault: addr.isDefault
-      }));
+      const formattedAddresses: AddressType[] = data.map(addr => mapDbAddressToAddressType(addr));
 
       setAddresses(formattedAddresses);
       
@@ -346,6 +314,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
       const { data, error } = await supabase
         .from('enderecos')
         .insert({
@@ -396,6 +365,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .neq('id', address.id);
       }
 
+      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
       const { error } = await supabase
         .from('enderecos')
         .update(address)
@@ -437,6 +407,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Verifica se está excluindo o endereço padrão
       const isDefaultAddress = addresses.find(addr => addr.id === addressId)?.isDefault;
 
+      // Usando tipo any para evitar problemas com a tabela enderecos ainda não definida no tipo principal
       const { error } = await supabase
         .from('enderecos')
         .delete()
@@ -541,7 +512,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const formattedNotifications: Notification[] = data.map(notif => ({
         id: notif.id,
-        type: notif.tipo,
+        type: notif.tipo as 'order' | 'promo' | 'system',
         title: notif.titulo,
         message: notif.mensagem,
         read: notif.lida,
@@ -766,3 +737,5 @@ export const useUser = () => {
   }
   return context;
 };
+
+export type { UserRole, AddressType, Notification };

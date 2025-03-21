@@ -121,6 +121,48 @@ export type Database = {
           },
         ]
       }
+      enderecos: {
+        Row: {
+          bairro: string
+          cep: string
+          cidade: string
+          complemento: string | null
+          criado_em: string
+          endereco: string
+          estado: string
+          id: string
+          isdefault: boolean
+          label: string
+          usuario_id: string
+        }
+        Insert: {
+          bairro: string
+          cep: string
+          cidade: string
+          complemento?: string | null
+          criado_em?: string
+          endereco: string
+          estado: string
+          id?: string
+          isdefault?: boolean
+          label: string
+          usuario_id: string
+        }
+        Update: {
+          bairro?: string
+          cep?: string
+          cidade?: string
+          complemento?: string | null
+          criado_em?: string
+          endereco?: string
+          estado?: string
+          id?: string
+          isdefault?: boolean
+          label?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       entregadores: {
         Row: {
           ativo: boolean | null
@@ -813,6 +855,7 @@ export type Database = {
     }
     Enums: {
       app_role: "superadmin" | "admin" | "regulador"
+      notification_type: "order" | "promo" | "system"
       tipo_funcao_usuario: "cliente" | "restaurante" | "entregador" | "admin"
     }
     CompositeTypes: {

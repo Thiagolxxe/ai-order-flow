@@ -15,7 +15,7 @@ export interface HeroSectionProps {
   contentClassName?: string;
 }
 
-const HeroSection = ({
+export const HeroSection = ({
   title,
   subtitle,
   ctaText,
@@ -64,4 +64,4 @@ const HeroSection = ({
   );
 };
 
-export { HeroSection };
+export default HeroSection;
