@@ -7,7 +7,7 @@ import {
   Star
 } from 'lucide-react';
 
-// Exporting Lucide icons that we'll use 
+// Exportando ícones Lucide que usaremos
 export {
   ShoppingBag as BagIcon,
   Utensils as RestaurantIcon,
@@ -29,7 +29,7 @@ export {
   Star as StarIcon
 };
 
-// We can add custom SVG icons here as needed
+// Podemos adicionar ícones SVG personalizados aqui conforme necessário
 export const LogoIcon = (props: LucideProps) => {
   return (
     <svg
