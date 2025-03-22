@@ -1,9 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { HomeIcon, MapPin, UtensilsCrossed } from 'lucide-react';
 
 // Define the marker icons to fix the missing default icons issue
 const createLeafletIcon = (iconUrl: string, iconSize: [number, number] = [25, 41]) => {
@@ -21,17 +20,17 @@ const defaultIcon = createLeafletIcon(
 );
 
 const restaurantIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-red.png',
+  'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
   [25, 41]
 );
 
 const deliveryIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-blue.png',
+  'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
   [25, 41]
 );
 
 const userIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-green.png',
+  'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
   [25, 41]
 );
 
@@ -61,22 +60,38 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   vehicleType,
   deliveryAddress
 }) => {
-  const center: [number, number] = [
+  // Calculate the center position based on restaurant and user positions
+  const centerPosition = [
     (restaurantPosition.lat + userPosition.lat) / 2,
     (restaurantPosition.lng + userPosition.lng) / 2
   ];
 
+  // Fix the TypeScript errors by setting proper initial attributes
+  useEffect(() => {
+    // Make sure the map container is ready for Leaflet
+    const container = L.DomUtil.get('map');
+    if (container) {
+      // @ts-ignore - Necessary to avoid TypeScript error with _leaflet_id property
+      if (container._leaflet_id) {
+        // @ts-ignore
+        container._leaflet_id = null;
+      }
+    }
+  }, []);
+
   return (
     <div className="relative h-64 w-full rounded-md overflow-hidden">
       <MapContainer 
-        center={center} 
-        zoom={13} 
+        id="map"
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
+        center={[centerPosition[0], centerPosition[1]] as [number, number]}
+        zoom={13}
+        attributionControl={true}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         <Marker 
