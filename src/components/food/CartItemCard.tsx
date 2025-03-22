@@ -22,6 +22,12 @@ interface CartItemCardProps {
 const DEFAULT_ITEM_IMAGE = 'https://images.unsplash.com/photo-1546241072-48010ad2862c?q=80&w=500&auto=format&fit=crop';
 
 const CartItemCard = ({ item, onIncrease, onDecrease, onRemove }: CartItemCardProps) => {
+  // Safety check for item
+  if (!item || typeof item.price !== 'number') {
+    console.error("Invalid cart item or missing price:", item);
+    return <div>Item data is invalid or incomplete</div>;
+  }
+  
   const totalPrice = item.price * item.quantity;
   
   // Validate image URL

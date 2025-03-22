@@ -40,7 +40,7 @@ export interface MenuItemCardProps {
 const DEFAULT_ITEM_IMAGE = 'https://images.unsplash.com/photo-1546241072-48010ad2862c?q=80&w=500&auto=format&fit=crop';
 
 const MenuItemCard: React.FC<MenuItemCardProps> = (props) => {
-  // Handle both ways of passing props (as item object or individual props)
+  // Initialize with default empty object if props.item is undefined
   const item = props.item || {
     id: props.id || '',
     name: props.name || '',
@@ -52,6 +52,12 @@ const MenuItemCard: React.FC<MenuItemCardProps> = (props) => {
     vegetarian: props.vegetarian || false,
     spicy: props.spicy || false
   };
+
+  // Ensure we have a valid item with a price before proceeding
+  if (!item || typeof item.price !== 'number') {
+    console.error("Invalid menu item or missing price:", item);
+    return <div>Item data is invalid or incomplete</div>;
+  }
 
   const quantity = props.quantity || 0;
   const onAdd = props.onAdd || props.onAddToCart || (() => {});

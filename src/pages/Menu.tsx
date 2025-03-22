@@ -71,6 +71,11 @@ const mockMenuItems: MenuItem[] = [
   },
 ];
 
+// Extended cart item interface with quantity
+interface CartItem extends MenuItem {
+  quantity: number;
+}
+
 const Menu = () => {
   const { id: restaurantId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -154,6 +159,27 @@ const Menu = () => {
     const menuItem = menuItems.find(item => item.id === cartItem.id);
     return sum + (menuItem ? menuItem.price * cartItem.quantity : 0);
   }, 0);
+  
+  // Create complete cart items with menu item details
+  const completeCartItems: CartItem[] = cartItems.map(cartItem => {
+    const menuItem = menuItems.find(item => item.id === cartItem.id);
+    if (!menuItem) {
+      // Handle case where menu item is not found
+      console.error(`Menu item with ID ${cartItem.id} not found`);
+      return {
+        id: cartItem.id,
+        name: "Item não encontrado",
+        description: "",
+        price: 0,
+        image: "",
+        quantity: cartItem.quantity
+      };
+    }
+    return {
+      ...menuItem,
+      quantity: cartItem.quantity
+    };
+  });
   
   return (
     <div className="container py-6">
@@ -254,21 +280,21 @@ const Menu = () => {
             ) : (
               <>
                 <div className="flex-1 overflow-auto">
-                  {cartItems.map(cartItem => {
-                    const menuItem = menuItems.find(item => item.id === cartItem.id);
-                    if (!menuItem) return null;
-                    
-                    return (
-                      <CartItemCard
-                        key={cartItem.id}
-                        item={menuItem}
-                        quantity={cartItem.quantity}
-                        onUpdateQuantity={(newQuantity: number) => 
-                          handleUpdateQuantity(cartItem.id, newQuantity)
-                        }
-                      />
-                    );
-                  })}
+                  {completeCartItems.map(item => (
+                    <CartItemCard
+                      key={item.id}
+                      item={{
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        image: item.image || item.imageUrl || '',
+                        quantity: item.quantity
+                      }}
+                      onIncrease={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      onDecrease={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                      onRemove={() => handleUpdateQuantity(item.id, 0)}
+                    />
+                  ))}
                 </div>
                 
                 <div className="border-t pt-4 mt-auto">

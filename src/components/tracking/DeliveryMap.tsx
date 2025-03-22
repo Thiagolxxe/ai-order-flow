@@ -34,7 +34,7 @@ const userIcon = createLeafletIcon(
   [25, 41]
 );
 
-// Set center position component to workaround TypeScript issues
+// Set center position component to work around TypeScript issues
 const SetMapView = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
@@ -84,6 +84,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
+        center={centerPosition}
         zoom={13}
       >
         <TileLayer
@@ -93,7 +94,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[restaurantPosition.lat, restaurantPosition.lng]} 
-          icon={restaurantIcon}
+          icon={restaurantIcon as unknown as L.Icon}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -102,7 +103,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[deliveryPosition.lat, deliveryPosition.lng]} 
-          icon={deliveryIcon}
+          icon={deliveryIcon as unknown as L.Icon}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -111,7 +112,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[userPosition.lat, userPosition.lng]} 
-          icon={userIcon}
+          icon={userIcon as unknown as L.Icon}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
