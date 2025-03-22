@@ -101,9 +101,29 @@ const Checkout = () => {
           return;
         }
         
-        // Initialize empty items array if not present to prevent 'map' errors
+        // Initialize default values for numerical properties
         if (!savedCheckoutData.items) {
           savedCheckoutData.items = [];
+        }
+        
+        if (typeof savedCheckoutData.subtotal !== 'number') {
+          savedCheckoutData.subtotal = 0;
+        }
+        
+        if (typeof savedCheckoutData.discount !== 'number') {
+          savedCheckoutData.discount = 0;
+        }
+        
+        if (typeof savedCheckoutData.discountValue !== 'number') {
+          savedCheckoutData.discountValue = 0;
+        }
+        
+        if (typeof savedCheckoutData.deliveryFee !== 'number') {
+          savedCheckoutData.deliveryFee = 0;
+        }
+        
+        if (typeof savedCheckoutData.total !== 'number') {
+          savedCheckoutData.total = 0;
         }
         
         setCheckoutData(savedCheckoutData);
@@ -209,12 +229,12 @@ const Checkout = () => {
         .insert({
           restaurante_id: checkoutData.restaurantId,
           cliente_id: user?.id,
-          subtotal: checkoutData.subtotal,
-          taxa_entrega: checkoutData.deliveryFee,
+          subtotal: checkoutData.subtotal || 0,
+          taxa_entrega: checkoutData.deliveryFee || 0,
           taxa_servico: 0,
           imposto: 0,
           gorjeta: 0,
-          total: checkoutData.total,
+          total: checkoutData.total || 0,
           metodo_pagamento: selectedPayment,
           numero_pedido: orderNumber.toString(),
           status_pagamento: selectedPayment === 'pix' ? 'pendente' : 'aprovado',
@@ -231,7 +251,6 @@ const Checkout = () => {
       if (orderError) throw orderError;
       
       // Criar os itens do pedido
-      // Ensure we have items before attempting to map
       const orderItems = (checkoutData.items || []).map(item => ({
         pedido_id: orderData.id,
         item_cardapio_id: item.id,
@@ -528,7 +547,6 @@ const Checkout = () => {
               
               {/* Itens do pedido */}
               <div className="mb-4">
-                {/* Add null check before mapping over items */}
                 {checkoutData.items && checkoutData.items.length > 0 ? (
                   checkoutData.items.map(item => (
                     <div key={item.id} className="flex justify-between mb-2">
@@ -547,26 +565,26 @@ const Checkout = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-foreground/70">Subtotal</span>
-                  <span>R$ {checkoutData.subtotal.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {(checkoutData.subtotal || 0).toFixed(2).replace('.', ',')}</span>
                 </div>
                 
                 {checkoutData.discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Desconto ({checkoutData.discount}%)</span>
-                    <span>- R$ {checkoutData.discountValue.toFixed(2).replace('.', ',')}</span>
+                    <span>- R$ {(checkoutData.discountValue || 0).toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between">
                   <span className="text-foreground/70">Taxa de Entrega</span>
-                  <span>R$ {checkoutData.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {(checkoutData.deliveryFee || 0).toFixed(2).replace('.', ',')}</span>
                 </div>
                 
                 <Separator className="my-3" />
                 
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>R$ {checkoutData.total.toFixed(2).replace('.', ',')}</span>
+                  <span>R$ {(checkoutData.total || 0).toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>
               

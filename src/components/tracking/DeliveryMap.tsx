@@ -84,8 +84,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        zoom={13}
-        // Fix: Create default view directly here instead of using 'center' prop
         center={centerPosition}
       >
         <TileLayer
@@ -93,9 +91,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng] as L.LatLngExpression} 
-          // Fix: Need to use 'icon' as a valid Leaflet property
-          icon={restaurantIcon as any}
+          position={[restaurantPosition.lat, restaurantPosition.lng]} 
+          icon={restaurantIcon}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -103,9 +100,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng] as L.LatLngExpression} 
-          // Fix: Cast icon to any to resolve TypeScript errors
-          icon={deliveryIcon as any}
+          position={[deliveryPosition.lat, deliveryPosition.lng]} 
+          icon={deliveryIcon}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -113,9 +109,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng] as L.LatLngExpression} 
-          // Fix: Cast icon to any to resolve TypeScript errors
-          icon={userIcon as any}
+          position={[userPosition.lat, userPosition.lng]} 
+          icon={userIcon}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
