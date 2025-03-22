@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { useUser } from '@/context/UserContext';
-import { NotificationType } from "@/integrations/supabase/custom-types";
+import type NotificationType from "@/components/notifications/NotificationType";
 
 const Notifications = () => {
   const { notifications, markNotificationAsRead } = useUser();

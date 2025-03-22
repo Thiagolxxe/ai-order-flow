@@ -7,13 +7,15 @@ import { AlertIcon, SuccessIcon } from "@/assets/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/hooks/use-toast';
 
+type Role = "cliente" | "restaurante" | "entregador" | "admin";
+
 const SuperUserCreator = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     email?: string;
     password?: string;
-    roles?: string[];
+    roles?: Role[];
     message?: string;
   } | null>(null);
 
@@ -36,7 +38,7 @@ const SuperUserCreator = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Assign roles
-      const roles = ['cliente', 'restaurante', 'entregador', 'admin'];
+      const roles: Role[] = ['cliente', 'restaurante', 'entregador', 'admin'];
       
       // Add roles for the user
       const userId = userData.user?.id;

@@ -1,4 +1,4 @@
 
-import { NotificationType } from "@/integrations/supabase/custom-types";
+import { type NotificationType } from "@/integrations/supabase/custom-types";
 
-export default NotificationType;
+export type { NotificationType as default };

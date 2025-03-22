@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link, useParams } from 'react-router-dom';
-import { OrderTracker } from '@/components/orders/OrderTracker';
+import OrderTracker from '@/components/orders/OrderTracker';
 
 // Fix the default marker icon issue in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -89,10 +89,10 @@ const statusClassMap = {
   cancelado: 'bg-red-500'
 };
 
-const getTimePassed = (dateString) => {
+const getTimePassed = (dateString: string) => {
   const orderDate = new Date(dateString);
   const now = new Date();
-  const diffInMinutes = Math.floor((now - orderDate) / (1000 * 60));
+  const diffInMinutes = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60));
   
   if (diffInMinutes < 60) {
     return `${diffInMinutes} min atrás`;
@@ -144,8 +144,6 @@ const LiveTrackingMap = () => {
     );
   }
   
-  const position = [center[0], center[1]];
-  
   return (
     <div className="container px-4 py-6 pb-20">
       {/* Voltar */}
@@ -172,7 +170,7 @@ const LiveTrackingMap = () => {
             <CardContent>
               <div className="h-[400px] w-full rounded-lg overflow-hidden mb-4">
                 <MapContainer 
-                  center={position as [number, number]} 
+                  center={center as [number, number]} 
                   zoom={13} 
                   style={{ height: '100%', width: '100%' }}
                 >
@@ -233,8 +231,8 @@ const LiveTrackingMap = () => {
             </CardHeader>
             <CardContent>
               <OrderTracker 
-                currentStatus={order.status}
-                createdAt={order.criado_em}
+                orderId={order.id}
+                initialStatus="preparing"
               />
             </CardContent>
           </Card>
@@ -277,7 +275,7 @@ const LiveTrackingMap = () => {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Local de entrega</h3>
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"></path><path d="M12 2a10 10 0 0 0-6.88 2.77L12 12l6.88-7.23A10 10 0 0 0 12 2Z"></path><path d="m2.27 13.27 10-1.27 1.23 10a10.02 10.02 0 0 1-11.23-8.73Z"></path></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0 Z"></path><path d="M12 2a10 10 0 0 0-6.88 2.77L12 12l6.88-7.23A10 10 0 0 0 12 2Z"></path><path d="m2.27 13.27 10-1.27 1.23 10a10.02 10.02 0 0 1-11.23-8.73Z"></path></svg>
                     </div>
                     <div>
                       <p className="font-medium">Seu endereço</p>
