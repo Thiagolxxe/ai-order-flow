@@ -41,6 +41,9 @@ interface RestaurantListProps {
   className?: string;
 }
 
+// Default placeholder images for restaurants
+const DEFAULT_LOGO_URL = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+
 const RestaurantList = ({
   title = 'Restaurantes Próximos de Você',
   subtitle,
@@ -76,7 +79,7 @@ const RestaurantList = ({
           }
           
           // Ensure logo_url has a value or use placeholder
-          const logoUrl = restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+          const logoUrl = restaurant.logo_url || DEFAULT_LOGO_URL;
           
           return {
             id: restaurant.id,

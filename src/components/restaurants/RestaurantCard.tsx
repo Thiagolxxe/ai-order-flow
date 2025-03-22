@@ -23,6 +23,9 @@ interface RestaurantCardProps {
   className?: string;
 }
 
+// Default placeholder image for restaurants
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+
 const RestaurantCard = ({
   id,
   name,
@@ -35,6 +38,9 @@ const RestaurantCard = ({
   isNew = false,
   className
 }: RestaurantCardProps) => {
+  // Ensure image has a valid URL
+  const imageUrl = image || DEFAULT_IMAGE;
+
   return (
     <Link 
       to={`/restaurante/${id}`}
@@ -48,10 +54,15 @@ const RestaurantCard = ({
         {/* Imagem do restaurante */}
         <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
           <img 
-            src={image}
+            src={imageUrl}
             alt={name}
             loading="lazy"
             className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null; 
+              target.src = DEFAULT_IMAGE;
+            }}
           />
         </div>
         
