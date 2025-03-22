@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RestaurantIcon } from '@/assets/icons';
+import { RestaurantIcon, ShoppingCartIcon } from '@/assets/icons';
 import { useToast } from "@/hooks/use-toast";
 import { toast } from 'sonner';
 import MenuItemCard from '@/components/food/MenuItemCard';
 import { supabase } from '@/integrations/supabase/client';
 import { getIdFromParams } from '@/utils/id-helpers';
+import { Badge } from "@/components/ui/badge";
 
 interface MenuItem {
   id: string;
@@ -34,6 +35,34 @@ const Menu = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast: uiToast } = useToast();
+  const [totalCartItems, setTotalCartItems] = useState<number>(0);
+
+  // Calculate total cart items when cartItems changes
+  useEffect(() => {
+    const total = Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
+    setTotalCartItems(total);
+  }, [cartItems]);
+
+  // Load cart items from localStorage on component mount
+  useEffect(() => {
+    if (!id) return;
+    
+    const savedCart = localStorage.getItem(`cart_${id}`);
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        const cartItemsObj: Record<string, number> = {};
+        
+        parsedCart.forEach((item: { id: string; quantity: number }) => {
+          cartItemsObj[item.id] = item.quantity;
+        });
+        
+        setCartItems(cartItemsObj);
+      } catch (error) {
+        console.error('Error parsing cart data:', error);
+      }
+    }
+  }, [id]);
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -231,6 +260,13 @@ const Menu = () => {
     setCategories(uniqueCategories);
   };
 
+  // Save current restaurant ID to localStorage for cart
+  useEffect(() => {
+    if (id) {
+      localStorage.setItem('currentRestaurant', id);
+    }
+  }, [id]);
+
   // Filter menu items based on active category and search term
   const filteredMenuItems = menuItems.filter((item) => {
     const searchTermLower = searchTerm.toLowerCase();
@@ -247,10 +283,23 @@ const Menu = () => {
 
   // Handle adding items to cart
   const handleAddItem = (itemId: string) => {
-    setCartItems(prevItems => ({
-      ...prevItems,
-      [itemId]: (prevItems[itemId] || 0) + 1
-    }));
+    setCartItems(prevItems => {
+      const updatedItems = {
+        ...prevItems,
+        [itemId]: (prevItems[itemId] || 0) + 1
+      };
+      
+      // Save to localStorage
+      if (id) {
+        const cartData = Object.keys(updatedItems).map(id => ({
+          id,
+          quantity: updatedItems[id]
+        }));
+        localStorage.setItem(`cart_${id}`, JSON.stringify(cartData));
+      }
+      
+      return updatedItems;
+    });
     toast('Item adicionado ao carrinho');
   };
 
@@ -263,6 +312,16 @@ const Menu = () => {
       } else {
         delete newItems[itemId];
       }
+      
+      // Save to localStorage
+      if (id) {
+        const cartData = Object.keys(newItems).map(id => ({
+          id,
+          quantity: newItems[id]
+        }));
+        localStorage.setItem(`cart_${id}`, JSON.stringify(cartData));
+      }
+      
       return newItems;
     });
   };
@@ -284,7 +343,7 @@ const Menu = () => {
   }
 
   return (
-    <div className="container py-6">
+    <div className="container py-6 pb-24 relative">
       <h1 className="text-3xl font-bold mb-4">Cardápio</h1>
 
       <div className="flex flex-col md:flex-row items-center justify-between mb-6">
@@ -359,6 +418,20 @@ const Menu = () => {
             </TabsContent>
           ))}
         </Tabs>
+      )}
+      
+      {/* Floating Cart Button */}
+      {totalCartItems > 0 && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <Button asChild size="lg" className="rounded-full h-16 w-16 shadow-lg">
+            <Link to="/carrinho" className="relative">
+              <ShoppingCartIcon className="h-6 w-6" />
+              <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center rounded-full p-0">
+                {totalCartItems}
+              </Badge>
+            </Link>
+          </Button>
+        </div>
       )}
     </div>
   );
