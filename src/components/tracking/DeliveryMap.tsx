@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, type MapContainerProps } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -48,21 +48,27 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
     popupAnchor: [0, -32],
   });
 
+  // Fix: Use LatLngExpression for position props
+  const center: L.LatLngExpression = [deliveryPosition.lat, deliveryPosition.lng];
+  const restaurantPos: L.LatLngExpression = [restaurantPosition.lat, restaurantPosition.lng];
+  const deliveryPos: L.LatLngExpression = [deliveryPosition.lat, deliveryPosition.lng];
+  const userPos: L.LatLngExpression = [userPosition.lat, userPosition.lng];
+
   return (
     <div className="rounded-xl overflow-hidden shadow-md">
       <MapContainer 
-        center={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]}
+        center={center}
         zoom={14} 
         style={{ height: '500px', width: '100%' }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng] as [number, number]}
-          icon={restaurantIcon}
+          position={restaurantPos}
+          icon={restaurantIcon as L.Icon}
         >
           <Popup>
             <b>{restaurantName}</b><br/>
@@ -71,8 +77,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]}
-          icon={deliveryIcon}
+          position={deliveryPos}
+          icon={deliveryIcon as L.Icon}
         >
           <Popup>
             <b>Entregador</b><br/>
@@ -81,8 +87,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng] as [number, number]}
-          icon={userIcon}
+          position={userPos}
+          icon={userIcon as L.Icon}
         >
           <Popup>
             <b>Seu endereço</b><br/>
