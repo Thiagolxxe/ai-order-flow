@@ -95,7 +95,7 @@ const ChatAssistant: React.FC = () => {
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-4 right-4 h-14 w-14 rounded-full shadow-lg border-primary"
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full shadow-lg border-primary"
         >
           <MessageCircle />
         </Button>
