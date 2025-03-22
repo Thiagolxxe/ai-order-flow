@@ -18,17 +18,33 @@ interface CartItemCardProps {
   onRemove: () => void;
 }
 
+// Default fallback image
+const DEFAULT_ITEM_IMAGE = 'https://images.unsplash.com/photo-1546241072-48010ad2862c?q=80&w=500&auto=format&fit=crop';
+
 const CartItemCard = ({ item, onIncrease, onDecrease, onRemove }: CartItemCardProps) => {
   const totalPrice = item.price * item.quantity;
+  
+  // Validate image URL
+  const [imageUrl, setImageUrl] = React.useState(
+    item.image && (item.image.startsWith('http://') || item.image.startsWith('https://')) 
+      ? item.image 
+      : DEFAULT_ITEM_IMAGE
+  );
+
+  const handleImageError = () => {
+    console.log('Cart item image failed to load:', imageUrl);
+    setImageUrl(DEFAULT_ITEM_IMAGE);
+  };
   
   return (
     <div className="flex items-center gap-4 pb-4 border-b last:border-b-0 last:pb-0">
       {/* Imagem do produto */}
       <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
         <img
-          src={item.image}
+          src={imageUrl}
           alt={item.name}
           className="w-full h-full object-cover"
+          onError={handleImageError}
         />
       </div>
       

@@ -42,7 +42,7 @@ interface RestaurantListProps {
 }
 
 // Default placeholder images for restaurants
-const DEFAULT_LOGO_URL = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+const DEFAULT_LOGO_URL = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=500&auto=format&fit=crop';
 
 const RestaurantList = ({
   title = 'Restaurantes Próximos de Você',
@@ -64,8 +64,7 @@ const RestaurantList = ({
         setLoading(true);
         const { data, error } = await supabase
           .from('restaurantes')
-          .select('*')
-          .eq('ativo', true);
+          .select('*');
         
         if (error) {
           throw error;
@@ -78,13 +77,17 @@ const RestaurantList = ({
             console.warn(`Restaurant with invalid UUID format: ${restaurant.id}, ${restaurant.nome}`);
           }
           
-          // Ensure logo_url has a value or use placeholder
-          const logoUrl = restaurant.logo_url || DEFAULT_LOGO_URL;
+          // Validate and ensure logo_url has a value or use placeholder
+          let logoUrl = restaurant.logo_url;
+          if (!logoUrl || !(logoUrl.startsWith('http://') || logoUrl.startsWith('https://'))) {
+            logoUrl = DEFAULT_LOGO_URL;
+          }
           
           return {
             id: restaurant.id,
             nome: restaurant.nome,
             logo_url: logoUrl,
+            banner_url: restaurant.banner_url,
             tipo_cozinha: restaurant.tipo_cozinha || 'Variada',
             taxa_entrega: restaurant.taxa_entrega || 0,
             valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
@@ -99,6 +102,36 @@ const RestaurantList = ({
       } catch (error) {
         console.error('Erro ao buscar restaurantes:', error);
         toast.error('Não foi possível carregar os restaurantes');
+        
+        // Fallback to mock data if there's an error
+        setRestaurants([
+          {
+            id: '00000000-0000-0000-0000-000000000r01',
+            nome: 'Pizzaria Bella Napoli',
+            logo_url: 'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=500',
+            banner_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000',
+            tipo_cozinha: 'Italiana',
+            taxa_entrega: 5,
+            valor_pedido_minimo: 20,
+            tempo_entrega_estimado: 45,
+            faixa_preco: 2,
+            featured: true,
+            isNew: false
+          },
+          {
+            id: '00000000-0000-0000-0000-000000000r02',
+            nome: 'Sabor Oriental',
+            logo_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500',
+            banner_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000',
+            tipo_cozinha: 'Japonesa',
+            taxa_entrega: 6,
+            valor_pedido_minimo: 30,
+            tempo_entrega_estimado: 50,
+            faixa_preco: 3,
+            featured: false,
+            isNew: true
+          }
+        ]);
       } finally {
         setLoading(false);
       }

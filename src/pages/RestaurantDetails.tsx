@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { getIdFromParams, TEST_UUIDS } from '@/utils/id-helpers';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface RestaurantDetailsProps {
   id: string;
@@ -23,6 +24,9 @@ interface RestaurantDetailsProps {
     lng: number;
   };
 }
+
+// Default fallback images if the restaurant images don't load
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000';
 
 const RestaurantDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,6 +89,15 @@ const RestaurantDetails: React.FC = () => {
             // Default rating if none found
             avgRating = 4.5;
           }
+
+          // Use banner_url if available, otherwise use logo_url or a default image
+          let imageUrl = data.banner_url || data.logo_url || DEFAULT_IMAGE;
+          
+          // Validate image URL
+          if (!imageUrl.startsWith('http')) {
+            console.log("Image URL doesn't start with http, using default:", imageUrl);
+            imageUrl = DEFAULT_IMAGE;
+          }
           
           setRestaurant({
             id: data.id,
@@ -92,7 +105,7 @@ const RestaurantDetails: React.FC = () => {
             address: `${data.endereco}, ${data.cidade} - ${data.estado}`,
             cuisine: data.tipo_cozinha,
             rating: avgRating,
-            imageUrl: data.banner_url || '/mock-restaurant-image.png',
+            imageUrl: imageUrl,
             deliveryPosition: {
               lat: -23.5643,
               lng: -46.6527
@@ -142,7 +155,7 @@ const RestaurantDetails: React.FC = () => {
                 address: 'Av. Brigadeiro Faria Lima, 1337',
                 cuisine: 'Variada',
                 rating: 4.2,
-                imageUrl: '/mock-restaurant-image.png',
+                imageUrl: DEFAULT_IMAGE,
                 deliveryPosition: {
                   lat: -23.5643,
                   lng: -46.6527
@@ -185,11 +198,20 @@ const RestaurantDetails: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <img
-            src={restaurant.imageUrl}
-            alt={restaurant.name}
-            className="rounded-md w-full object-cover h-64"
-          />
+          <div className="w-full h-64 relative rounded-md overflow-hidden">
+            <img
+              src={restaurant.imageUrl}
+              alt={restaurant.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error("Image failed to load:", restaurant.imageUrl);
+                // If the image fails to load, replace with default image
+                const target = e.target as HTMLImageElement;
+                target.onerror = null; // Prevent infinite loop
+                target.src = DEFAULT_IMAGE;
+              }}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <Star className="h-5 w-5 text-yellow-500" />
             <span>{restaurant.rating.toFixed(1)}</span>

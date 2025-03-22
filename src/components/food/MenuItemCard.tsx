@@ -24,8 +24,23 @@ interface MenuItemCardProps {
   onRemove: () => void;
 }
 
+// Default fallback image
+const DEFAULT_ITEM_IMAGE = 'https://images.unsplash.com/photo-1546241072-48010ad2862c?q=80&w=500&auto=format&fit=crop';
+
 const MenuItemCard = ({ item, quantity, onAdd, onRemove }: MenuItemCardProps) => {
   const formattedPrice = item.price.toFixed(2).replace('.', ',');
+  
+  // Validate image URL
+  const [imageUrl, setImageUrl] = React.useState(
+    item.image && (item.image.startsWith('http://') || item.image.startsWith('https://')) 
+      ? item.image 
+      : DEFAULT_ITEM_IMAGE
+  );
+
+  const handleImageError = () => {
+    console.log('Menu item image failed to load:', imageUrl);
+    setImageUrl(DEFAULT_ITEM_IMAGE);
+  };
   
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300">
@@ -33,9 +48,10 @@ const MenuItemCard = ({ item, quantity, onAdd, onRemove }: MenuItemCardProps) =>
         {/* Imagem do item */}
         <div className="md:w-1/3 aspect-square md:aspect-auto">
           <img
-            src={item.image}
+            src={imageUrl}
             alt={item.name}
             className="w-full h-full object-cover"
+            onError={handleImageError}
           />
         </div>
         

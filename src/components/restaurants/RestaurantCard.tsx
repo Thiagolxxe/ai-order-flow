@@ -24,7 +24,7 @@ interface RestaurantCardProps {
 }
 
 // Default placeholder image for restaurants
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=500&auto=format&fit=crop';
 
 const RestaurantCard = ({
   id,
@@ -38,8 +38,17 @@ const RestaurantCard = ({
   isNew = false,
   className
 }: RestaurantCardProps) => {
-  // Ensure image has a valid URL
-  const imageUrl = image || DEFAULT_IMAGE;
+  // Ensure image has a valid URL by checking if it starts with http or https
+  const [imageUrl, setImageUrl] = React.useState(
+    image && (image.startsWith('http://') || image.startsWith('https://')) 
+      ? image 
+      : DEFAULT_IMAGE
+  );
+
+  const handleImageError = () => {
+    console.log('Image failed to load:', imageUrl);
+    setImageUrl(DEFAULT_IMAGE);
+  };
 
   return (
     <Link 
@@ -58,11 +67,7 @@ const RestaurantCard = ({
             alt={name}
             loading="lazy"
             className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null; 
-              target.src = DEFAULT_IMAGE;
-            }}
+            onError={handleImageError}
           />
         </div>
         
