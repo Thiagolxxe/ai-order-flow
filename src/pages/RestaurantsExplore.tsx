@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -95,14 +96,14 @@ const RestaurantList = ({ restaurants }: { restaurants: Restaurant[] }) => {
   );
 };
 
-// Componente de filtros - Fixed SelectItem components with empty values
+// Componente de filtros - Fixed SelectItem components to have proper non-empty values
 const FilterSection = ({ 
   onFilterChange 
 }: { 
   onFilterChange: (filters: any) => void 
 }) => {
-  const [cuisineType, setCuisineType] = useState<string>("");
-  const [priceRange, setPriceRange] = useState<string>("");
+  const [cuisineType, setCuisineType] = useState<string>("all");
+  const [priceRange, setPriceRange] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("rating");
   
   useEffect(() => {

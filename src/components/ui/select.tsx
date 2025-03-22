@@ -110,7 +110,6 @@ const SelectLabel = React.forwardRef<
 ))
 SelectLabel.displayName = SelectPrimitive.Label.displayName
 
-// Modified to ensure value is not an empty string
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
@@ -118,7 +117,7 @@ const SelectItem = React.forwardRef<
   // Throw a helpful error message if value is an empty string
   if (value === "") {
     console.error("A SelectItem must have a value prop that is not an empty string");
-    return null; // Don't render the item if it has an empty value
+    throw new Error("A SelectItem must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.");
   }
 
   return (
