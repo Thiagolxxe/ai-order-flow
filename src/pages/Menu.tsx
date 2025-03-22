@@ -1,438 +1,306 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RestaurantIcon, ShoppingCartIcon } from '@/assets/icons';
-import { useToast } from "@/hooks/use-toast";
-import { toast } from 'sonner';
+import { ShoppingCart, Search } from "lucide-react";
 import MenuItemCard from '@/components/food/MenuItemCard';
-import { supabase } from '@/integrations/supabase/client';
-import { getIdFromParams } from '@/utils/id-helpers';
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import CartItemCard from '@/components/food/CartItemCard';
+import { toast } from "sonner";
+
+// Mock data categories for demonstration
+const menuCategories = [
+  "Todos",
+  "Entradas",
+  "Pratos Principais",
+  "Sobremesas",
+  "Bebidas"
+];
 
 interface MenuItem {
   id: string;
   name: string;
   description: string;
   price: number;
+  imageUrl: string;
   category: string;
-  image_url: string;
-  restaurant_id: string;
-  popular?: boolean;
-  vegetarian?: boolean;
-  spicy?: boolean;
 }
 
+// Mock menu items
+const mockMenuItems: MenuItem[] = [
+  {
+    id: "1",
+    name: "Salada Caesar",
+    description: "Alface romana, croutons, parmesão e molho Caesar",
+    price: 28.90,
+    imageUrl: "https://source.unsplash.com/random/300x200/?salad",
+    category: "Entradas"
+  },
+  {
+    id: "2",
+    name: "Risoto de Funghi",
+    description: "Arroz arbóreo, mix de cogumelos, manteiga e parmesão",
+    price: 49.90,
+    imageUrl: "https://source.unsplash.com/random/300x200/?risotto",
+    category: "Pratos Principais"
+  },
+  {
+    id: "3",
+    name: "Tiramisu",
+    description: "Sobremesa italiana com café, queijo mascarpone e cacau",
+    price: 24.90,
+    imageUrl: "https://source.unsplash.com/random/300x200/?tiramisu",
+    category: "Sobremesas"
+  },
+  {
+    id: "4",
+    name: "Suco Natural",
+    description: "Suco de frutas frescas sem adição de açúcar",
+    price: 12.90,
+    imageUrl: "https://source.unsplash.com/random/300x200/?juice",
+    category: "Bebidas"
+  },
+  {
+    id: "5",
+    name: "Carpaccio",
+    description: "Finas fatias de carne crua, alcaparras, mostarda e parmesão",
+    price: 36.90,
+    imageUrl: "https://source.unsplash.com/random/300x200/?carpaccio",
+    category: "Entradas"
+  },
+];
+
 const Menu = () => {
-  const { id } = useParams<{ id: string }>();
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('Todos');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [cartItems, setCartItems] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast: uiToast } = useToast();
-  const [totalCartItems, setTotalCartItems] = useState<number>(0);
-
-  // Calculate total cart items when cartItems changes
+  const { id: restaurantId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState<{id: string, quantity: number}[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
+  
+  // Load cart from localStorage
   useEffect(() => {
-    const total = Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
-    setTotalCartItems(total);
-  }, [cartItems]);
-
-  // Load cart items from localStorage on component mount
-  useEffect(() => {
-    if (!id) return;
+    if (!restaurantId) return;
     
-    const savedCart = localStorage.getItem(`cart_${id}`);
+    const savedCart = localStorage.getItem(`cart_${restaurantId}`);
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        const cartItemsObj: Record<string, number> = {};
-        
-        parsedCart.forEach((item: { id: string; quantity: number }) => {
-          cartItemsObj[item.id] = item.quantity;
-        });
-        
-        setCartItems(cartItemsObj);
-      } catch (error) {
-        console.error('Error parsing cart data:', error);
+        setCartItems(parsedCart);
+      } catch (e) {
+        console.error('Error parsing cart from localStorage:', e);
       }
     }
-  }, [id]);
-
+  }, [restaurantId]);
+  
+  // Save cart to localStorage when it changes
   useEffect(() => {
-    const fetchMenu = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Use utility function to validate or convert the ID
-        const validId = getIdFromParams(id);
-        
-        if (!validId) {
-          console.error('Invalid restaurant ID format:', id);
-          setError('ID de restaurante inválido');
-          uiToast({
-            title: "Erro ao carregar cardápio",
-            description: "ID de restaurante inválido",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // Try to fetch from Supabase first
-        const { data: supabaseItems, error: supabaseError } = await supabase
-          .from('itens_cardapio')
-          .select('*')
-          .eq('restaurante_id', validId);
-        
-        if (supabaseError) {
-          console.error("Error fetching menu items from Supabase:", supabaseError);
-          // Fall back to mock data
-          useMockMenuItems(validId);
-          return;
-        }
-        
-        if (supabaseItems && supabaseItems.length > 0) {
-          // Map Supabase data to our MenuItem interface
-          const formattedItems: MenuItem[] = supabaseItems.map(item => ({
-            id: item.id,
-            name: item.nome,
-            description: item.descricao || '',
-            price: parseFloat(item.preco),
-            category: item.categoria_id || 'Sem categoria',
-            image_url: item.imagem_url || '',
-            restaurant_id: item.restaurante_id,
-            popular: item.destaque || false,
-            vegetarian: false, // Add these properties if they exist in your database
-            spicy: false
-          }));
-          
-          setMenuItems(formattedItems);
-          
-          // Extract unique categories
-          const uniqueCategories = ['Todos', ...new Set(formattedItems.map((item) => item.category))];
-          setCategories(uniqueCategories);
-        } else {
-          // No items found in Supabase, use mock data
-          console.log("No menu items found in Supabase, using mock data");
-          useMockMenuItems(validId);
-        }
-      } catch (error) {
-        console.error("Failed to fetch menu items", error);
-        uiToast({
-          title: "Erro ao carregar cardápio",
-          description: "Não foi possível carregar os itens do cardápio.",
-          variant: "destructive",
-        });
-        
-        // Attempt to use mock data as fallback
-        useMockMenuItems(id || '');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMenu();
-  }, [id, uiToast]);
-
-  // Helper function to use mock data
-  const useMockMenuItems = (restaurantId: string) => {
-    console.log("Using mock menu data for restaurant:", restaurantId);
+    if (!restaurantId || cartItems.length === 0) return;
+    localStorage.setItem(`cart_${restaurantId}`, JSON.stringify(cartItems));
+  }, [cartItems, restaurantId]);
+  
+  const handleAddToCart = (itemId: string) => {
+    // Check if item is already in cart
+    const existingItem = cartItems.find(item => item.id === itemId);
     
-    const mockMenu = [
-      {
-        id: '1',
-        name: 'Classic Burger',
-        description: 'Delicious burger with lettuce, tomato, and cheese',
-        price: 26.90,
-        category: 'Hambúrgueres',
-        image_url: '/burger.jpg',
-        restaurant_id: restaurantId,
-      },
-      {
-        id: '2',
-        name: 'Margherita Pizza',
-        description: 'Classic pizza with tomato sauce, mozzarella, and basil',
-        price: 32.90,
-        category: 'Pizzas',
-        image_url: '/pizza.jpg',
-        restaurant_id: restaurantId,
-      },
-      {
-        id: '3',
-        name: 'Caesar Salad',
-        description: 'Fresh salad with romaine lettuce, croutons, and Caesar dressing',
-        price: 14.90,
-        category: 'Saladas',
-        image_url: '/salad.jpg',
-        restaurant_id: restaurantId,
-      },
-      {
-        id: '4',
-        name: 'Chocolate Cake',
-        description: 'Rich chocolate cake with chocolate frosting',
-        price: 16.90,
-        category: 'Sobremesas',
-        image_url: '/cake.jpg',
-        restaurant_id: restaurantId,
-      },
-      {
-        id: '5',
-        name: 'Coca-Cola',
-        description: 'Refreshing Coca-Cola',
-        price: 8.90,
-        category: 'Bebidas',
-        image_url: '/coke.jpg',
-        restaurant_id: restaurantId,
-      },
-      {
-        id: '6',
-        name: 'Cheeseburger Bacon',
-        description: 'Delicious burger with lettuce, tomato, and cheese',
-        price: 35.90,
-        category: 'Hambúrgueres',
-        image_url: '/burger.jpg',
-        restaurant_id: restaurantId,
-        popular: true,
-        vegetarian: false,
-        spicy: true,
-      },
-      {
-        id: '7',
-        name: 'Portuguesa Pizza',
-        description: 'Classic pizza with tomato sauce, mozzarella, and basil',
-        price: 42.90,
-        category: 'Pizzas',
-        image_url: '/pizza.jpg',
-        restaurant_id: restaurantId,
-        popular: false,
-        vegetarian: false,
-        spicy: false,
-      },
-      {
-        id: '8',
-        name: 'Salada Tropical',
-        description: 'Fresh salad with romaine lettuce, croutons, and Caesar dressing',
-        price: 24.90,
-        category: 'Saladas',
-        image_url: '/salad.jpg',
-        restaurant_id: restaurantId,
-        popular: false,
-        vegetarian: true,
-        spicy: false,
-      },
-      {
-        id: '9',
-        name: 'Mousse de Maracujá',
-        description: 'Rich chocolate cake with chocolate frosting',
-        price: 26.90,
-        category: 'Sobremesas',
-        image_url: '/cake.jpg',
-        restaurant_id: restaurantId,
-        popular: true,
-        vegetarian: true,
-        spicy: false,
-      },
-      {
-        id: '10',
-        name: 'Suco de Laranja',
-        description: 'Refreshing Coca-Cola',
-        price: 18.90,
-        category: 'Bebidas',
-        image_url: '/coke.jpg',
-        restaurant_id: restaurantId,
-        popular: false,
-        vegetarian: true,
-        spicy: false,
-      },
-    ];
-
-    setMenuItems(mockMenu);
-
-    // Extract unique categories
-    const uniqueCategories = ['Todos', ...new Set(mockMenu.map((item) => item.category))];
-    setCategories(uniqueCategories);
-  };
-
-  // Save current restaurant ID to localStorage for cart
-  useEffect(() => {
-    if (id) {
-      localStorage.setItem('currentRestaurant', id);
+    if (existingItem) {
+      // Update quantity if item exists
+      setCartItems(cartItems.map(item => 
+        item.id === itemId 
+          ? { ...item, quantity: item.quantity + 1 } 
+          : item
+      ));
+    } else {
+      // Add new item to cart
+      setCartItems([...cartItems, { id: itemId, quantity: 1 }]);
     }
-  }, [id]);
-
-  // Filter menu items based on active category and search term
-  const filteredMenuItems = menuItems.filter((item) => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const itemNameLower = item.name.toLowerCase();
-    const itemDescriptionLower = item.description.toLowerCase();
     
-    const matchesCategory = activeCategory === 'Todos' || item.category === activeCategory;
-    const matchesSearch = searchTerm === '' || 
-                         itemNameLower.includes(searchTermLower) || 
-                         itemDescriptionLower.includes(searchTermLower);
-    
-    return matchesCategory && matchesSearch;
-  });
-
-  // Handle adding items to cart
-  const handleAddItem = (itemId: string) => {
-    setCartItems(prevItems => {
-      const updatedItems = {
-        ...prevItems,
-        [itemId]: (prevItems[itemId] || 0) + 1
-      };
-      
-      // Save to localStorage
-      if (id) {
-        const cartData = Object.keys(updatedItems).map(id => ({
-          id,
-          quantity: updatedItems[id]
-        }));
-        localStorage.setItem(`cart_${id}`, JSON.stringify(cartData));
-      }
-      
-      return updatedItems;
-    });
-    toast('Item adicionado ao carrinho');
+    toast.success("Item adicionado ao carrinho");
   };
-
-  // Handle removing items from cart
-  const handleRemoveItem = (itemId: string) => {
-    setCartItems(prevItems => {
-      const newItems = { ...prevItems };
-      if (newItems[itemId] > 1) {
-        newItems[itemId]--;
-      } else {
-        delete newItems[itemId];
-      }
-      
-      // Save to localStorage
-      if (id) {
-        const cartData = Object.keys(newItems).map(id => ({
-          id,
-          quantity: newItems[id]
-        }));
-        localStorage.setItem(`cart_${id}`, JSON.stringify(cartData));
-      }
-      
-      return newItems;
-    });
+  
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      // Remove item if quantity is 0 or less
+      setCartItems(cartItems.filter(item => item.id !== itemId));
+      toast.info("Item removido do carrinho");
+    } else {
+      // Update quantity
+      setCartItems(cartItems.map(item => 
+        item.id === itemId 
+          ? { ...item, quantity: newQuantity } 
+          : item
+      ));
+    }
   };
-
-  if (isLoading) {
-    return (
-      <div className="container py-10 text-center">
-        <p className="text-lg">Carregando cardápio...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container py-10 text-center">
-        <p className="text-lg text-red-500">{error}</p>
-      </div>
-    );
-  }
-
+  
+  const handleCheckout = () => {
+    navigate(`/checkout/${restaurantId}`);
+  };
+  
+  // Filter menu items by category and search query
+  const filteredItems = menuItems.filter(item => 
+    (selectedCategory === "Todos" || item.category === selectedCategory) &&
+    (item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+  
+  // Calculate total items in cart
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // Calculate total price
+  const totalPrice = cartItems.reduce((sum, cartItem) => {
+    const menuItem = menuItems.find(item => item.id === cartItem.id);
+    return sum + (menuItem ? menuItem.price * cartItem.quantity : 0);
+  }, 0);
+  
   return (
-    <div className="container py-6 pb-24 relative">
-      <h1 className="text-3xl font-bold mb-4">Cardápio</h1>
-
-      <div className="flex flex-col md:flex-row items-center justify-between mb-6">
-        <div className="flex items-center mb-4 md:mb-0">
-          <RestaurantIcon className="mr-2 h-6 w-6 text-gray-500" />
-          <p className="text-gray-600">
-            {id ? `Mostrando itens do restaurante com ID: ${id}` : 'Mostrando todos os itens'}
-          </p>
-        </div>
-
-        <Input
-          type="text"
-          placeholder="Buscar item..."
-          className="max-w-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {menuItems.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-lg">Nenhum item encontrado no cardápio deste restaurante.</p>
-        </div>
-      ) : (
-        <Tabs defaultValue="todos" className="space-y-4">
-          <TabsList>
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category}
-                value={category.toLowerCase()}
-                onClick={() => setActiveCategory(category)}
-                className="capitalize"
-              >
-                {category}
-              </TabsTrigger>
+    <div className="container py-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Cardápio</h1>
+              <p className="text-muted-foreground">
+                Explore nosso menu e faça seu pedido
+              </p>
+            </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar no cardápio..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-full md:w-[300px]"
+              />
+            </div>
+          </div>
+          
+          <Tabs defaultValue="Todos" value={selectedCategory} onValueChange={setSelectedCategory}>
+            <TabsList className="mb-6 w-full overflow-x-auto flex flex-nowrap">
+              {menuCategories.map(category => (
+                <TabsTrigger key={category} value={category} className="px-4">
+                  {category}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {menuCategories.map(category => (
+              <TabsContent key={category} value={category}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredItems.map(item => (
+                    <MenuItemCard
+                      key={item.id}
+                      id={item.id}
+                      name={item.name}
+                      description={item.description}
+                      price={item.price}
+                      imageUrl={item.imageUrl}
+                      onAddToCart={() => handleAddToCart(item.id)}
+                    />
+                  ))}
+                </div>
+                
+                {filteredItems.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      Nenhum item encontrado para essa categoria ou busca.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
             ))}
-          </TabsList>
-
-          {categories.map((category) => (
-            <TabsContent key={category} value={category.toLowerCase()}>
-              {filteredMenuItems.filter(item => activeCategory === 'Todos' || item.category === category).length > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {filteredMenuItems
-                    .filter(item => activeCategory === 'Todos' || item.category === category)
-                    .map((item) => (
-                      <MenuItemCard
-                        key={item.id}
-                        item={{
-                          id: item.id,
-                          name: item.name,
-                          description: item.description,
-                          price: item.price,
-                          image: item.image_url,
-                          category: item.category,
-                          popular: item.popular || false,
-                          vegetarian: item.vegetarian || false,
-                          spicy: item.spicy || false,
-                        }}
-                        quantity={cartItems[item.id] || 0}
-                        onAdd={() => handleAddItem(item.id)}
-                        onRemove={() => handleRemoveItem(item.id)}
-                      />
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <p className="text-lg text-gray-500">
-                    Nenhum item encontrado nesta categoria.
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
+          </Tabs>
+        </CardContent>
+      </Card>
       
-      {/* Floating Cart Button */}
-      {totalCartItems > 0 && (
-        <div className="fixed bottom-8 right-8 z-50">
-          <Button asChild size="lg" className="rounded-full h-16 w-16 shadow-lg">
-            <Link to="/carrinho" className="relative">
-              <ShoppingCartIcon className="h-6 w-6" />
-              <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center rounded-full p-0">
-                {totalCartItems}
+      {/* Floating cart button */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-lg"
+            size="icon"
+          >
+            <ShoppingCart className="h-6 w-6" />
+            {totalItems > 0 && (
+              <Badge 
+                variant="destructive"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 flex items-center justify-center"
+              >
+                {totalItems}
               </Badge>
-            </Link>
+            )}
           </Button>
-        </div>
-      )}
+        </SheetTrigger>
+        
+        <SheetContent className="sm:max-w-md w-full">
+          <SheetHeader>
+            <SheetTitle>Seu Carrinho</SheetTitle>
+          </SheetHeader>
+          
+          <div className="mt-6 flex flex-col h-[calc(100vh-10rem)]">
+            {cartItems.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  Seu carrinho está vazio. Adicione itens para continuar.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-auto">
+                  {cartItems.map(cartItem => {
+                    const menuItem = menuItems.find(item => item.id === cartItem.id);
+                    if (!menuItem) return null;
+                    
+                    return (
+                      <CartItemCard
+                        key={cartItem.id}
+                        name={menuItem.name}
+                        price={menuItem.price}
+                        quantity={cartItem.quantity}
+                        imageUrl={menuItem.imageUrl}
+                        onUpdateQuantity={(newQuantity) => 
+                          handleUpdateQuantity(cartItem.id, newQuantity)
+                        }
+                      />
+                    );
+                  })}
+                </div>
+                
+                <div className="border-t pt-4 mt-auto">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Subtotal</span>
+                    <span>R$ {totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-4">
+                    <span>Taxa de entrega</span>
+                    <span>R$ 10.00</span>
+                  </div>
+                  <div className="flex justify-between font-bold mb-6">
+                    <span>Total</span>
+                    <span>R$ {(totalPrice + 10).toFixed(2)}</span>
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    onClick={handleCheckout}
+                  >
+                    Finalizar Pedido
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

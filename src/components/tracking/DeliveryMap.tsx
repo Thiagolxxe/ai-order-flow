@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -38,7 +38,7 @@ const userIcon = createLeafletIcon(
 const SetMapView = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
+    map.setView(center, 13);
   }, [center, map]);
   return null;
 };
@@ -84,13 +84,9 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
+        center={centerPosition}
         zoom={13}
-        whenCreated={(mapInstance) => {
-          mapInstance.setView(centerPosition, 13);
-        }}
       >
-        <SetMapView center={centerPosition} />
-        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -122,6 +118,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
           </Popup>
         </Marker>
+        
+        <SetMapView center={centerPosition} />
       </MapContainer>
     </div>
   );
