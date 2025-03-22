@@ -68,6 +68,8 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         await fetchUserProfile(initialSession.user.id);
         await fetchAddresses();
         await fetchNotifications();
+      } else {
+        console.log("No active session found");
       }
       
       setIsLoading(false);
@@ -75,15 +77,18 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, newSession) => {
+          console.log("Auth state changed:", event);
           setSession(newSession);
           
           if (newSession?.user) {
+            console.log("User authenticated:", newSession.user.id);
             setUser(newSession.user);
             setIsAuthenticated(true);
             await fetchUserProfile(newSession.user.id);
             await fetchAddresses();
             await fetchNotifications();
           } else {
+            console.log("User signed out or session expired");
             setUser(null);
             setIsAuthenticated(false);
             setRole(null);
@@ -122,12 +127,14 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log("Attempting login with:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
+        console.error("Login error:", error);
         toast({
           title: "Erro ao fazer login",
           description: error.message,
@@ -136,20 +143,22 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         return { error };
       }
       
+      console.log("Login successful:", data?.user?.id);
       return { error: null };
     } catch (error: any) {
+      console.error("Login exception:", error);
       toast({
         title: "Erro ao fazer login",
         description: error.message,
         variant: "destructive",
       });
-      console.error("Erro ao fazer login:", error);
       return { error };
     }
   };
 
   const signup = async (email: string, password: string, userData?: any) => {
     try {
+      console.log("Attempting signup with:", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -159,6 +168,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       });
       
       if (error) {
+        console.error("Signup error:", error);
         toast({
           title: "Erro ao cadastrar",
           description: error.message,
@@ -167,20 +177,22 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         return { error, data: null };
       }
       
+      console.log("Signup successful:", data?.user?.id);
       return { data, error: null };
     } catch (error: any) {
+      console.error("Signup exception:", error);
       toast({
         title: "Erro ao cadastrar",
         description: error.message,
         variant: "destructive",
       });
-      console.error("Erro ao cadastrar:", error);
       return { error, data: null };
     }
   };
 
   const signOut = async (): Promise<boolean> => {
     try {
+      console.log("Attempting signout");
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
@@ -188,20 +200,22 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       setRole(null);
       setAddresses(null);
       setNotifications(null);
+      console.log("Signout successful");
       return true;
     } catch (error: any) {
+      console.error("Signout error:", error);
       toast({
         title: "Erro ao fazer logout",
         description: error.message,
         variant: "destructive",
       });
-      console.error("Erro ao fazer logout:", error);
       return false;
     }
   };
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching user profile for:", userId);
       const { data: profile, error: profileError } = await supabase
         .from("perfis")
         .select("*")
@@ -209,10 +223,12 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         .single();
 
       if (profileError) {
-        console.error("Erro ao buscar perfil:", profileError);
+        console.error("Error fetching profile:", profileError);
         setRole("guest");
         return;
       }
+
+      console.log("Profile data:", profile);
 
       // Look up the user role from funcoes_usuario table
       const { data: userRoles, error: rolesError } = await supabase
@@ -221,33 +237,43 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         .eq("usuario_id", userId);
         
       if (rolesError) {
-        console.error("Erro ao buscar funções do usuário:", rolesError);
+        console.error("Error fetching user roles:", rolesError);
         setRole("guest");
         return;
       }
+      
+      console.log("User roles:", userRoles);
       
       // Use the first role or default to guest if none found
       const userRole = userRoles?.length > 0 ? userRoles[0].funcao : "guest";
       setRole(userRole);
     } catch (error) {
-      console.error("Erro ao buscar perfil:", error);
+      console.error("Exception fetching profile:", error);
       setRole("guest");
     }
   };
 
   const fetchAddresses = async (): Promise<void> => {
     try {
+      if (!user?.id) {
+        console.log("Cannot fetch addresses: No user ID");
+        setAddresses([]);
+        return;
+      }
+      
+      console.log("Fetching addresses for user:", user.id);
       const { data, error } = await supabase
         .from("enderecos")
         .select("*")
-        .eq("usuario_id", user?.id);
+        .eq("usuario_id", user.id);
 
       if (error) {
-        console.error("Erro ao buscar endereços:", error);
-        setAddresses(null);
+        console.error("Error fetching addresses:", error);
+        setAddresses([]);
         return;
       }
 
+      console.log("Addresses data:", data);
       const formattedAddresses = data.map((address: any) => ({
         id: address.id,
         usuario_id: address.usuario_id,
@@ -264,8 +290,8 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
       setAddresses(formattedAddresses);
     } catch (error) {
-      console.error("Erro ao buscar endereços:", error);
-      setAddresses(null);
+      console.error("Exception fetching addresses:", error);
+      setAddresses([]);
     }
   };
 
@@ -430,22 +456,30 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
   const fetchNotifications = async (): Promise<void> => {
     try {
+      if (!user?.id) {
+        console.log("Cannot fetch notifications: No user ID");
+        setNotifications([]);
+        return;
+      }
+      
+      console.log("Fetching notifications for user:", user.id);
       const { data, error } = await supabase
         .from("notificacoes")
         .select("*")
-        .eq("usuario_id", user?.id)
+        .eq("usuario_id", user.id)
         .order("criado_em", { ascending: false });
 
       if (error) {
-        console.error("Erro ao buscar notificações:", error);
+        console.error("Error fetching notifications:", error);
         setNotifications([]);
         return;
       }
 
+      console.log("Notifications data:", data);
       // Ensure the data structure matches NotificationType
       setNotifications(data || []);
     } catch (error) {
-      console.error("Erro ao buscar notificações:", error);
+      console.error("Exception fetching notifications:", error);
       setNotifications([]);
     }
   };
@@ -454,13 +488,14 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     notificationId: string
   ): Promise<void> => {
     try {
+      console.log("Marking notification as read:", notificationId);
       const { error } = await supabase
         .from("notificacoes")
         .update({ lida: true })
         .eq("id", notificationId);
 
       if (error) {
-        console.error("Erro ao marcar notificação como lida:", error);
+        console.error("Error marking notification as read:", error);
         toast({
           title: "Erro ao marcar notificação como lida",
           description: "Não foi possível marcar a notificação como lida.",
@@ -469,6 +504,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         return;
       }
 
+      console.log("Notification marked as read successfully");
       // Update notifications in state
       setNotifications(
         notifications?.map((notification) =>
@@ -476,7 +512,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         ) || null
       );
     } catch (error) {
-      console.error("Erro ao marcar notificação como lida:", error);
+      console.error("Exception marking notification as read:", error);
       toast({
         title: "Erro ao marcar notificação como lida",
         description: "Não foi possível marcar a notificação como lida.",

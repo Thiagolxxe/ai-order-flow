@@ -51,21 +51,17 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   return (
     <div className="rounded-xl overflow-hidden shadow-md">
       <MapContainer 
+        center={[deliveryPosition.lat, deliveryPosition.lng]} 
         zoom={14} 
         style={{ height: '500px', width: '100%' }}
-        // @ts-ignore - Needed because of type mismatch with react-leaflet
-        center={[deliveryPosition.lat, deliveryPosition.lng]}
       >
         <TileLayer
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         <Marker 
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           position={[restaurantPosition.lat, restaurantPosition.lng]}
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           icon={restaurantIcon}
         >
           <Popup>
@@ -75,9 +71,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           position={[deliveryPosition.lat, deliveryPosition.lng]}
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           icon={deliveryIcon}
         >
           <Popup>
@@ -87,9 +81,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           position={[userPosition.lat, userPosition.lng]}
-          // @ts-ignore - Needed because of type mismatch with react-leaflet
           icon={userIcon}
         >
           <Popup>
