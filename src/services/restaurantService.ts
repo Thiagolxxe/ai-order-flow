@@ -6,12 +6,19 @@ import {
   getMockRestaurantData 
 } from '@/utils/restaurant-helpers';
 import { RestaurantDetailsData } from '@/hooks/useRestaurantDetails';
+import { isValidUUID } from '@/utils/id-helpers';
 
 /**
  * Fetches restaurant data from Supabase
  */
 export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise<RestaurantDetailsData | null> => {
   try {
+    // Check if the ID is a valid UUID format first
+    if (!isValidUUID(restaurantId)) {
+      console.warn(`Invalid UUID format for restaurant ID: ${restaurantId}`);
+      return null;
+    }
+
     // Fetch restaurant data
     const { data, error: queryError } = await supabase
       .from('restaurantes')

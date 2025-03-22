@@ -2,7 +2,7 @@
  * Utility functions for handling IDs and UUIDs
  */
 
-// Standard test UUIDs for development and testing
+// Standard test UUIDs for development and testing - using valid UUID format
 export const TEST_UUIDS = {
   // User IDs
   USER_1: '00000000-0000-0000-0000-000000000001',
@@ -11,14 +11,14 @@ export const TEST_UUIDS = {
   USER_4: '00000000-0000-0000-0000-000000000004',
   USER_5: '00000000-0000-0000-0000-000000000005',
   
-  // Restaurant IDs
-  RESTAURANT_1: '00000000-0000-0000-0000-000000000r01',
-  RESTAURANT_2: '00000000-0000-0000-0000-000000000r02',
+  // Restaurant IDs - changed to use valid hex characters
+  RESTAURANT_1: '00000000-0000-0000-0000-000000000a01',
+  RESTAURANT_2: '00000000-0000-0000-0000-000000000a02',
   
-  // Order IDs
-  ORDER_1: '00000000-0000-0000-0000-00000000pd01',
-  ORDER_2: '00000000-0000-0000-0000-00000000pd02',
-  ORDER_3: '00000000-0000-0000-0000-00000000pd03',
+  // Order IDs - changed to use valid hex characters
+  ORDER_1: '00000000-0000-0000-0000-00000000ad01',
+  ORDER_2: '00000000-0000-0000-0000-00000000ad02',
+  ORDER_3: '00000000-0000-0000-0000-00000000ad03',
 };
 
 /**
@@ -48,8 +48,10 @@ export const numericToUUID = (id: string | number): string => {
     return TEST_UUIDS[`RESTAURANT_${numId}` as keyof typeof TEST_UUIDS] || '';
   }
   
-  // Otherwise, use the standard padding approach
-  const numStr = String(id).padStart(32, '0');
+  // Otherwise, use the standard padding approach - ensure only hex characters
+  let numStr = String(id).padStart(30, '0');
+  numStr = numStr.replace(/[^0-9a-f]/gi, '0'); // Replace any non-hex with '0'
+  
   // Format as UUID
   return `${numStr.slice(0, 8)}-${numStr.slice(8, 12)}-${numStr.slice(12, 16)}-${numStr.slice(16, 20)}-${numStr.slice(20)}`;
 };
