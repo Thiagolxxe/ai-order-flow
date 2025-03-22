@@ -197,7 +197,7 @@ const LiveTrackingMap = () => {
                 
                 <div>
                   <p className="text-sm font-medium">Status Pagamento</p>
-                  <Badge variant={order.status_pagamento === 'pago' ? 'success' : 'secondary'} className="capitalize">
+                  <Badge variant={order.status_pagamento === 'pago' ? 'default' : 'secondary'} className="capitalize">
                     {order.status_pagamento}
                   </Badge>
                 </div>

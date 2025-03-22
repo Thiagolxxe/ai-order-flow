@@ -51,7 +51,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   return (
     <div className="rounded-xl overflow-hidden shadow-md">
       <MapContainer 
-        center={[deliveryPosition.lat, deliveryPosition.lng]}
+        center={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]}
         zoom={14} 
         style={{ height: '500px', width: '100%' }}
       >
@@ -61,7 +61,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng]}
+          position={[restaurantPosition.lat, restaurantPosition.lng] as [number, number]}
           icon={restaurantIcon}
         >
           <Popup>
@@ -71,7 +71,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng]}
+          position={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]}
           icon={deliveryIcon}
         >
           <Popup>
@@ -81,7 +81,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng]}
+          position={[userPosition.lat, userPosition.lng] as [number, number]}
           icon={userIcon}
         >
           <Popup>

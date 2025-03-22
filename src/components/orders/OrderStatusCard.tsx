@@ -26,7 +26,7 @@ const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ status, orderId }) =>
         <h2 className="text-xl font-semibold mb-4">Status do Pedido</h2>
         <OrderTracker 
           orderId={orderId} 
-          currentStatus={mapStatusToTrackerFormat(status)}
+          initialStatus={mapStatusToTrackerFormat(status)}
         />
       </CardContent>
     </Card>
