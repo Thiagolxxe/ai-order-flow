@@ -48,6 +48,15 @@ const Cart = () => {
           return;
         }
         
+        // Validar se o ID do restaurante é um UUID válido
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(restaurantId)) {
+          console.error('ID do restaurante inválido:', restaurantId);
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+        
         // Obter os itens do carrinho
         const savedCart = localStorage.getItem(`cart_${restaurantId}`);
         if (!savedCart) {
@@ -63,26 +72,52 @@ const Cart = () => {
           return;
         }
         
+        // Validar que todos os IDs dos itens são válidos
+        const validItemIds = parsedCart.filter(item => uuidRegex.test(item.id));
+        
+        if (validItemIds.length === 0) {
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+        
         // Buscar detalhes do restaurante
         const { data: restaurantData, error: restaurantError } = await supabase
           .from('restaurantes')
           .select('id, nome, taxa_entrega')
           .eq('id', restaurantId)
-          .single();
+          .maybeSingle();
         
-        if (restaurantError) throw restaurantError;
+        if (restaurantError) {
+          console.error('Erro ao buscar dados do restaurante:', restaurantError);
+          toast.error('Não foi possível carregar os dados do restaurante');
+          setLoading(false);
+          return;
+        }
+        
+        if (!restaurantData) {
+          console.error('Restaurante não encontrado:', restaurantId);
+          toast.error('Restaurante não encontrado');
+          setLoading(false);
+          return;
+        }
         
         // Buscar detalhes dos itens do cardápio
-        const itemIds = parsedCart.map(item => item.id);
+        const itemIds = validItemIds.map(item => item.id);
         const { data: menuItemsData, error: menuItemsError } = await supabase
           .from('itens_cardapio')
           .select('id, nome, preco, imagem_url')
           .in('id', itemIds);
         
-        if (menuItemsError) throw menuItemsError;
+        if (menuItemsError) {
+          console.error('Erro ao buscar itens do cardápio:', menuItemsError);
+          toast.error('Não foi possível carregar os itens do carrinho');
+          setLoading(false);
+          return;
+        }
         
         // Montar os itens do carrinho com os detalhes
-        const cartItemsWithDetails = parsedCart.map(cartItem => {
+        const cartItemsWithDetails = validItemIds.map(cartItem => {
           const menuItem = menuItemsData.find(mi => mi.id === cartItem.id);
           return {
             id: cartItem.id,
