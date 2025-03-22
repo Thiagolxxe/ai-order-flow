@@ -54,6 +54,15 @@ const RestaurantDetails = () => {
       try {
         setLoading(true);
         
+        // Ensure we're querying with a valid UUID format - this is the critical fix
+        // Check if the ID might not be a valid UUID
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          console.error('Invalid UUID format for restaurant ID:', id);
+          toast.error('ID de restaurante inválido');
+          setLoading(false);
+          return;
+        }
+        
         // Buscar detalhes do restaurante
         const { data: restaurantData, error: restaurantError } = await supabase
           .from('restaurantes')

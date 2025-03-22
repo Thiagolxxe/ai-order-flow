@@ -68,19 +68,26 @@ const RestaurantList = ({
           throw error;
         }
         
-        // Transformar dados para o formato esperado pelo componente
-        const formattedData = data.map(restaurant => ({
-          id: restaurant.id,
-          nome: restaurant.nome,
-          logo_url: restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop',
-          tipo_cozinha: restaurant.tipo_cozinha,
-          taxa_entrega: restaurant.taxa_entrega || 0,
-          valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
-          tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
-          faixa_preco: restaurant.faixa_preco || 2,
-          featured: Math.random() > 0.7, // Exemplo: alguns restaurantes são destacados aleatoriamente
-          isNew: (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
-        }));
+        // Validate that each restaurant has a valid UUID
+        const formattedData = data.map(restaurant => {
+          // Ensure id is a valid UUID
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurant.id)) {
+            console.warn(`Restaurant with invalid UUID format: ${restaurant.id}, ${restaurant.nome}`);
+          }
+          
+          return {
+            id: restaurant.id,
+            nome: restaurant.nome,
+            logo_url: restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop',
+            tipo_cozinha: restaurant.tipo_cozinha,
+            taxa_entrega: restaurant.taxa_entrega || 0,
+            valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
+            tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
+            faixa_preco: restaurant.faixa_preco || 2,
+            featured: Math.random() > 0.7, // Exemplo: alguns restaurantes são destacados aleatoriamente
+            isNew: (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
+          };
+        });
         
         setRestaurants(formattedData);
       } catch (error) {

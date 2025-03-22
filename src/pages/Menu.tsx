@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RestaurantIcon } from '@/assets/icons';
 import { useToast } from "@/hooks/use-toast";
+import { toast } from 'sonner';
 
 interface MenuItem {
   id: string;
@@ -25,11 +26,25 @@ const Menu = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
+        // Validate restaurant ID format
+        if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          console.error('Invalid UUID format for restaurant ID:', id);
+          toast('ID de restaurante inválido');
+          return;
+        }
+
+        // For now, we'll use mock data
+        // In a real app, you would fetch from Supabase like:
+        // const { data, error } = await supabase
+        //   .from('itens_cardapio')
+        //   .select('*')
+        //   .eq('restaurante_id', id);
+        
         const mockMenu = [
           {
             id: '1',
@@ -130,7 +145,7 @@ const Menu = () => {
         setCategories(uniqueCategories);
       } catch (error) {
         console.error("Failed to fetch menu items", error);
-        toast({
+        uiToast({
           title: "Erro ao carregar cardápio",
           description: "Não foi possível carregar os itens do cardápio.",
           variant: "destructive",
@@ -139,7 +154,7 @@ const Menu = () => {
     };
 
     fetchMenu();
-  }, [id, toast]);
+  }, [id, uiToast]);
 
   const filteredMenuItems = menuItems.filter((item) => {
     const searchTermLower = searchTerm.toLowerCase();
