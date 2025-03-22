@@ -1,310 +1,329 @@
 
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MapPinIcon, ClockIcon, PhoneIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/integrations/supabase/client';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Link, useParams } from 'react-router-dom';
+
+// Import the OrderTracker component with default import syntax
 import OrderTracker from '@/components/orders/OrderTracker';
 
-// Fix the default marker icon issue in Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Define interface for order data
+interface Order {
+  id: string;
+  numero_pedido: string;
+  status: string;
+  restaurante_id: string;
+  restaurante?: {
+    nome: string;
+    endereco: string;
+    telefone?: string;
+  };
+  endereco_entrega: string;
+  cidade_entrega: string;
+  estado_entrega: string;
+  cep_entrega: string;
+  entregador_id?: string;
+  entregador?: {
+    id: string;
+    latitude_atual?: number;
+    longitude_atual?: number;
+    tipo_veiculo?: string;
+  };
+  tempo_entrega_estimado?: string;
+}
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Ícone personalizado para restaurante
-const restaurantIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/1147/1147933.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
-
-// Ícone personalizado para entregador
-const deliveryIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2830/2830312.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
-
-// Ícone personalizado para cliente
-const userIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/1077/1077063.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
-
-// Componente para atualizar a visualização do mapa
-const UpdateMapView = ({ center }: { center: [number, number] }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
-  return null;
-};
-
-// Dados fictícios para a demonstração
-const mockOrder = {
-  id: 'ord-123456',
-  restaurante: {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    nome: 'Burger Place',
-    endereco: 'Av. Paulista, 1000',
-    lat: -23.5674,
-    lng: -46.6476
-  },
-  entregador: {
-    id: '223e4567-e89b-12d3-a456-426614174001',
-    nome: 'João Silva',
-    telefone: '(11) 98765-4321',
-    lat: -23.5694,
-    lng: -46.6426,
-    avaliacao: 4.8
-  },
-  cliente: {
-    endereco: 'Rua Augusta, 500',
-    lat: -23.5644,
-    lng: -46.6526
-  },
-  status: 'em_transito',
-  previsao_entrega: '2023-06-10T18:30:00',
-  criado_em: '2023-06-10T17:45:00'
-};
-
-// Estado do pedido
-const statusMap = {
-  pendente: 'Pendente',
-  confirmado: 'Confirmado',
-  preparando: 'Preparando',
-  pronto: 'Pronto para entrega',
-  em_transito: 'Em trânsito',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado'
-};
-
-// Cores do status
-const statusColors = {
-  pendente: 'bg-gray-400',
-  confirmado: 'bg-blue-400',
-  preparando: 'bg-yellow-400',
-  pronto: 'bg-indigo-400',
-  em_transito: 'bg-purple-400',
-  entregue: 'bg-green-500',
-  cancelado: 'bg-red-500'
-};
-
-const getTimePassed = (dateString: string) => {
-  const orderDate = new Date(dateString);
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60));
-  
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} min atrás`;
-  } else {
-    const hours = Math.floor(diffInMinutes / 60);
-    return `${hours} ${hours === 1 ? 'hora' : 'horas'} atrás`;
-  }
-};
+// Define interfaces for marker positions
+interface MarkerPosition {
+  lat: number;
+  lng: number;
+}
 
 const LiveTrackingMap = () => {
-  const { id } = useParams();
-  const [order, setOrder] = useState(mockOrder);
+  const { id } = useParams<{ id: string }>();
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [restaurantPosition, setRestaurantPosition] = useState<MarkerPosition>({
+    lat: -23.5505, 
+    lng: -46.6333
+  });
+  const [deliveryPosition, setDeliveryPosition] = useState<MarkerPosition>({
+    lat: -23.5605, 
+    lng: -46.6433
+  });
+  const [userPosition, setUserPosition] = useState<MarkerPosition>({
+    lat: -23.5705, 
+    lng: -46.6533
+  });
+  const { user } = useUser();
   
+  // Create custom icons for the map
+  const restaurantIcon = new L.Icon({
+    iconUrl: '/restaurant-marker.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+  
+  const deliveryIcon = new L.Icon({
+    iconUrl: '/delivery-marker.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+  
+  const userIcon = new L.Icon({
+    iconUrl: '/user-marker.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+
   useEffect(() => {
-    // Aqui você buscaria os dados reais do pedido
-    // Validar formato de UUID
-    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      console.error('Invalid UUID format for order ID:', id);
-      // Handle the error appropriately
-    }
+    const fetchOrderDetails = async () => {
+      try {
+        setLoading(true);
+        
+        // Validate order ID format
+        if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+          console.error('Invalid UUID format for order ID:', id);
+          toast.error('ID de pedido inválido');
+          setLoading(false);
+          return;
+        }
+        
+        const { data: orderData, error: orderError } = await supabase
+          .from('pedidos')
+          .select(`
+            *,
+            restaurante:restaurante_id (
+              nome,
+              endereco,
+              telefone
+            ),
+            entregador:entregador_id (
+              id,
+              latitude_atual,
+              longitude_atual,
+              tipo_veiculo
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (orderError) {
+          console.error('Error fetching order details:', orderError);
+          throw orderError;
+        }
+        
+        setOrder(orderData);
+        
+        // Set positions with geocoded data (would use a real geocoding service in production)
+        // Here we're just using mock positions for demonstration
+        
+        // Restaurant position (slightly randomized)
+        setRestaurantPosition({
+          lat: -23.5505 + (Math.random() * 0.01),
+          lng: -46.6333 + (Math.random() * 0.01)
+        });
+        
+        // Current delivery position (would be updated in real-time)
+        if (orderData.entregador?.latitude_atual && orderData.entregador?.longitude_atual) {
+          setDeliveryPosition({
+            lat: orderData.entregador.latitude_atual,
+            lng: orderData.entregador.longitude_atual
+          });
+        } else {
+          // Fallback to mocked position
+          setDeliveryPosition({
+            lat: -23.5605 + (Math.random() * 0.02),
+            lng: -46.6433 + (Math.random() * 0.02)
+          });
+        }
+        
+        // User/delivery address position
+        setUserPosition({
+          lat: -23.5705 + (Math.random() * 0.01),
+          lng: -46.6533 + (Math.random() * 0.01)
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('Não foi possível carregar os detalhes do pedido');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    fetchOrderDetails();
     
-    return () => clearTimeout(timer);
-  }, [id]);
-  
-  // Calcular o centro do mapa para mostrar todos os pontos
-  const center: [number, number] = [
-    (order.restaurante.lat + order.entregador.lat + order.cliente.lat) / 3,
-    (order.restaurante.lng + order.entregador.lng + order.cliente.lng) / 3
-  ];
+    // Set up periodic location updates (in a real app, would use WebSockets)
+    const updateInterval = setInterval(() => {
+      if (!loading && order?.status === 'em_entrega') {
+        // Simulate delivery movement
+        setDeliveryPosition(prev => ({
+          lat: prev.lat + ((userPosition.lat - prev.lat) * 0.1),
+          lng: prev.lng + ((userPosition.lng - prev.lng) * 0.1)
+        }));
+      }
+    }, 5000);
+    
+    return () => {
+      clearInterval(updateInterval);
+    };
+  }, [id, loading, order?.status, userPosition.lat, userPosition.lng]);
   
   if (loading) {
     return (
       <div className="container py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-96 bg-muted rounded"></div>
-          <div className="h-32 bg-muted rounded"></div>
+        <div className="h-64 bg-muted animate-pulse rounded-lg mb-4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 h-32 bg-muted animate-pulse rounded-lg"></div>
+          <div className="h-32 bg-muted animate-pulse rounded-lg"></div>
         </div>
       </div>
     );
   }
   
-  return (
-    <div className="container px-4 py-6 pb-20">
-      {/* Voltar */}
-      <div className="mb-6">
-        <Button variant="outline" asChild>
-          <Link to="/pedidos">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            Voltar para meus pedidos
-          </Link>
+  if (!order) {
+    return (
+      <div className="container py-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Pedido não encontrado</h2>
+        <p className="mb-6">O pedido que você está procurando não existe ou foi removido.</p>
+        <Button asChild>
+          <a href="/pedidos">Voltar para meus pedidos</a>
         </Button>
       </div>
+    );
+  }
+
+  return (
+    <div className="container py-8">
+      <h1 className="text-2xl font-bold mb-6">Rastreamento de Entrega</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Mapa de rastreamento ao vivo */}
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl">Rastreamento ao vivo</CardTitle>
-                <Badge className={statusColors[order.status as keyof typeof statusColors]}>
-                  {statusMap[order.status as keyof typeof statusMap]}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] w-full rounded-lg overflow-hidden mb-4">
-                <MapContainer 
-                  zoom={13} 
-                  style={{ height: '100%', width: '100%' }}
-                  center={center}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  
-                  {/* Marcador do restaurante */}
-                  <Marker 
-                    position={[order.restaurante.lat, order.restaurante.lng]} 
-                    icon={restaurantIcon}
-                  >
-                    <Popup>
-                      <div className="text-center font-medium">{order.restaurante.nome}</div>
-                      <div className="text-sm">{order.restaurante.endereco}</div>
-                    </Popup>
-                  </Marker>
-                  
-                  {/* Marcador do entregador */}
-                  <Marker 
-                    position={[order.entregador.lat, order.entregador.lng]} 
-                    icon={deliveryIcon}
-                  >
-                    <Popup>
-                      <div className="text-center font-medium">Entregador: {order.entregador.nome}</div>
-                      <div className="text-sm">Telefone: {order.entregador.telefone}</div>
-                    </Popup>
-                  </Marker>
-                  
-                  {/* Marcador do destino */}
-                  <Marker 
-                    position={[order.cliente.lat, order.cliente.lng]} 
-                    icon={userIcon}
-                  >
-                    <Popup>
-                      <div className="text-center font-medium">Seu endereço</div>
-                      <div className="text-sm">{order.cliente.endereco}</div>
-                    </Popup>
-                  </Marker>
-                  
-                  <UpdateMapView center={center} />
-                </MapContainer>
-              </div>
-              
-              <p className="text-sm text-muted-foreground">
-                Última atualização: {getTimePassed(order.criado_em)}
-              </p>
-            </CardContent>
-          </Card>
+        {/* Map */}
+        <div className="md:col-span-2 rounded-xl overflow-hidden shadow-md">
+          <MapContainer 
+            center={[deliveryPosition.lat, deliveryPosition.lng]} 
+            zoom={14} 
+            style={{ height: '500px', width: '100%' }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            <Marker 
+              position={[restaurantPosition.lat, restaurantPosition.lng]} 
+              icon={restaurantIcon}
+            >
+              <Popup>
+                <b>{order.restaurante?.nome}</b><br/>
+                Restaurante
+              </Popup>
+            </Marker>
+            
+            <Marker 
+              position={[deliveryPosition.lat, deliveryPosition.lng]} 
+              icon={deliveryIcon}
+            >
+              <Popup>
+                <b>Entregador</b><br/>
+                {order.entregador?.tipo_veiculo || 'Moto'}
+              </Popup>
+            </Marker>
+            
+            <Marker 
+              position={[userPosition.lat, userPosition.lng]} 
+              icon={userIcon}
+            >
+              <Popup>
+                <b>Seu endereço</b><br/>
+                {order.endereco_entrega}
+              </Popup>
+            </Marker>
+          </MapContainer>
         </div>
         
-        {/* Detalhes do pedido e rastreamento */}
-        <div className="space-y-6">
-          {/* Status do pedido */}
+        {/* Order details */}
+        <div className="space-y-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Status do pedido</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrderTracker 
-                orderId={order.id}
-                initialStatus="preparing"
-              />
-            </CardContent>
-          </Card>
-          
-          {/* Informações do entregador */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Seu entregador</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=200" />
-                  <AvatarFallback>JS</AvatarFallback>
-                </Avatar>
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-2">Informações do Pedido</h2>
+              <div className="space-y-3">
                 <div>
-                  <h3 className="font-medium text-base">{order.entregador.nome}</h3>
-                  <div className="flex items-center mt-1 text-amber-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span>{order.entregador.avaliacao}</span>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Número do Pedido</p>
+                  <p className="font-medium">{order.numero_pedido}</p>
                 </div>
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <Button className="w-full" variant="outline">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                Ligar para o entregador
-              </Button>
-            </CardContent>
-          </Card>
-          
-          {/* Endereço de entrega */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Detalhes da entrega</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+                
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Local de entrega</h3>
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0 Z"></path><path d="M12 2a10 10 0 0 0-6.88 2.77L12 12l6.88-7.23A10 10 0 0 0 12 2Z"></path><path d="m2.27 13.27 10-1.27 1.23 10a10.02 10.02 0 0 1-11.23-8.73Z"></path></svg>
-                     </div>
-                     <div>
-                       <p className="font-medium">Seu endereço</p>
-                       <p className="text-sm text-muted-foreground">{order.cliente.endereco}</p>
-                     </div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={
+                    order.status === 'entregue' ? 'success' : 
+                    order.status === 'em_entrega' ? 'default' :
+                    'secondary'
+                  }>
+                    {order.status === 'em_entrega' ? 'Em entrega' : 
+                     order.status === 'entregue' ? 'Entregue' : 
+                     order.status === 'preparando' ? 'Preparando' : 
+                     order.status === 'pendente' ? 'Pendente' : 
+                     order.status === 'cancelado' ? 'Cancelado' : 
+                     order.status}
+                  </Badge>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">Restaurante</p>
+                  <div className="flex items-start">
+                    <MapPinIcon className="w-4 h-4 text-primary mt-1 mr-1 shrink-0" />
+                    <p>{order.restaurante?.nome} - {order.restaurante?.endereco}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Previsão de entrega</h3>
-                  <p className="font-medium">{new Date(order.previsao_entrega).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-sm text-muted-foreground">Entrega em</p>
+                  <div className="flex items-start">
+                    <MapPinIcon className="w-4 h-4 text-primary mt-1 mr-1 shrink-0" />
+                    <p>{order.endereco_entrega}, {order.cidade_entrega} - {order.estado_entrega}, {order.cep_entrega}</p>
+                  </div>
                 </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">Tempo estimado</p>
+                  <div className="flex items-center">
+                    <ClockIcon className="w-4 h-4 text-primary mr-1" />
+                    <p>{order.tempo_entrega_estimado || '30-45 minutos'}</p>
+                  </div>
+                </div>
+                
+                {order.restaurante?.telefone && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Telefone do restaurante</p>
+                    <div className="flex items-center">
+                      <PhoneIcon className="w-4 h-4 text-primary mr-1" />
+                      <p>{order.restaurante.telefone}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-4">Status do Pedido</h2>
+              <OrderTracker status={order.status} />
+            </CardContent>
+          </Card>
+          
+          <Button className="w-full">Entre em contato com o entregador</Button>
         </div>
       </div>
     </div>
