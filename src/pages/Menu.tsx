@@ -3,12 +3,11 @@ import { useParams } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { RestaurantIcon } from '@/assets/icons';
 import { useToast } from "@/hooks/use-toast";
 import { toast } from 'sonner';
+import MenuItemCard from '@/components/food/MenuItemCard';
 
 interface MenuItem {
   id: string;
@@ -18,6 +17,9 @@ interface MenuItem {
   category: string;
   image_url: string;
   restaurant_id: string;
+  popular?: boolean;
+  vegetarian?: boolean;
+  spicy?: boolean;
 }
 
 const Menu = () => {
@@ -26,6 +28,7 @@ const Menu = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [cartItems, setCartItems] = useState<Record<string, number>>({});
   const { toast: uiToast } = useToast();
 
   useEffect(() => {
@@ -99,6 +102,9 @@ const Menu = () => {
             category: 'Hambúrgueres',
             image_url: '/burger.jpg',
             restaurant_id: id,
+            popular: true,
+            vegetarian: false,
+            spicy: true,
           },
           {
             id: '7',
@@ -108,6 +114,9 @@ const Menu = () => {
             category: 'Pizzas',
             image_url: '/pizza.jpg',
             restaurant_id: id,
+            popular: false,
+            vegetarian: false,
+            spicy: false,
           },
           {
             id: '8',
@@ -117,6 +126,9 @@ const Menu = () => {
             category: 'Saladas',
             image_url: '/salad.jpg',
             restaurant_id: id,
+            popular: false,
+            vegetarian: true,
+            spicy: false,
           },
           {
             id: '9',
@@ -126,6 +138,9 @@ const Menu = () => {
             category: 'Sobremesas',
             image_url: '/cake.jpg',
             restaurant_id: id,
+            popular: true,
+            vegetarian: true,
+            spicy: false,
           },
           {
             id: '10',
@@ -135,6 +150,9 @@ const Menu = () => {
             category: 'Bebidas',
             image_url: '/coke.jpg',
             restaurant_id: id,
+            popular: false,
+            vegetarian: true,
+            spicy: false,
           },
         ];
 
@@ -156,14 +174,41 @@ const Menu = () => {
     fetchMenu();
   }, [id, uiToast]);
 
+  // Filter menu items based on active category and search term
   const filteredMenuItems = menuItems.filter((item) => {
     const searchTermLower = searchTerm.toLowerCase();
     const itemNameLower = item.name.toLowerCase();
-    return (
-      (activeCategory === 'Todos' || item.category === activeCategory) &&
-      (searchTerm === '' || itemNameLower.includes(searchTermLower))
-    );
+    const itemDescriptionLower = item.description.toLowerCase();
+    
+    const matchesCategory = activeCategory === 'Todos' || item.category === activeCategory;
+    const matchesSearch = searchTerm === '' || 
+                         itemNameLower.includes(searchTermLower) || 
+                         itemDescriptionLower.includes(searchTermLower);
+    
+    return matchesCategory && matchesSearch;
   });
+
+  // Handle adding items to cart
+  const handleAddItem = (itemId: string) => {
+    setCartItems(prevItems => ({
+      ...prevItems,
+      [itemId]: (prevItems[itemId] || 0) + 1
+    }));
+    toast('Item adicionado ao carrinho');
+  };
+
+  // Handle removing items from cart
+  const handleRemoveItem = (itemId: string) => {
+    setCartItems(prevItems => {
+      const newItems = { ...prevItems };
+      if (newItems[itemId] > 1) {
+        newItems[itemId]--;
+      } else {
+        delete newItems[itemId];
+      }
+      return newItems;
+    });
+  };
 
   return (
     <div className="container py-6">
@@ -203,26 +248,28 @@ const Menu = () => {
         {categories.map((category) => (
           <TabsContent key={category} value={category.toLowerCase()}>
             {filteredMenuItems.filter(item => activeCategory === 'Todos' || item.category === category).length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredMenuItems.filter(item => activeCategory === 'Todos' || item.category === category).map((item) => (
-                  <Card key={item.id} className="bg-white shadow-md rounded-md overflow-hidden">
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-full h-48 object-cover"
+              <div className="grid grid-cols-1 gap-6">
+                {filteredMenuItems
+                  .filter(item => activeCategory === 'Todos' || item.category === category)
+                  .map((item) => (
+                    <MenuItemCard
+                      key={item.id}
+                      item={{
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        price: item.price,
+                        image: item.image_url,
+                        category: item.category,
+                        popular: item.popular || false,
+                        vegetarian: item.vegetarian || false,
+                        spicy: item.spicy || false,
+                      }}
+                      quantity={cartItems[item.id] || 0}
+                      onAdd={() => handleAddItem(item.id)}
+                      onRemove={() => handleRemoveItem(item.id)}
                     />
-                    <CardContent className="p-4">
-                      <h3 className="text-lg font-semibold mb-2">{item.name}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{item.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-bold text-primary">
-                          R$ {item.price.toFixed(2).replace('.', ',')}
-                        </span>
-                        <Button size="sm">Adicionar</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                  ))}
               </div>
             ) : (
               <div className="text-center py-10">
