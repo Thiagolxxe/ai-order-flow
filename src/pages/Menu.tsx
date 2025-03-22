@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Search } from "lucide-react";
-import MenuItemCard from '@/components/food/MenuItemCard';
+import MenuItemCard, { MenuItem } from '@/components/food/MenuItemCard';
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CartItemCard from '@/components/food/CartItemCard';
@@ -22,15 +22,6 @@ const menuCategories = [
   "Bebidas"
 ];
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-}
-
 // Mock menu items
 const mockMenuItems: MenuItem[] = [
   {
@@ -38,6 +29,7 @@ const mockMenuItems: MenuItem[] = [
     name: "Salada Caesar",
     description: "Alface romana, croutons, parmesão e molho Caesar",
     price: 28.90,
+    image: "https://source.unsplash.com/random/300x200/?salad",
     imageUrl: "https://source.unsplash.com/random/300x200/?salad",
     category: "Entradas"
   },
@@ -46,6 +38,7 @@ const mockMenuItems: MenuItem[] = [
     name: "Risoto de Funghi",
     description: "Arroz arbóreo, mix de cogumelos, manteiga e parmesão",
     price: 49.90,
+    image: "https://source.unsplash.com/random/300x200/?risotto",
     imageUrl: "https://source.unsplash.com/random/300x200/?risotto",
     category: "Pratos Principais"
   },
@@ -54,6 +47,7 @@ const mockMenuItems: MenuItem[] = [
     name: "Tiramisu",
     description: "Sobremesa italiana com café, queijo mascarpone e cacau",
     price: 24.90,
+    image: "https://source.unsplash.com/random/300x200/?tiramisu",
     imageUrl: "https://source.unsplash.com/random/300x200/?tiramisu",
     category: "Sobremesas"
   },
@@ -62,6 +56,7 @@ const mockMenuItems: MenuItem[] = [
     name: "Suco Natural",
     description: "Suco de frutas frescas sem adição de açúcar",
     price: 12.90,
+    image: "https://source.unsplash.com/random/300x200/?juice",
     imageUrl: "https://source.unsplash.com/random/300x200/?juice",
     category: "Bebidas"
   },
@@ -70,6 +65,7 @@ const mockMenuItems: MenuItem[] = [
     name: "Carpaccio",
     description: "Finas fatias de carne crua, alcaparras, mostarda e parmesão",
     price: 36.90,
+    image: "https://source.unsplash.com/random/300x200/?carpaccio",
     imageUrl: "https://source.unsplash.com/random/300x200/?carpaccio",
     category: "Entradas"
   },
@@ -194,17 +190,20 @@ const Menu = () => {
             {menuCategories.map(category => (
               <TabsContent key={category} value={category}>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredItems.map(item => (
-                    <MenuItemCard
-                      key={item.id}
-                      id={item.id}
-                      name={item.name}
-                      description={item.description}
-                      price={item.price}
-                      imageUrl={item.imageUrl}
-                      onAddToCart={() => handleAddToCart(item.id)}
-                    />
-                  ))}
+                  {filteredItems.map(item => {
+                    const cartItem = cartItems.find(ci => ci.id === item.id);
+                    const quantity = cartItem ? cartItem.quantity : 0;
+                    
+                    return (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        quantity={quantity}
+                        onAdd={() => handleAddToCart(item.id)}
+                        onRemove={() => handleUpdateQuantity(item.id, quantity - 1)}
+                      />
+                    );
+                  })}
                 </div>
                 
                 {filteredItems.length === 0 && (
@@ -262,11 +261,9 @@ const Menu = () => {
                     return (
                       <CartItemCard
                         key={cartItem.id}
-                        name={menuItem.name}
-                        price={menuItem.price}
+                        item={menuItem}
                         quantity={cartItem.quantity}
-                        imageUrl={menuItem.imageUrl}
-                        onUpdateQuantity={(newQuantity) => 
+                        onUpdateQuantity={(newQuantity: number) => 
                           handleUpdateQuantity(cartItem.id, newQuantity)
                         }
                       />
@@ -277,15 +274,15 @@ const Menu = () => {
                 <div className="border-t pt-4 mt-auto">
                   <div className="flex justify-between text-sm mb-2">
                     <span>Subtotal</span>
-                    <span>R$ {totalPrice.toFixed(2)}</span>
+                    <span>R$ {totalPrice.toFixed(2).replace('.', ',')}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-4">
                     <span>Taxa de entrega</span>
-                    <span>R$ 10.00</span>
+                    <span>R$ 10,00</span>
                   </div>
                   <div className="flex justify-between font-bold mb-6">
                     <span>Total</span>
-                    <span>R$ {(totalPrice + 10).toFixed(2)}</span>
+                    <span>R$ {(totalPrice + 10).toFixed(2).replace('.', ',')}</span>
                   </div>
                   
                   <Button 

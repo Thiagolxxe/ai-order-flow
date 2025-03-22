@@ -84,7 +84,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition}
         zoom={13}
       >
         <TileLayer

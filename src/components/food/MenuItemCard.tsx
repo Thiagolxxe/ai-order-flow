@@ -5,35 +5,67 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, MinusIcon, Flame, Leaf } from 'lucide-react';
 
-interface MenuItem {
+export interface MenuItem {
   id: string;
   name: string;
   description: string;
   price: number;
-  image: string;
-  category: string;
-  popular: boolean;
-  vegetarian: boolean;
-  spicy: boolean;
+  image?: string;
+  imageUrl?: string; // Added for compatibility with Menu.tsx
+  category?: string;
+  popular?: boolean;
+  vegetarian?: boolean;
+  spicy?: boolean;
 }
 
-interface MenuItemCardProps {
-  item: MenuItem;
+export interface MenuItemCardProps {
+  item?: MenuItem;
+  id?: string; // For direct props passing from Menu.tsx
+  name?: string;
+  description?: string;
+  price?: number;
+  image?: string;
+  imageUrl?: string;
+  category?: string;
+  popular?: boolean;
+  vegetarian?: boolean;
+  spicy?: boolean;
   quantity: number;
   onAdd: () => void;
   onRemove: () => void;
+  onAddToCart?: () => void; // Added for compatibility with Menu.tsx
 }
 
 // Default fallback image
 const DEFAULT_ITEM_IMAGE = 'https://images.unsplash.com/photo-1546241072-48010ad2862c?q=80&w=500&auto=format&fit=crop';
 
-const MenuItemCard = ({ item, quantity, onAdd, onRemove }: MenuItemCardProps) => {
+const MenuItemCard: React.FC<MenuItemCardProps> = (props) => {
+  // Handle both ways of passing props (as item object or individual props)
+  const item = props.item || {
+    id: props.id || '',
+    name: props.name || '',
+    description: props.description || '',
+    price: props.price || 0,
+    image: props.image || props.imageUrl || '',
+    category: props.category || '',
+    popular: props.popular || false,
+    vegetarian: props.vegetarian || false,
+    spicy: props.spicy || false
+  };
+
+  const quantity = props.quantity || 0;
+  const onAdd = props.onAdd || props.onAddToCart || (() => {});
+  const onRemove = props.onRemove || (() => {});
+  
   const formattedPrice = item.price.toFixed(2).replace('.', ',');
+  
+  // Use imageUrl if provided as a direct prop, or use item.image
+  const initialImageUrl = props.imageUrl || item.image || DEFAULT_ITEM_IMAGE;
   
   // Validate image URL
   const [imageUrl, setImageUrl] = React.useState(
-    item.image && (item.image.startsWith('http://') || item.image.startsWith('https://')) 
-      ? item.image 
+    initialImageUrl && (initialImageUrl.startsWith('http://') || initialImageUrl.startsWith('https://')) 
+      ? initialImageUrl 
       : DEFAULT_ITEM_IMAGE
   );
 
