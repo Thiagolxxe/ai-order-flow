@@ -102,8 +102,9 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id="map"
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
+        center={centerPosition}
         zoom={13}
-        whenCreated={(map) => { mapRef.current = map; }}
+        ref={(map) => { mapRef.current = map; }}
       >
         <SetMapView center={centerPosition} />
         
@@ -114,7 +115,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[restaurantPosition.lat, restaurantPosition.lng]} 
-          icon={restaurantIcon as unknown as L.Icon<L.IconOptions>}
+          icon={restaurantIcon}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -123,7 +124,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[deliveryPosition.lat, deliveryPosition.lng]} 
-          icon={deliveryIcon as unknown as L.Icon<L.IconOptions>}
+          icon={deliveryIcon}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -132,7 +133,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[userPosition.lat, userPosition.lng]} 
-          icon={userIcon as unknown as L.Icon<L.IconOptions>}
+          icon={userIcon}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
