@@ -1,20 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPinIcon, ClockIcon, PhoneIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUser } from '@/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Import the OrderTracker component with the correct syntax
-import OrderTracker from '@/components/orders/OrderTracker';
+// Import our new components
+import DeliveryMap from '@/components/tracking/DeliveryMap';
+import OrderDetailsCard from '@/components/orders/OrderDetailsCard';
+import OrderStatusCard from '@/components/orders/OrderStatusCard';
 
 // Define interface for order data
 interface Order {
@@ -63,30 +58,7 @@ const LiveTrackingMap = () => {
     lat: -23.5705, 
     lng: -46.6533
   });
-  const { user } = useUser();
   
-  // Create custom icons for the map
-  const restaurantIcon = new L.Icon({
-    iconUrl: '/restaurant-marker.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-  
-  const deliveryIcon = new L.Icon({
-    iconUrl: '/delivery-marker.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-  
-  const userIcon = new L.Icon({
-    iconUrl: '/user-marker.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
@@ -214,118 +186,36 @@ const LiveTrackingMap = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Map */}
-        <div className="md:col-span-2 rounded-xl overflow-hidden shadow-md">
-          <MapContainer 
-            center={[deliveryPosition.lat, deliveryPosition.lng]} 
-            zoom={14} 
-            style={{ height: '500px', width: '100%' }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            <Marker 
-              position={[restaurantPosition.lat, restaurantPosition.lng]} 
-              icon={restaurantIcon}
-            >
-              <Popup>
-                <b>{order.restaurante?.nome}</b><br/>
-                Restaurante
-              </Popup>
-            </Marker>
-            
-            <Marker 
-              position={[deliveryPosition.lat, deliveryPosition.lng]} 
-              icon={deliveryIcon}
-            >
-              <Popup>
-                <b>Entregador</b><br/>
-                {order.entregador?.tipo_veiculo || 'Moto'}
-              </Popup>
-            </Marker>
-            
-            <Marker 
-              position={[userPosition.lat, userPosition.lng]} 
-              icon={userIcon}
-            >
-              <Popup>
-                <b>Seu endereço</b><br/>
-                {order.endereco_entrega}
-              </Popup>
-            </Marker>
-          </MapContainer>
+        <div className="md:col-span-2">
+          <DeliveryMap
+            restaurantPosition={restaurantPosition}
+            deliveryPosition={deliveryPosition}
+            userPosition={userPosition}
+            restaurantName={order.restaurante?.nome}
+            vehicleType={order.entregador?.tipo_veiculo}
+            deliveryAddress={order.endereco_entrega}
+          />
         </div>
         
         {/* Order details */}
         <div className="space-y-4">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-2">Informações do Pedido</h2>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Número do Pedido</p>
-                  <p className="font-medium">{order.numero_pedido}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={
-                    order.status === 'entregue' ? 'secondary' : 
-                    order.status === 'em_entrega' ? 'default' :
-                    'secondary'
-                  }>
-                    {order.status === 'em_entrega' ? 'Em entrega' : 
-                     order.status === 'entregue' ? 'Entregue' : 
-                     order.status === 'preparando' ? 'Preparando' : 
-                     order.status === 'pendente' ? 'Pendente' : 
-                     order.status === 'cancelado' ? 'Cancelado' : 
-                     order.status}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground">Restaurante</p>
-                  <div className="flex items-start">
-                    <MapPinIcon className="w-4 h-4 text-primary mt-1 mr-1 shrink-0" />
-                    <p>{order.restaurante?.nome} - {order.restaurante?.endereco}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground">Entrega em</p>
-                  <div className="flex items-start">
-                    <MapPinIcon className="w-4 h-4 text-primary mt-1 mr-1 shrink-0" />
-                    <p>{order.endereco_entrega}, {order.cidade_entrega} - {order.estado_entrega}, {order.cep_entrega}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground">Tempo estimado</p>
-                  <div className="flex items-center">
-                    <ClockIcon className="w-4 h-4 text-primary mr-1" />
-                    <p>{order.tempo_entrega_estimado || '30-45 minutos'}</p>
-                  </div>
-                </div>
-                
-                {order.restaurante?.telefone && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Telefone do restaurante</p>
-                    <div className="flex items-center">
-                      <PhoneIcon className="w-4 h-4 text-primary mr-1" />
-                      <p>{order.restaurante.telefone}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <OrderDetailsCard 
+            orderNumber={order.numero_pedido}
+            status={order.status}
+            restaurantName={order.restaurante?.nome}
+            restaurantAddress={order.restaurante?.endereco}
+            deliveryAddress={order.endereco_entrega}
+            deliveryCity={order.cidade_entrega}
+            deliveryState={order.estado_entrega}
+            deliveryZip={order.cep_entrega}
+            estimatedTime={order.tempo_entrega_estimado || '30-45 minutos'}
+            restaurantPhone={order.restaurante?.telefone}
+          />
           
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Status do Pedido</h2>
-              <OrderTracker currentStatus={order.status} />
-            </CardContent>
-          </Card>
+          <OrderStatusCard 
+            status={order.status} 
+            orderId={order.id}
+          />
           
           <Button className="w-full">Entre em contato com o entregador</Button>
         </div>
