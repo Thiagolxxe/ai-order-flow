@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface RestaurantImageProps {
   imageUrl: string;
@@ -8,19 +8,22 @@ interface RestaurantImageProps {
 }
 
 const RestaurantImage: React.FC<RestaurantImageProps> = ({ imageUrl, name, defaultImage }) => {
+  const [currentImage, setCurrentImage] = useState(imageUrl);
+
+  const handleImageError = () => {
+    if (currentImage !== defaultImage) {
+      console.error("Image failed to load:", currentImage);
+      setCurrentImage(defaultImage);
+    }
+  };
+
   return (
     <div className="w-full h-64 relative rounded-md overflow-hidden">
       <img
-        src={imageUrl}
+        src={currentImage}
         alt={name}
         className="w-full h-full object-cover"
-        onError={(e) => {
-          console.error("Image failed to load:", imageUrl);
-          // If the image fails to load, replace with default image
-          const target = e.target as HTMLImageElement;
-          target.onerror = null; // Prevent infinite loop
-          target.src = defaultImage;
-        }}
+        onError={handleImageError}
       />
     </div>
   );
