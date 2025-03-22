@@ -13,7 +13,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Import the OrderTracker component with default import syntax
+// Import the OrderTracker component with the correct syntax
 import OrderTracker from '@/components/orders/OrderTracker';
 
 // Define interface for order data
@@ -34,10 +34,10 @@ interface Order {
   entregador_id?: string;
   entregador?: {
     id: string;
-    latitude_atual?: number;
-    longitude_atual?: number;
-    tipo_veiculo?: string;
-  };
+    latitude_atual?: number | null;
+    longitude_atual?: number | null;
+    tipo_veiculo?: string | null;
+  } | null;
   tempo_entrega_estimado?: string;
 }
 
@@ -124,7 +124,11 @@ const LiveTrackingMap = () => {
           throw orderError;
         }
         
-        setOrder(orderData);
+        // Ensure we set a proper Order object with the right types
+        setOrder({
+          ...orderData,
+          entregador: orderData.entregador || null
+        });
         
         // Set positions with geocoded data (would use a real geocoding service in production)
         // Here we're just using mock positions for demonstration
@@ -138,8 +142,8 @@ const LiveTrackingMap = () => {
         // Current delivery position (would be updated in real-time)
         if (orderData.entregador?.latitude_atual && orderData.entregador?.longitude_atual) {
           setDeliveryPosition({
-            lat: orderData.entregador.latitude_atual,
-            lng: orderData.entregador.longitude_atual
+            lat: Number(orderData.entregador.latitude_atual),
+            lng: Number(orderData.entregador.longitude_atual)
           });
         } else {
           // Fallback to mocked position
@@ -266,7 +270,7 @@ const LiveTrackingMap = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
                   <Badge variant={
-                    order.status === 'entregue' ? 'success' : 
+                    order.status === 'entregue' ? 'secondary' : 
                     order.status === 'em_entrega' ? 'default' :
                     'secondary'
                   }>
@@ -319,7 +323,7 @@ const LiveTrackingMap = () => {
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-xl font-semibold mb-4">Status do Pedido</h2>
-              <OrderTracker status={order.status} />
+              <OrderTracker currentStatus={order.status} />
             </CardContent>
           </Card>
           
