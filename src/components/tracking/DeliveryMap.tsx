@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -37,7 +37,9 @@ const userIcon = createLeafletIcon(
 // Set center position component to workaround TypeScript issues
 const SetMapView = ({ center }: { center: [number, number] }) => {
   const map = useMap();
-  map.setView(center, map.getZoom());
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
   return null;
 };
 
@@ -67,44 +69,25 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   vehicleType,
   deliveryAddress
 }) => {
+  // Generate a unique ID for this map instance
+  const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
+  
   // Calculate the center position based on restaurant and user positions
   const centerPosition: [number, number] = [
     (restaurantPosition.lat + userPosition.lat) / 2,
     (restaurantPosition.lng + userPosition.lng) / 2
   ];
-  
-  // Create ref for map container
-  const mapRef = useRef<L.Map | null>(null);
-
-  // Fix the TypeScript errors by setting proper initial attributes
-  useEffect(() => {
-    // Make sure the map container is ready for Leaflet
-    const container = L.DomUtil.get('map');
-    if (container) {
-      // @ts-ignore - Necessary to avoid TypeScript error with _leaflet_id property
-      if (container._leaflet_id) {
-        // @ts-ignore
-        container._leaflet_id = null;
-      }
-    }
-    
-    // Return cleanup function
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-      }
-    };
-  }, []);
 
   return (
     <div className="relative h-64 w-full rounded-md overflow-hidden">
       <MapContainer 
-        id="map"
+        id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition}
         zoom={13}
-        ref={(map) => { mapRef.current = map; }}
+        whenCreated={(mapInstance) => {
+          mapInstance.setView(centerPosition, 13);
+        }}
       >
         <SetMapView center={centerPosition} />
         
