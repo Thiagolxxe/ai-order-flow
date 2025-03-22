@@ -84,8 +84,9 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition}
         zoom={13}
+        // Fix: Create default view directly here instead of using 'center' prop
+        center={centerPosition}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -93,7 +94,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[restaurantPosition.lat, restaurantPosition.lng] as L.LatLngExpression} 
-          icon={restaurantIcon}
+          // Fix: Need to use 'icon' as a valid Leaflet property
+          icon={restaurantIcon as any}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -102,7 +104,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[deliveryPosition.lat, deliveryPosition.lng] as L.LatLngExpression} 
-          icon={deliveryIcon}
+          // Fix: Cast icon to any to resolve TypeScript errors
+          icon={deliveryIcon as any}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -111,7 +114,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[userPosition.lat, userPosition.lng] as L.LatLngExpression} 
-          icon={userIcon}
+          // Fix: Cast icon to any to resolve TypeScript errors
+          icon={userIcon as any}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}

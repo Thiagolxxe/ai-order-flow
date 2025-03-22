@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeftIcon, PhoneIcon, ClipboardListIcon, HomeIcon } from 'lucide-react';
+import DeliveryMap from '@/components/tracking/DeliveryMap';
 import OrderTracker from '@/components/orders/OrderTracker';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -50,7 +51,13 @@ const mockOrderDetails = {
   subtotal: 68.70,
   discount: 6.87,
   deliveryFee: 6.90,
-  total: 68.73
+  total: 68.73,
+  // Mock positions for the map
+  positions: {
+    restaurant: { lat: -23.5505, lng: -46.6333 },
+    delivery: { lat: -23.5540, lng: -46.6359 },
+    user: { lat: -23.5570, lng: -46.6380 }
+  }
 };
 
 const OrderDetails = () => {
@@ -85,6 +92,21 @@ const OrderDetails = () => {
         initialStatus={order.status}
         className="mb-6"
       />
+
+      {/* Mapa de entrega */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h2 className="font-medium mb-4 text-lg">Acompanhe sua entrega</h2>
+          <DeliveryMap 
+            restaurantPosition={order.positions.restaurant}
+            deliveryPosition={order.positions.delivery}
+            userPosition={order.positions.user}
+            restaurantName={order.restaurant.name}
+            vehicleType="Moto"
+            deliveryAddress={`${order.address.street}, ${order.address.neighborhood}`}
+          />
+        </CardContent>
+      </Card>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Conteúdo principal */}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -98,6 +99,11 @@ const Checkout = () => {
           });
           navigate('/carrinho');
           return;
+        }
+        
+        // Initialize empty items array if not present to prevent 'map' errors
+        if (!savedCheckoutData.items) {
+          savedCheckoutData.items = [];
         }
         
         setCheckoutData(savedCheckoutData);
@@ -225,7 +231,8 @@ const Checkout = () => {
       if (orderError) throw orderError;
       
       // Criar os itens do pedido
-      const orderItems = checkoutData.items.map(item => ({
+      // Ensure we have items before attempting to map
+      const orderItems = (checkoutData.items || []).map(item => ({
         pedido_id: orderData.id,
         item_cardapio_id: item.id,
         nome_item_cardapio: item.name,
@@ -521,12 +528,17 @@ const Checkout = () => {
               
               {/* Itens do pedido */}
               <div className="mb-4">
-                {checkoutData.items.map(item => (
-                  <div key={item.id} className="flex justify-between mb-2">
-                    <span>{item.quantity}x {item.name}</span>
-                    <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
-                  </div>
-                ))}
+                {/* Add null check before mapping over items */}
+                {checkoutData.items && checkoutData.items.length > 0 ? (
+                  checkoutData.items.map(item => (
+                    <div key={item.id} className="flex justify-between mb-2">
+                      <span>{item.quantity}x {item.name}</span>
+                      <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-foreground/70">Nenhum item no carrinho</p>
+                )}
               </div>
               
               <Separator className="my-4" />
