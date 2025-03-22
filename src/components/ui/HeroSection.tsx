@@ -1,8 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 import { Link } from 'react-router-dom';
+
+// Default fallback image from Unsplash
+const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000';
 
 export interface HeroSectionProps {
   title: string;
@@ -25,6 +28,18 @@ export const HeroSection = ({
   imageClassName,
   contentClassName
 }: HeroSectionProps) => {
+  // Check if image URL is valid and use fallback if not
+  const [imageUrl, setImageUrl] = useState(
+    imageSrc && (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) 
+      ? imageSrc 
+      : DEFAULT_HERO_IMAGE
+  );
+
+  const handleImageError = () => {
+    console.log('Hero image failed to load:', imageUrl);
+    setImageUrl(DEFAULT_HERO_IMAGE);
+  };
+
   return (
     <div className={cn(
       'relative overflow-hidden bg-background py-10 md:py-16',
@@ -52,9 +67,10 @@ export const HeroSection = ({
               imageClassName
             )}>
               <img 
-                src={imageSrc} 
+                src={imageUrl} 
                 alt="Hero" 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover"
+                onError={handleImageError}
               />
             </div>
           </div>

@@ -6,7 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import { HomeIcon, MapPin, UtensilsCrossed } from 'lucide-react';
 
 // Define the marker icons to fix the missing default icons issue
-// This is also part of the reason why images might not be displaying properly
 const createLeafletIcon = (iconUrl: string, iconSize: [number, number] = [25, 41]) => {
   return L.icon({
     iconUrl,
@@ -22,15 +21,18 @@ const defaultIcon = createLeafletIcon(
 );
 
 const restaurantIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png'
+  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-red.png',
+  [25, 41]
 );
 
 const deliveryIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png'
+  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-blue.png',
+  [25, 41]
 );
 
 const userIcon = createLeafletIcon(
-  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png'
+  'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-green.png',
+  [25, 41]
 );
 
 interface DeliveryMapProps {
@@ -46,14 +48,18 @@ interface DeliveryMapProps {
     lat: number;
     lng: number;
   };
-  restaurantName: string;
+  restaurantName?: string;
+  vehicleType?: string;
+  deliveryAddress?: string;
 }
 
 const DeliveryMap: React.FC<DeliveryMapProps> = ({
   restaurantPosition,
   deliveryPosition,
   userPosition,
-  restaurantName
+  restaurantName = 'Restaurante',
+  vehicleType,
+  deliveryAddress
 }) => {
   const center: [number, number] = [
     (restaurantPosition.lat + userPosition.lat) / 2,
@@ -63,7 +69,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   return (
     <div className="relative h-64 w-full rounded-md overflow-hidden">
       <MapContainer 
-        center={center as L.LatLngExpression} 
+        center={center} 
         zoom={13} 
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
@@ -71,15 +77,11 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
-          // Use type assertion to fix the attribution type error
-          {...{} as any}
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng] as L.LatLngExpression} 
+          position={[restaurantPosition.lat, restaurantPosition.lng]} 
           icon={restaurantIcon}
-          // Use type assertion to fix the icon type error
-          {...{} as any}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -87,24 +89,20 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng] as L.LatLngExpression} 
+          position={[deliveryPosition.lat, deliveryPosition.lng]} 
           icon={deliveryIcon}
-          // Use type assertion to fix the icon type error
-          {...{} as any}
         >
           <Popup>
-            Entregador
+            Entregador{vehicleType ? ` (${vehicleType})` : ''}
           </Popup>
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng] as L.LatLngExpression} 
+          position={[userPosition.lat, userPosition.lng]} 
           icon={userIcon}
-          // Use type assertion to fix the icon type error
-          {...{} as any}
         >
           <Popup>
-            Você está aqui
+            {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
           </Popup>
         </Marker>
       </MapContainer>

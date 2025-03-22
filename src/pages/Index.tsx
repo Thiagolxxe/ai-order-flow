@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-
-// Update the import to use the correct component
 import HeroSection from "@/components/ui/HeroSection";
+
+// Default restaurant image from Unsplash
+const DEFAULT_RESTAURANT_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000';
 
 const Index = () => {
   return (
@@ -14,7 +16,7 @@ const Index = () => {
         subtitle="Entrega rápida e segura, com opções para todos os gostos"
         ctaText="Explorar Restaurantes"
         ctaLink="/restaurantes"
-        imageSrc="/placeholder.svg"
+        imageSrc="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200"
       />
 
       {/* Featured Restaurants Section (Example) */}
@@ -24,31 +26,32 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Example Restaurant Card */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500" alt="Restaurant" className="w-full h-48 object-cover" />
               <div className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
-                <p className="text-gray-600">Tipo de Cozinha</p>
-                <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
+                <h3 className="text-lg font-semibold mb-2">Pizzaria Bella Napoli</h3>
+                <p className="text-gray-600">Italiana</p>
+                <Link to="/restaurante/00000000-0000-0000-0000-000000000r01/menu" className="inline-block mt-4 text-primary hover:underline">
                   Ver Menu
                 </Link>
               </div>
             </div>
-            {/* End Example Restaurant Card */}
+            
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500" alt="Restaurant" className="w-full h-48 object-cover" />
               <div className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
-                <p className="text-gray-600">Tipo de Cozinha</p>
-                <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
+                <h3 className="text-lg font-semibold mb-2">Sabor Oriental</h3>
+                <p className="text-gray-600">Japonesa</p>
+                <Link to="/restaurante/00000000-0000-0000-0000-000000000r02/menu" className="inline-block mt-4 text-primary hover:underline">
                   Ver Menu
                 </Link>
               </div>
             </div>
+            
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img src="/placeholder.svg" alt="Restaurant" className="w-full h-48 object-cover" />
+              <img src="https://images.unsplash.com/photo-1456418047667-56bcd35b1a88?w=500" alt="Restaurant" className="w-full h-48 object-cover" />
               <div className="p-4">
-                <h3 className="text-lg font-semibold mb-2">Nome do Restaurante</h3>
-                <p className="text-gray-600">Tipo de Cozinha</p>
+                <h3 className="text-lg font-semibold mb-2">Sabores Caseiros</h3>
+                <p className="text-gray-600">Brasileira</p>
                 <Link to="/restaurantes" className="inline-block mt-4 text-primary hover:underline">
                   Ver Menu
                 </Link>
