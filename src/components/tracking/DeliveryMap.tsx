@@ -85,9 +85,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id="map"
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={[centerPosition[0], centerPosition[1]] as [number, number]}
+        center={centerPosition as [number, number]}
         zoom={13}
-        attributionControl={true}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -95,7 +94,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng]} 
+          position={[restaurantPosition.lat, restaurantPosition.lng] as [number, number]} 
           icon={restaurantIcon}
         >
           <Popup>
@@ -104,7 +103,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng]} 
+          position={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]} 
           icon={deliveryIcon}
         >
           <Popup>
@@ -113,7 +112,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng]} 
+          position={[userPosition.lat, userPosition.lng] as [number, number]} 
           icon={userIcon}
         >
           <Popup>

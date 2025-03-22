@@ -51,7 +51,7 @@ const RestaurantDetails: React.FC = () => {
 
       try {
         // Try to fetch from Supabase first
-        const { data, error } = await supabase
+        const { data, error: queryError } = await supabase
           .from('restaurantes')
           .select(`
             id, 
@@ -65,16 +65,16 @@ const RestaurantDetails: React.FC = () => {
             banner_url,
             faixa_preco
           `)
-          .eq('id', validId)
-          .single();
+          .eq('id', validId);
 
-        if (error) {
-          console.error("Error fetching restaurant:", error);
-          throw new Error(error.message);
+        if (queryError) {
+          console.error("Error fetching restaurant:", queryError);
+          throw new Error(queryError.message);
         }
 
-        if (data) {
-          console.log("Restaurant data from Supabase:", data);
+        // Changed from .single() to check if data exists and has at least one item
+        if (data && data.length > 0) {
+          console.log("Restaurant data from Supabase:", data[0]);
           
           // Get an average rating for the restaurant
           const { data: ratings, error: ratingsError } = await supabase
@@ -91,7 +91,7 @@ const RestaurantDetails: React.FC = () => {
           }
 
           // Use banner_url if available, otherwise use logo_url or a default image
-          let imageUrl = data.banner_url || data.logo_url || DEFAULT_IMAGE;
+          let imageUrl = data[0].banner_url || data[0].logo_url || DEFAULT_IMAGE;
           
           // Validate image URL
           if (!imageUrl.startsWith('http')) {
@@ -100,10 +100,10 @@ const RestaurantDetails: React.FC = () => {
           }
           
           setRestaurant({
-            id: data.id,
-            name: data.nome,
-            address: `${data.endereco}, ${data.cidade} - ${data.estado}`,
-            cuisine: data.tipo_cozinha,
+            id: data[0].id,
+            name: data[0].nome,
+            address: `${data[0].endereco}, ${data[0].cidade} - ${data[0].estado}`,
+            cuisine: data[0].tipo_cozinha,
             rating: avgRating,
             imageUrl: imageUrl,
             deliveryPosition: {
