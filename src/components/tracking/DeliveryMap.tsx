@@ -84,20 +84,16 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        // Fix: Use proper prop passing for the react-leaflet MapContainer
-        initialCenter={centerPosition}
-        initialZoom={13}
+        center={centerPosition}
+        zoom={13}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          // Fix: Use attributionControl prop instead
-          attributionControl={true}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         <Marker 
           position={[restaurantPosition.lat, restaurantPosition.lng]} 
-          // Fix: Use the icon property correctly with type assertion
           icon={restaurantIcon}
         >
           <Popup>
@@ -107,7 +103,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[deliveryPosition.lat, deliveryPosition.lng]} 
-          // Fix: Use the icon property correctly with type assertion
           icon={deliveryIcon}
         >
           <Popup>
@@ -117,7 +112,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[userPosition.lat, userPosition.lng]} 
-          // Fix: Use the icon property correctly with type assertion
           icon={userIcon}
         >
           <Popup>

@@ -51,6 +51,7 @@ const App = () => (
                 <Route path="/restaurante/:id/menu" element={<Menu />} />
                 <Route path="/carrinho" element={<Cart />} />
                 <Route path="/finalizar" element={<Checkout />} />
+                <Route path="/finalizar/:id" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/cadastro" element={<Register />} />
                 <Route path="/signup" element={<Register />} />
@@ -68,6 +69,8 @@ const App = () => (
                 
                 {/* Adicionando redirecionamentos para rotas em inglês */}
                 <Route path="/restaurants" element={<Navigate to="/restaurantes" replace />} />
+                <Route path="/checkout/:id" element={<Navigate to={({ params }) => `/finalizar/${params.id}`} replace />} />
+                <Route path="/checkout" element={<Navigate to="/finalizar" replace />} />
                 <Route path="/restaurantes" element={<RestaurantsExplore />} />
                 <Route path="/chat/:id?" element={<Chat />} />
                 <Route path="/rastreamento/:id" element={<LiveTrackingMap />} />
