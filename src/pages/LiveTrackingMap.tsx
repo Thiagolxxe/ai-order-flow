@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Import our new components
+// Import our components
 import DeliveryMap from '@/components/tracking/DeliveryMap';
 import OrderDetailsCard from '@/components/orders/OrderDetailsCard';
 import OrderStatusCard from '@/components/orders/OrderStatusCard';
@@ -97,10 +97,12 @@ const LiveTrackingMap = () => {
         }
         
         // Ensure we set a proper Order object with the right types
-        setOrder({
+        const orderWithTypes: Order = {
           ...orderData,
           entregador: orderData.entregador || null
-        });
+        };
+        
+        setOrder(orderWithTypes);
         
         // Set positions with geocoded data (would use a real geocoding service in production)
         // Here we're just using mock positions for demonstration
@@ -112,10 +114,13 @@ const LiveTrackingMap = () => {
         });
         
         // Current delivery position (would be updated in real-time)
-        if (orderData.entregador?.latitude_atual && orderData.entregador?.longitude_atual) {
+        if (orderWithTypes.entregador?.latitude_atual !== null && 
+            orderWithTypes.entregador?.longitude_atual !== null && 
+            orderWithTypes.entregador?.latitude_atual !== undefined && 
+            orderWithTypes.entregador?.longitude_atual !== undefined) {
           setDeliveryPosition({
-            lat: Number(orderData.entregador.latitude_atual),
-            lng: Number(orderData.entregador.longitude_atual)
+            lat: Number(orderWithTypes.entregador.latitude_atual),
+            lng: Number(orderWithTypes.entregador.longitude_atual)
           });
         } else {
           // Fallback to mocked position

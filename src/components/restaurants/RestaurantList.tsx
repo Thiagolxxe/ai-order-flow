@@ -68,24 +68,27 @@ const RestaurantList = ({
           throw error;
         }
         
-        // Validate that each restaurant has a valid UUID
+        // Process restaurant data and ensure valid UUIDs
         const formattedData = data.map(restaurant => {
-          // Ensure id is a valid UUID
+          // Check if ID is a valid UUID
           if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurant.id)) {
             console.warn(`Restaurant with invalid UUID format: ${restaurant.id}, ${restaurant.nome}`);
           }
           
+          // Ensure logo_url has a value or use placeholder
+          const logoUrl = restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+          
           return {
             id: restaurant.id,
             nome: restaurant.nome,
-            logo_url: restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop',
-            tipo_cozinha: restaurant.tipo_cozinha,
+            logo_url: logoUrl,
+            tipo_cozinha: restaurant.tipo_cozinha || 'Variada',
             taxa_entrega: restaurant.taxa_entrega || 0,
             valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
             tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
             faixa_preco: restaurant.faixa_preco || 2,
             featured: Math.random() > 0.7, // Exemplo: alguns restaurantes são destacados aleatoriamente
-            isNew: (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
+            isNew: restaurant.criado_em && (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
           };
         });
         

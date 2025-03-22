@@ -10,7 +10,7 @@ interface OrderStatusCardProps {
 
 const OrderStatusCard: React.FC<OrderStatusCardProps> = ({ status, orderId }) => {
   // Convert status format from backend to the format expected by OrderTracker
-  const mapStatusToTrackerFormat = (status: string): string => {
+  const mapStatusToTrackerFormat = (status: string): "confirmed" | "preparing" | "out-for-delivery" | "delivered" => {
     switch(status) {
       case 'pendente': return 'confirmed';
       case 'preparando': return 'preparing';
