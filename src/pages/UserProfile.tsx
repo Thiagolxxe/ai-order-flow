@@ -65,7 +65,7 @@ const UserProfile = () => {
     phone: userData.phone
   });
   const navigate = useNavigate();
-  const { logout } = useUser();
+  const { signOut } = useUser();
   const isMobile = useIsMobile();
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,10 +81,10 @@ const UserProfile = () => {
   
   const handleLogout = async () => {
     try {
-      const { error } = await logout();
+      const success = await signOut();
       
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error("Falha ao fazer logout");
       }
       
       navigate('/');

@@ -50,7 +50,7 @@ const Register = () => {
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       
       // Registrar usuário
-      const { error, data } = await signup(email, password, {
+      const { error } = await signup(email, password, {
         nome: firstName,
         sobrenome: lastName,
         telefone: phone

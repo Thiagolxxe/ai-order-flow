@@ -20,8 +20,7 @@ const SuperUserCreator = () => {
   const handleCreateSuperUser = async () => {
     setIsCreating(true);
     try {
-      // Replace with your actual super user creation logic using supabase directly
-      // This is just a placeholder - implement according to your needs
+      // Create a random email and password for the super user
       const email = `super_${Math.floor(Math.random() * 10000)}@example.com`;
       const password = Math.random().toString(36).slice(2) + Math.random().toString(36).toUpperCase().slice(2);
       
@@ -33,8 +32,29 @@ const SuperUserCreator = () => {
       
       if (userError) throw userError;
       
-      // Assign roles (implement based on your schema)
+      // Wait a moment to ensure the user is created and the trigger has run
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Assign roles
       const roles = ['cliente', 'restaurante', 'entregador', 'admin'];
+      
+      // Add roles for the user
+      const userId = userData.user?.id;
+      
+      if (userId) {
+        for (const role of roles) {
+          const { error: roleError } = await supabase
+            .from('funcoes_usuario')
+            .insert({
+              usuario_id: userId,
+              funcao: role
+            });
+            
+          if (roleError) {
+            console.error(`Error assigning role ${role}:`, roleError);
+          }
+        }
+      }
       
       setResult({
         success: true,

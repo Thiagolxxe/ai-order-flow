@@ -24,6 +24,8 @@ interface UserContextType {
   isLoading: boolean;
   signIn: (provider: "google" | "github") => Promise<any>;
   signOut: () => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ error: any }>;
+  signup: (email: string, password: string, userData?: any) => Promise<{ error: any, data?: any }>;
   fetchAddresses: () => Promise<void>;
   setDefaultAddress: (addressId: string) => Promise<void>;
   addAddress: (
@@ -118,6 +120,65 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro ao fazer login",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer login",
+        description: error.message,
+        variant: "destructive",
+      });
+      console.error("Erro ao fazer login:", error);
+      return { error };
+    }
+  };
+
+  const signup = async (email: string, password: string, userData?: any) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData,
+        },
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro ao cadastrar",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, data: null };
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar",
+        description: error.message,
+        variant: "destructive",
+      });
+      console.error("Erro ao cadastrar:", error);
+      return { error, data: null };
+    }
+  };
+
   const signOut = async (): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -153,7 +214,21 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         return;
       }
 
-      setRole(profile?.funcao || "guest");
+      // Look up the user role from funcoes_usuario table
+      const { data: userRoles, error: rolesError } = await supabase
+        .from("funcoes_usuario")
+        .select("funcao")
+        .eq("usuario_id", userId);
+        
+      if (rolesError) {
+        console.error("Erro ao buscar funções do usuário:", rolesError);
+        setRole("guest");
+        return;
+      }
+      
+      // Use the first role or default to guest if none found
+      const userRole = userRoles?.length > 0 ? userRoles[0].funcao : "guest";
+      setRole(userRole);
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
       setRole("guest");
@@ -420,6 +495,8 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     isLoading,
     signIn,
     signOut,
+    login,
+    signup,
     fetchAddresses,
     setDefaultAddress,
     addAddress,
