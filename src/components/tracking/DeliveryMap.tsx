@@ -48,10 +48,11 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
     popupAnchor: [0, -32],
   });
 
+  // Use type assertion to resolve TypeScript errors
   return (
     <div className="rounded-xl overflow-hidden shadow-md">
       <MapContainer 
-        center={[deliveryPosition.lat, deliveryPosition.lng]} 
+        center={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]} 
         zoom={14} 
         style={{ height: '500px', width: '100%' }}
       >
@@ -61,8 +62,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng]}
-          icon={restaurantIcon}
+          position={[restaurantPosition.lat, restaurantPosition.lng] as [number, number]}
+          icon={restaurantIcon as any}
         >
           <Popup>
             <b>{restaurantName}</b><br/>
@@ -71,8 +72,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng]}
-          icon={deliveryIcon}
+          position={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]}
+          icon={deliveryIcon as any}
         >
           <Popup>
             <b>Entregador</b><br/>
@@ -81,8 +82,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng]}
-          icon={userIcon}
+          position={[userPosition.lat, userPosition.lng] as [number, number]}
+          icon={userIcon as any}
         >
           <Popup>
             <b>Seu endereço</b><br/>

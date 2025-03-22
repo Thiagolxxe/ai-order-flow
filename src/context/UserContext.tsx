@@ -58,49 +58,56 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     const fetchSession = async () => {
       setIsLoading(true);
       
-      // Get initial session
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      
-      if (initialSession?.user) {
-        setUser(initialSession.user);
-        setIsAuthenticated(true);
-        await fetchUserProfile(initialSession.user.id);
-        await fetchAddresses();
-        await fetchNotifications();
-      } else {
-        console.log("No active session found");
-      }
-      
-      setIsLoading(false);
-      
-      // Set up auth state change listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, newSession) => {
-          console.log("Auth state changed:", event);
-          setSession(newSession);
-          
-          if (newSession?.user) {
-            console.log("User authenticated:", newSession.user.id);
-            setUser(newSession.user);
-            setIsAuthenticated(true);
-            await fetchUserProfile(newSession.user.id);
-            await fetchAddresses();
-            await fetchNotifications();
-          } else {
-            console.log("User signed out or session expired");
-            setUser(null);
-            setIsAuthenticated(false);
-            setRole(null);
-            setAddresses(null);
-            setNotifications(null);
-          }
+      try {
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log("Initial session:", initialSession ? "Found" : "Not found");
+        setSession(initialSession);
+        
+        if (initialSession?.user) {
+          console.log("User authenticated from initial session:", initialSession.user.id);
+          setUser(initialSession.user);
+          setIsAuthenticated(true);
+          await fetchUserProfile(initialSession.user.id);
+          await fetchAddresses();
+          await fetchNotifications();
+        } else {
+          console.log("No active session found");
         }
-      );
-      
-      return () => {
-        subscription.unsubscribe();
-      };
+        
+        setIsLoading(false);
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log("Auth state changed:", event);
+            setSession(newSession);
+            
+            if (newSession?.user) {
+              console.log("User authenticated:", newSession.user.id);
+              setUser(newSession.user);
+              setIsAuthenticated(true);
+              await fetchUserProfile(newSession.user.id);
+              await fetchAddresses();
+              await fetchNotifications();
+            } else {
+              console.log("User signed out or session expired");
+              setUser(null);
+              setIsAuthenticated(false);
+              setRole(null);
+              setAddresses(null);
+              setNotifications(null);
+            }
+          }
+        );
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error in session setup:", error);
+        setIsLoading(false);
+      }
     };
 
     fetchSession();
