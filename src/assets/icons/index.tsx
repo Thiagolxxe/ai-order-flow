@@ -1,9 +1,58 @@
-import { RestaurantIcon } from './RestaurantIcon';
+import {
+  Utensils,
+  ShoppingCart,
+  User,
+  ShoppingBag,
+  Menu,
+  X,
+  Truck,
+  Bell,
+  Clock,
+  ArrowRight,
+  Star,
+  Search,
+  Heart,
+  MapPin,
+  MessageSquare,
+  CheckCircle,
+  AlertCircle,
+  Send,
+  BarChart3,
+  LogOut,
+  Settings,
+  Home,
+  Info
+} from 'lucide-react';
 
-export { RestaurantIcon };
+// Main icons needed in the current code
+export const RestaurantIcon = Utensils;
+export const ShoppingCartIcon = ShoppingCart;
+export const UserIcon = User;
+export const BagIcon = ShoppingBag;
+export const MenuIcon = Menu;
+export const CloseIcon = X;
+export const DeliveryIcon = Truck;
+export const NotificationIcon = Bell;
+export const ClockIcon = Clock;
+export const ArrowRightIcon = ArrowRight;
+export const StarIcon = Star;
+export const SearchIcon = Search;
+export const HeartIcon = Heart;
+export const LocationIcon = MapPin;
+export const ChatIcon = MessageSquare;
+export const SuccessIcon = CheckCircle;
+export const AlertIcon = AlertCircle;
+export const SendIcon = Send;
+export const StatsIcon = BarChart3;
+export const LogoIcon = ShoppingBag; // Using ShoppingBag as logo for now
+export const LogoutIcon = LogOut;
+export const SettingsIcon = Settings;
+export const HomeIcon = Home;
+export const InfoIcon = Info;
+export const Location = MapPin; // Duplicate of LocationIcon for compatibility
 
-// Add the ShoppingCartIcon if it doesn't exist
-export const ShoppingCartIcon = ({ className }: { className?: string }) => (
+// Define the AIIcon that is referenced in some components
+export const AIIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -14,10 +63,8 @@ export const ShoppingCartIcon = ({ className }: { className?: string }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={className}
   >
-    <circle cx="8" cy="21" r="1" />
-    <circle cx="19" cy="21" r="1" />
-    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+    <path d="M12 2a8 8 0 0 1 8 8v12l-4-4H4a8 8 0 0 1 0-16z" />
+    <path d="M9 10h.01M15 10h.01M12 14h.01" />
   </svg>
 );
