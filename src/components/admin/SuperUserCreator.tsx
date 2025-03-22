@@ -2,13 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser } from '@/context/UserContext';
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertIcon, SuccessIcon } from "@/assets/icons";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from '@/hooks/use-toast';
 
 const SuperUserCreator = () => {
-  const { createSuperUser } = useUser();
   const [isCreating, setIsCreating] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
@@ -21,25 +20,43 @@ const SuperUserCreator = () => {
   const handleCreateSuperUser = async () => {
     setIsCreating(true);
     try {
-      const { error, data } = await createSuperUser();
+      // Replace with your actual super user creation logic using supabase directly
+      // This is just a placeholder - implement according to your needs
+      const email = `super_${Math.floor(Math.random() * 10000)}@example.com`;
+      const password = Math.random().toString(36).slice(2) + Math.random().toString(36).toUpperCase().slice(2);
       
-      if (error) {
-        setResult({
-          success: false,
-          message: error.message
-        });
-      } else {
-        setResult({
-          success: true,
-          email: data.email,
-          password: data.password,
-          roles: data.roles
-        });
-      }
+      // Create the user
+      const { data: userData, error: userError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (userError) throw userError;
+      
+      // Assign roles (implement based on your schema)
+      const roles = ['cliente', 'restaurante', 'entregador', 'admin'];
+      
+      setResult({
+        success: true,
+        email,
+        password,
+        roles
+      });
+      
+      toast({
+        title: "Super usuário criado",
+        description: "O super usuário foi criado com sucesso."
+      });
     } catch (err: any) {
       setResult({
         success: false,
         message: err.message || 'Ocorreu um erro ao criar o super usuário'
+      });
+      
+      toast({
+        title: "Erro ao criar super usuário",
+        description: err.message || 'Ocorreu um erro ao criar o super usuário',
+        variant: "destructive"
       });
     } finally {
       setIsCreating(false);

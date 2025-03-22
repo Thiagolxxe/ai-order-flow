@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { userRole, isAuthenticated } = useUser();
+  const { role: userRole, isAuthenticated } = useUser();
   const location = useLocation();
   
   // Lidar com o efeito de rolagem

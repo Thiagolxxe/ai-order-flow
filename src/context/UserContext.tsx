@@ -5,12 +5,7 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
-import {
-  Session,
-  useSession,
-  useSupabaseClient,
-} from "@supabase/auth-helpers-react";
-import { useRouter } from "next/navigation";
+import { Session } from "@supabase/supabase-js";
 import {
   AddressType,
   NotificationType,
@@ -55,39 +50,58 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     null
   );
   const [isLoading, setIsLoading] = useState(true);
-  const session = useSession();
-  const supabaseClient = useSupabaseClient();
-  // const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     const fetchSession = async () => {
       setIsLoading(true);
-      const {
-        data: { user: supaUser },
-      } = await supabaseClient.auth.getUser();
-
-      if (supaUser) {
-        setUser(supaUser);
+      
+      // Get initial session
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      setSession(initialSession);
+      
+      if (initialSession?.user) {
+        setUser(initialSession.user);
         setIsAuthenticated(true);
-        await fetchUserProfile(supaUser.id);
+        await fetchUserProfile(initialSession.user.id);
         await fetchAddresses();
         await fetchNotifications();
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-        setRole(null);
-        setAddresses(null);
-        setNotifications(null);
       }
+      
       setIsLoading(false);
+      
+      // Set up auth state change listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, newSession) => {
+          setSession(newSession);
+          
+          if (newSession?.user) {
+            setUser(newSession.user);
+            setIsAuthenticated(true);
+            await fetchUserProfile(newSession.user.id);
+            await fetchAddresses();
+            await fetchNotifications();
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+            setRole(null);
+            setAddresses(null);
+            setNotifications(null);
+          }
+        }
+      );
+      
+      return () => {
+        subscription.unsubscribe();
+      };
     };
 
     fetchSession();
-  }, [session, supabaseClient]);
+  }, []);
 
   const signIn = async (provider: "google" | "github") => {
     try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}`,
@@ -106,14 +120,13 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
   const signOut = async (): Promise<boolean> => {
     try {
-      const { error } = await supabaseClient.auth.signOut();
+      const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
       setIsAuthenticated(false);
       setRole(null);
       setAddresses(null);
       setNotifications(null);
-      // router.push('/login');
       return true;
     } catch (error: any) {
       toast({
@@ -129,7 +142,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data: profile, error: profileError } = await supabase
-        .from("profiles")
+        .from("perfis")
         .select("*")
         .eq("id", userId)
         .single();
@@ -140,14 +153,14 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         return;
       }
 
-      setRole(profile?.role || "guest");
+      setRole(profile?.funcao || "guest");
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
       setRole("guest");
     }
   };
 
-  const fetchAddresses = async () => {
+  const fetchAddresses = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from("enderecos")
@@ -156,10 +169,11 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
       if (error) {
         console.error("Erro ao buscar endereços:", error);
-        return { data: null, error };
+        setAddresses(null);
+        return;
       }
 
-      return { data: data.map((address: any) => ({
+      const formattedAddresses = data.map((address: any) => ({
         id: address.id,
         usuario_id: address.usuario_id,
         label: address.label,
@@ -169,26 +183,22 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         cidade: address.cidade,
         estado: address.estado,
         cep: address.cep,
-        isdefault: address.isdefault,  // Changed to lowercase
+        isdefault: address.isdefault,
         criado_em: address.criado_em
-      })), error: null };
+      }));
+
+      setAddresses(formattedAddresses);
     } catch (error) {
       console.error("Erro ao buscar endereços:", error);
-      return { data: null, error };
+      setAddresses(null);
     }
   };
 
   useEffect(() => {
     if (user?.id) {
-      fetchAddresses()
-        .then((result) => {
-          if (result?.data) {
-            setAddresses(result.data);
-          }
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar endereços:", error);
-        });
+      fetchAddresses().catch((error) => {
+        console.error("Erro ao buscar endereços:", error);
+      });
     }
   }, [user?.id]);
 
@@ -343,7 +353,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from("notificacoes")
