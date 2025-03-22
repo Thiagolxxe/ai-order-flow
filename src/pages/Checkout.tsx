@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -73,19 +72,22 @@ const Checkout = () => {
         setLoading(true);
         
         // Obter dados do checkout
-        let savedCheckoutData;
+        let savedCheckoutData = null;
         
         if (id) {
           // Se temos um ID, tentamos buscar dados específicos para este restaurante
           const restaurantCartData = localStorage.getItem(`cart_${id}`);
           if (restaurantCartData) {
-            savedCheckoutData = restaurantCartData;
+            savedCheckoutData = JSON.parse(restaurantCartData);
           }
         }
         
         // Se não encontrou por ID, tenta o checkout genérico
         if (!savedCheckoutData) {
-          savedCheckoutData = localStorage.getItem('checkout_data');
+          const genericCheckoutData = localStorage.getItem('checkout_data');
+          if (genericCheckoutData) {
+            savedCheckoutData = JSON.parse(genericCheckoutData);
+          }
         }
         
         if (!savedCheckoutData) {
@@ -98,8 +100,7 @@ const Checkout = () => {
           return;
         }
         
-        const parsedCheckoutData = JSON.parse(savedCheckoutData);
-        setCheckoutData(parsedCheckoutData);
+        setCheckoutData(savedCheckoutData);
         
         // Buscar endereços do usuário se autenticado
         if (isAuthenticated && user) {

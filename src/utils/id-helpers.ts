@@ -26,3 +26,27 @@ export const generateMockUUID = (): string => {
 export const generateTestID = (prefix: string = 'test'): string => {
   return generateMockUUID();
 };
+
+/**
+ * Gets a validated ID from URL parameters
+ * If the ID is not a valid UUID, returns null
+ */
+export const getIdFromParams = (id: string | undefined): string | null => {
+  if (!id) return null;
+  return isValidUUID(id) ? id : null;
+};
+
+/**
+ * Test UUIDs for development and testing
+ */
+export const TEST_UUIDS = {
+  USER_1: '00000000-0000-0000-0000-000000000u01',
+  USER_2: '00000000-0000-0000-0000-000000000u02',
+  USER_3: '00000000-0000-0000-0000-000000000u03',
+  USER_4: '00000000-0000-0000-0000-000000000u04',
+  USER_5: '00000000-0000-0000-0000-000000000u05',
+  RESTAURANT_1: '00000000-0000-0000-0000-000000000r01',
+  RESTAURANT_2: '00000000-0000-0000-0000-000000000r02',
+  ORDER_1: '00000000-0000-0000-0000-000000000o01',
+  DELIVERY_1: '00000000-0000-0000-0000-000000000d01'
+};
