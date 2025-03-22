@@ -69,7 +69,10 @@ const App = () => (
                 
                 {/* Adicionando redirecionamentos para rotas em inglês */}
                 <Route path="/restaurants" element={<Navigate to="/restaurantes" replace />} />
-                <Route path="/checkout/:id" element={<Navigate to={({ params }) => `/finalizar/${params.id}`} replace />} />
+                <Route 
+                  path="/checkout/:id" 
+                  element={<Navigate to={`/finalizar/${window.location.pathname.split('/').pop()}`} replace />} 
+                />
                 <Route path="/checkout" element={<Navigate to="/finalizar" replace />} />
                 <Route path="/restaurantes" element={<RestaurantsExplore />} />
                 <Route path="/chat/:id?" element={<Chat />} />

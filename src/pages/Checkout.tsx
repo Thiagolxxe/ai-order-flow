@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeftIcon, CreditCard, BanknoteIcon, QrCode as QrCodeIcon, CheckIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { useUser } from '@/context/UserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +45,7 @@ interface Address {
 }
 
 const Checkout = () => {
+  const { id } = useParams<{ id: string }>();
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [selectedAddress, setSelectedAddress] = useState('');
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -72,9 +73,27 @@ const Checkout = () => {
         setLoading(true);
         
         // Obter dados do checkout
-        const savedCheckoutData = localStorage.getItem('checkout_data');
+        let savedCheckoutData;
+        
+        if (id) {
+          // Se temos um ID, tentamos buscar dados específicos para este restaurante
+          const restaurantCartData = localStorage.getItem(`cart_${id}`);
+          if (restaurantCartData) {
+            savedCheckoutData = restaurantCartData;
+          }
+        }
+        
+        // Se não encontrou por ID, tenta o checkout genérico
         if (!savedCheckoutData) {
-          toast.error('Dados do pedido não encontrados');
+          savedCheckoutData = localStorage.getItem('checkout_data');
+        }
+        
+        if (!savedCheckoutData) {
+          toast({
+            title: "Erro",
+            description: "Dados do pedido não encontrados",
+            variant: "destructive"
+          });
           navigate('/carrinho');
           return;
         }
@@ -110,19 +129,27 @@ const Checkout = () => {
         }
       } catch (error) {
         console.error('Erro ao carregar dados do checkout:', error);
-        toast.error('Não foi possível carregar os dados do pedido');
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os dados do pedido",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     loadCheckoutData();
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, id]);
   
   // Processar o pedido
   const processOrder = async () => {
     if (!checkoutData) {
-      toast.error('Dados do pedido não encontrados');
+      toast({
+        title: "Erro",
+        description: "Dados do pedido não encontrados",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -135,7 +162,11 @@ const Checkout = () => {
       if (isAuthenticated && selectedAddress) {
         const address = addresses.find(addr => addr.id === selectedAddress);
         if (!address) {
-          toast.error('Selecione um endereço válido');
+          toast({
+            title: "Atenção",
+            description: "Selecione um endereço válido",
+            variant: "destructive"
+          });
           setIsProcessing(false);
           return;
         }
@@ -147,7 +178,11 @@ const Checkout = () => {
       } else {
         // Validar campos de endereço para usuários não autenticados
         if (!street || !neighborhood || !city || !state || !zipcode) {
-          toast.error('Preencha o endereço completo para entrega');
+          toast({
+            title: "Atenção",
+            description: "Preencha o endereço completo para entrega",
+            variant: "destructive"
+          });
           setIsProcessing(false);
           return;
         }
@@ -220,11 +255,19 @@ const Checkout = () => {
       localStorage.removeItem(`cart_${checkoutData.restaurantId}`);
       
       // Redirecionar para a página de detalhes do pedido
-      toast.success('Pedido realizado com sucesso!');
+      toast({
+        title: "Sucesso",
+        description: "Pedido realizado com sucesso!",
+        variant: "default",
+      });
       navigate(`/pedido/${orderData.id}`);
     } catch (error) {
       console.error('Erro ao processar pedido:', error);
-      toast.error('Não foi possível processar o pedido');
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar o pedido",
+        variant: "destructive",
+      });
       setIsProcessing(false);
     }
   };

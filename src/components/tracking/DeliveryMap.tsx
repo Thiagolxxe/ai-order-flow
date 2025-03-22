@@ -84,17 +84,14 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition as L.LatLngExpression}
         zoom={13}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         <Marker 
           position={[restaurantPosition.lat, restaurantPosition.lng] as L.LatLngExpression} 
-          icon={restaurantIcon as L.Icon}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -103,7 +100,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[deliveryPosition.lat, deliveryPosition.lng] as L.LatLngExpression} 
-          icon={deliveryIcon as L.Icon}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -112,7 +108,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         
         <Marker 
           position={[userPosition.lat, userPosition.lng] as L.LatLngExpression} 
-          icon={userIcon as L.Icon}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
