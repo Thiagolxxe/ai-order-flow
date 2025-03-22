@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -34,6 +34,13 @@ const userIcon = createLeafletIcon(
   [25, 41]
 );
 
+// Set center position component to workaround TypeScript issues
+const SetMapView = ({ center }: { center: [number, number] }) => {
+  const map = useMap();
+  map.setView(center, map.getZoom());
+  return null;
+};
+
 interface DeliveryMapProps {
   restaurantPosition: {
     lat: number;
@@ -61,10 +68,13 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   deliveryAddress
 }) => {
   // Calculate the center position based on restaurant and user positions
-  const centerPosition = [
+  const centerPosition: [number, number] = [
     (restaurantPosition.lat + userPosition.lat) / 2,
     (restaurantPosition.lng + userPosition.lng) / 2
   ];
+  
+  // Create ref for map container
+  const mapRef = useRef<L.Map | null>(null);
 
   // Fix the TypeScript errors by setting proper initial attributes
   useEffect(() => {
@@ -77,6 +87,13 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         container._leaflet_id = null;
       }
     }
+    
+    // Return cleanup function
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+      }
+    };
   }, []);
 
   return (
@@ -85,17 +102,19 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id="map"
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition as [number, number]}
         zoom={13}
+        whenCreated={(map) => { mapRef.current = map; }}
       >
+        <SetMapView center={centerPosition} />
+        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng] as [number, number]} 
-          icon={restaurantIcon}
+          position={[restaurantPosition.lat, restaurantPosition.lng]} 
+          icon={restaurantIcon as unknown as L.Icon<L.IconOptions>}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -103,8 +122,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng] as [number, number]} 
-          icon={deliveryIcon}
+          position={[deliveryPosition.lat, deliveryPosition.lng]} 
+          icon={deliveryIcon as unknown as L.Icon<L.IconOptions>}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -112,8 +131,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng] as [number, number]} 
-          icon={userIcon}
+          position={[userPosition.lat, userPosition.lng]} 
+          icon={userIcon as unknown as L.Icon<L.IconOptions>}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
