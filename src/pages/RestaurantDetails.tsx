@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,10 @@ interface Review {
   cliente_nome?: string;
 }
 
+// Default placeholder images that will be used when real images fail to load
+const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1561758033-7e924f619b47?q=80&w=1920&auto=format&fit=crop';
+const DEFAULT_LOGO = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop';
+
 const RestaurantDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -46,7 +49,7 @@ const RestaurantDetails = () => {
   const [reviewCount, setReviewCount] = useState(0);
   const isMobile = useIsMobile();
   
-  // Buscar detalhes do restaurante
+  // Fetch restaurant details
   useEffect(() => {
     const fetchRestaurantDetails = async () => {
       if (!id) return;
@@ -54,8 +57,64 @@ const RestaurantDetails = () => {
       try {
         setLoading(true);
         
-        // Ensure we're querying with a valid UUID format - this is the critical fix
-        // Check if the ID might not be a valid UUID
+        // Handle numeric IDs for demo purposes
+        let restaurantId = id;
+        let query;
+        
+        // If it's a numeric ID, just use it directly for the mock data
+        if (/^\d+$/.test(id)) {
+          console.log('Using numeric ID for demo purposes:', id);
+          
+          // Mock data for demonstration - this would be replaced with actual data in production
+          const mockRestaurant = {
+            id: id,
+            nome: 'Restaurante Exemplo',
+            logo_url: DEFAULT_LOGO,
+            banner_url: DEFAULT_BANNER,
+            tipo_cozinha: 'Brasileira',
+            descricao: 'Este é um restaurante de exemplo para demonstração.',
+            taxa_entrega: 5.99,
+            valor_pedido_minimo: 20.00,
+            tempo_entrega_estimado: 45,
+            faixa_preco: 2,
+            endereco: 'Rua Exemplo, 123',
+            cidade: 'São Paulo',
+            estado: 'SP',
+            cep: '01000-000',
+          };
+          
+          const mockReviews = [
+            {
+              id: '1',
+              cliente_id: '1',
+              restaurante_id: id,
+              nota: 4.5,
+              comentario: 'Ótima comida e entrega rápida!',
+              criado_em: new Date().toISOString(),
+              cliente_nome: 'João Silva',
+            },
+            {
+              id: '2',
+              cliente_id: '2',
+              restaurante_id: id,
+              restaurante_id: id,
+              nota: 5,
+              comentario: 'O melhor restaurante da região!',
+              criado_em: new Date().toISOString(),
+              cliente_nome: 'Maria Oliveira',
+            }
+          ];
+          
+          // Use mock data
+          setRestaurant(mockRestaurant);
+          setReviews(mockReviews);
+          setAverageRating(4.75);
+          setReviewCount(2);
+          setLoading(false);
+          return;
+        }
+        
+        // For UUID, proceed with database query
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
           console.error('Invalid UUID format for restaurant ID:', id);
           toast.error('ID de restaurante inválido');
@@ -149,9 +208,14 @@ const RestaurantDetails = () => {
       {/* Imagem de capa do restaurante */}
       <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden bg-muted">
         <img 
-          src={restaurant.banner_url || 'https://images.unsplash.com/photo-1561758033-7e924f619b47?q=80&w=1920&auto=format&fit=crop'}
+          src={restaurant.banner_url || DEFAULT_BANNER}
           alt={`${restaurant.nome} - Capa`}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = DEFAULT_BANNER;
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         
@@ -159,9 +223,14 @@ const RestaurantDetails = () => {
         <div className="absolute bottom-4 left-4 flex items-end">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-white shadow-md bg-white">
             <img 
-              src={restaurant.logo_url || 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=128&auto=format&fit=crop'}
+              src={restaurant.logo_url || DEFAULT_LOGO}
               alt={`${restaurant.nome} - Logo`}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = DEFAULT_LOGO;
+              }}
             />
           </div>
           
