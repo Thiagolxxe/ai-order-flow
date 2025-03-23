@@ -33,6 +33,8 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
           ...prevContext,
           ...userContext
         }));
+        
+        console.log('Carregado contexto do usuário:', userContext);
       }
     };
     
@@ -88,8 +90,8 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
         
         setMessages(prevMessages => [...prevMessages, processingMessage]);
         
-        // Handle the function call to get the result
-        const functionResult = await handleFunctionCall(response.functionCall);
+        // Handle the function call to get the result, passing the context
+        const functionResult = await handleFunctionCall(response.functionCall, context);
         
         // Send the function result back to Gemini for final response
         const followUpResponse = await generateGeminiResponse(

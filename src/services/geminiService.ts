@@ -16,6 +16,11 @@ export type OrderContext = {
   previousOrders?: any[];
   userAddress?: any;
   suggestions?: string[];
+  userLocation?: {
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+  };
 };
 
 // Types for chat messages
@@ -28,6 +33,14 @@ export type ChatMessage = {
 export interface FunctionResponse {
   name: string;
   arguments: Record<string, any>;
+}
+
+// Types for responses
+export interface GeminiResponse {
+  responseText: string;
+  suggestions?: string[];
+  autoFillData?: Record<string, any>;
+  functionCall?: FunctionResponse;
 }
 
 /**
@@ -59,6 +72,10 @@ export const generateGeminiResponse = async (
       if (context.previousOrders && context.previousOrders.length > 0) {
         systemPrompt += `\nPedidos anteriores: ${context.previousOrders.map(order => 
           `Pedido #${order.numero_pedido} de ${order.restaurante_nome}`).join(', ')}`;
+      }
+
+      if (context.userLocation) {
+        systemPrompt += `\nLocalização do usuário: ${context.userLocation.cidade || ''}, ${context.userLocation.estado || ''}, ${context.userLocation.cep || ''}`;
       }
     }
 
@@ -95,8 +112,7 @@ export const generateGeminiResponse = async (
             },
             preco: {
               type: SchemaType.STRING,
-              description: "Faixa de preço (barato, médio, caro)",
-              enum: ["barato", "médio", "caro"]
+              description: "Faixa de preço (barato, médio, caro)"
             }
           },
           required: ["culinaria"]
@@ -114,6 +130,20 @@ export const generateGeminiResponse = async (
             }
           },
           required: ["numero_pedido"]
+        }
+      },
+      {
+        name: "obter_previsao_tempo",
+        description: "Obtém a previsão do tempo para a localização do usuário",
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            cidade: {
+              type: SchemaType.STRING,
+              description: "Nome da cidade (opcional se a localização do usuário estiver no contexto)"
+            }
+          },
+          required: []
         }
       }
     ];
@@ -199,14 +229,6 @@ export const generateGeminiResponse = async (
   }
 };
 
-// Types for responses
-export interface GeminiResponse {
-  responseText: string;
-  suggestions?: string[];
-  autoFillData?: Record<string, any>;
-  functionCall?: FunctionResponse;
-}
-
 /**
  * Extract suggestions from Gemini response text
  */
@@ -238,7 +260,7 @@ const extractAutoFillData = (text: string): Record<string, any> | undefined => {
 /**
  * Handle function calls by executing the appropriate function
  */
-export const handleFunctionCall = async (functionCall: FunctionResponse): Promise<string> => {
+export const handleFunctionCall = async (functionCall: FunctionResponse, context?: OrderContext): Promise<string> => {
   if (!functionCall) return '';
   
   try {
@@ -252,6 +274,11 @@ export const handleFunctionCall = async (functionCall: FunctionResponse): Promis
       
       case 'verificar_status_pedido':
         return await verificarStatusPedido(functionCall.arguments.numero_pedido);
+      
+      case 'obter_previsao_tempo':
+        return await obterPrevisaoTempo(
+          functionCall.arguments.cidade || (context?.userLocation?.cidade)
+        );
       
       default:
         return `Função não implementada: ${functionCall.name}`;
@@ -366,6 +393,45 @@ const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
 };
 
 /**
+ * Implementation of function to get weather forecast
+ */
+const obterPrevisaoTempo = async (cidade?: string): Promise<string> => {
+  try {
+    if (!cidade) {
+      return 'Não foi possível identificar sua localização. Por favor, informe a cidade para obter a previsão do tempo.';
+    }
+
+    // Normalmente, faríamos uma chamada a uma API real de previsão do tempo aqui
+    // Para fins de demonstração, vamos simular uma resposta
+    const previsoes = [
+      'ensolarado', 'parcialmente nublado', 'nublado', 
+      'chuvoso', 'tempestade', 'neve', 'ventoso'
+    ];
+    const temperaturas = [
+      {min: 15, max: 25},
+      {min: 18, max: 28},
+      {min: 10, max: 20},
+      {min: 8, max: 15},
+      {min: 20, max: 32}
+    ];
+    
+    // Seleciona uma previsão aleatória para simular
+    const previsao = previsoes[Math.floor(Math.random() * previsoes.length)];
+    const temperatura = temperaturas[Math.floor(Math.random() * temperaturas.length)];
+    
+    return `Previsão do tempo para ${cidade}:\n` +
+      `Clima: ${previsao}\n` +
+      `Temperatura: ${temperatura.min}°C a ${temperatura.max}°C\n` +
+      `Umidade: ${Math.floor(Math.random() * 50) + 30}%\n` +
+      `Atualizado em: ${new Date().toLocaleString('pt-BR')}`;
+    
+  } catch (error) {
+    console.error('Error in obterPrevisaoTempo:', error);
+    return 'Erro ao obter a previsão do tempo. Por favor, tente novamente.';
+  }
+};
+
+/**
  * Fetch user context information from database
  */
 export const fetchUserContext = async (userId?: string): Promise<OrderContext> => {
@@ -408,6 +474,13 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
     
     if (!addressError && addressData) {
       context.userAddress = addressData;
+      
+      // Add user location information
+      context.userLocation = {
+        cidade: addressData.cidade,
+        estado: addressData.estado,
+        cep: addressData.cep
+      };
     }
     
     return context;
