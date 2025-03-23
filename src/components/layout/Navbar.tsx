@@ -110,15 +110,14 @@ const Navbar = () => {
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo - Removed the text span since the SVG already contains "DeliverAI" */}
         <Link 
           to="/" 
-          className="flex items-center gap-2 text-xl font-semibold transition-all"
+          className="flex items-center transition-all"
         >
-          <div className="w-8 h-8 text-primary">
+          <div className="w-32 h-8 text-primary">
             <AppLogo />
           </div>
-          <span className="hidden sm:inline">DeliverAI</span>
         </Link>
         
         {/* Navegação Desktop */}
