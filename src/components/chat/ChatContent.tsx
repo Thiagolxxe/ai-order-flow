@@ -32,6 +32,18 @@ const ChatContent = ({
     }
   }, [activeConversation, messages]);
   
+  // Log when messages change for the active conversation
+  useEffect(() => {
+    if (activeConversation && messages[activeConversation]) {
+      console.log(
+        'Messages updated for active conversation:', 
+        activeConversation, 
+        'New count:', 
+        messages[activeConversation].length
+      );
+    }
+  }, [activeConversation, messages]);
+  
   return (
     <Card className="md:col-span-2">
       <CardContent className="p-0 h-[600px] flex flex-col" aria-describedby="chat-content-description">
@@ -41,7 +53,9 @@ const ChatContent = ({
         {activeConversation ? (
           <>
             <ChatHeader conversation={activeChat} />
-            <MessagesList messages={messages[activeConversation] || []} />
+            <MessagesList 
+              messages={messages[activeConversation] || []} 
+            />
             <MessageInput onSendMessage={(text) => {
               console.log('Sending new message:', text);
               onSendMessage(text);

@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils"
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
+    viewportRef?: React.RefObject<HTMLDivElement>;
+  }
+>(({ className, children, viewportRef, ...props }, ref) => {
   React.useEffect(() => {
     console.log('ScrollArea rendered/updated');
   }, []);
@@ -19,6 +21,7 @@ const ScrollArea = React.forwardRef<
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
         className="h-full w-full rounded-[inherit]"
         onScroll={(e) => {
           const target = e.currentTarget;
