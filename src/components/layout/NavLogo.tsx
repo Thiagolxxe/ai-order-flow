@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogoIcon } from '@/components/ui/LogoIcon';
+import LogoIcon from '@/components/ui/LogoIcon';
 
 const NavLogo = () => {
   return (
