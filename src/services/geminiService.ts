@@ -57,7 +57,7 @@ export const generateGeminiResponse = async (
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [
@@ -67,7 +67,7 @@ export const generateGeminiResponse = async (
           },
           {
             role: 'model',
-            parts: [{ text: 'I understand. I'll help users with their food delivery needs as a DelivGo assistant.' }]
+            parts: [{ text: 'I understand. I\'ll help users with their food delivery needs as a DelivGo assistant.' }]
           },
           {
             role: 'user',
@@ -78,9 +78,9 @@ export const generateGeminiResponse = async (
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 1024
         }
-      }),
+      })
     });
 
     const data = await response.json();
@@ -103,7 +103,7 @@ export const generateGeminiResponse = async (
   } catch (error) {
     console.error('Error generating Gemini response:', error);
     return {
-      responseText: 'Desculpe, não consegui processar sua solicitação. Por favor, tente novamente mais tarde.',
+      responseText: 'Desculpe, não consegui processar sua solicitação. Por favor, tente novamente mais tarde.'
     };
   }
 };
@@ -125,7 +125,7 @@ const extractSuggestions = (text: string): string[] | undefined => {
  */
 const extractAutoFillData = (text: string): Record<string, any> | undefined => {
   // Look for patterns like "AUTOFILL: {"field": "value", ...}"
-  const autofillMatch = text.match(/AUTOFILL:\s*(\[[\s\S]+?\])(?:\n\n|\n|$)/i);
+  const autofillMatch = text.match(/AUTOFILL:\s*(\{[\s\S]+?\})(?:\n\n|\n|$)/i);
   if (autofillMatch && autofillMatch[1]) {
     try {
       return JSON.parse(autofillMatch[1]);
