@@ -125,7 +125,7 @@ const extractSuggestions = (text: string): string[] | undefined => {
  */
 const extractAutoFillData = (text: string): Record<string, any> | undefined => {
   // Look for patterns like "AUTOFILL: {"field": "value", ...}"
-  const autofillMatch = text.match(/AUTOFILL:\s*({[\s\S]+?})(?:\n\n|\n|$)/i);
+  const autofillMatch = text.match(/AUTOFILL:\s*(\[[\s\S]+?\])(?:\n\n|\n|$)/i);
   if (autofillMatch && autofillMatch[1]) {
     try {
       return JSON.parse(autofillMatch[1]);
