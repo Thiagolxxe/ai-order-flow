@@ -8,32 +8,19 @@ const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
     viewportRef?: React.RefObject<HTMLDivElement>;
+    type?: "auto" | "always" | "scroll" | "hover";
   }
->(({ className, children, viewportRef, ...props }, ref) => {
-  React.useEffect(() => {
-    console.log('ScrollArea rendered/updated');
-  }, []);
-
+>(({ className, children, viewportRef, type = "auto", ...props }, ref) => {
   return (
     <ScrollAreaPrimitive.Root
       ref={ref}
       className={cn("relative overflow-hidden", className)}
+      type={type}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         className="h-full w-full rounded-[inherit]"
-        onScroll={(e) => {
-          const target = e.currentTarget;
-          const isScrolledToBottom = 
-            Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 10;
-          console.log('ScrollArea viewport scroll event', {
-            scrollTop: target.scrollTop,
-            scrollHeight: target.scrollHeight,
-            clientHeight: target.clientHeight,
-            isScrolledToBottom
-          });
-        }}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
@@ -63,9 +50,6 @@ const ScrollBar = React.forwardRef<
   >
     <ScrollAreaPrimitive.ScrollAreaThumb 
       className="relative flex-1 rounded-full bg-border" 
-      onMouseDown={() => {
-        console.log('ScrollBar thumb clicked');
-      }}
     />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))

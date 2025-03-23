@@ -10,28 +10,24 @@ interface ChatMessagesProps {
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
   
   // Scroll to bottom of messages
   useEffect(() => {
-    if (messagesEndRef.current && viewportRef.current) {
-      // Use requestAnimationFrame to ensure DOM updates are complete
-      requestAnimationFrame(() => {
-        // Force scroll to the end
-        if (viewportRef.current) {
-          viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
-          
-          console.log('Forcing scroll to the end', {
-            scrollHeight: viewportRef.current.scrollHeight,
-            clientHeight: viewportRef.current.clientHeight,
-            scrollTop: viewportRef.current.scrollTop
-          });
-        }
-        
-        // Use scrollIntoView as a backup
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
-      });
-    }
+    if (messages.length === 0 && !isLoading) return;
+    
+    // Use requestAnimationFrame to ensure DOM updates are complete
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+    
+    // Schedule the scroll with a small delay to ensure rendering is complete
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(scrollToBottom);
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [messages, isLoading]);
   
   // Render message content with formatting
@@ -52,7 +48,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   return (
     <ScrollArea 
       className="flex-1 p-4 h-[calc(100%-80px)] overflow-y-auto" 
-      viewportRef={viewportRef}
+      type="always" // This ensures the scrollbar is always visible
     >
       <div className="flex flex-col">
         {messages.map((message) => (
@@ -81,7 +77,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} className="h-4" />
+        <div ref={messagesEndRef} />
       </div>
     </ScrollArea>
   );
