@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { DeliveryIcon as AppLogo } from '@/components/icons/DeliveryIcon';
+import { LogoIcon } from '@/assets/icons';
 
 const NavLogo = () => {
   return (
@@ -9,8 +9,8 @@ const NavLogo = () => {
       to="/" 
       className="flex items-center transition-all"
     >
-      <div className="h-14 sm:h-12 w-auto">
-        <AppLogo className="h-full w-auto" />
+      <div className="h-10 sm:h-8 w-auto">
+        <LogoIcon className="h-full w-auto" />
       </div>
     </Link>
   );
