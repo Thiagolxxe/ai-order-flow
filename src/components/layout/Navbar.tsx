@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
 import { 
-  LogoIcon, 
   UserIcon, 
   BagIcon, 
   MenuIcon, 
@@ -13,6 +13,7 @@ import {
   NotificationIcon 
 } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
+import { DeliveryIcon as AppLogo } from '@/components/icons/DeliveryIcon';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -115,7 +116,7 @@ const Navbar = () => {
           className="flex items-center gap-2 text-xl font-semibold transition-all"
         >
           <div className="w-8 h-8 text-primary">
-            <LogoIcon />
+            <AppLogo />
           </div>
           <span className="hidden sm:inline">DeliverAI</span>
         </Link>
