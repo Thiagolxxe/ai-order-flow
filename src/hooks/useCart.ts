@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, Restaurant, CartData } from '@/components/cart/types';
+import { isValidUUID } from '@/utils/id-helpers';
 
 export const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -36,7 +36,8 @@ export const useCart = () => {
         }
       }
       
-      if (!uuidRegex.test(validRestaurantId)) {
+      // Usar a função isValidUUID para verificar a validade do ID
+      if (!isValidUUID(validRestaurantId)) {
         console.error('ID do restaurante inválido:', validRestaurantId);
         setCartItems([]);
         setLoading(false);
