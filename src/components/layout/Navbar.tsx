@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -115,7 +114,9 @@ const Navbar = () => {
           to="/" 
           className="flex items-center gap-2 text-xl font-semibold transition-all"
         >
-          <LogoIcon className="w-8 h-8 text-primary" />
+          <div className="w-8 h-8 text-primary">
+            <LogoIcon />
+          </div>
           <span className="hidden sm:inline">DeliverAI</span>
         </Link>
         

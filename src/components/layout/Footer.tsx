@@ -18,7 +18,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 text-xl font-semibold">
-              <LogoIcon className="w-8 h-8 text-primary" />
+              <div className="w-8 h-8 text-primary">
+                <LogoIcon />
+              </div>
               <span>DeliverAI</span>
             </Link>
             <p className="text-sm text-foreground/70 max-w-xs">
