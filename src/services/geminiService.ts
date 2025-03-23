@@ -1,5 +1,5 @@
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel, FunctionDeclaration as GoogleFunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { supabase } from '@/integrations/supabase/client';
 
 // Google Gemini API key - Note: In production, this should be stored in environment variables
@@ -25,31 +25,9 @@ export type ChatMessage = {
 };
 
 // Types for function calling
-export interface FunctionDeclaration {
-  name: string;
-  description: string;
-  parameters: {
-    type: string;
-    properties: Record<string, {
-      type: string;
-      description: string;
-      enum?: string[];
-    }>;
-    required?: string[];
-  };
-}
-
 export interface FunctionResponse {
   name: string;
   arguments: Record<string, any>;
-}
-
-// Types for responses
-export interface GeminiResponse {
-  responseText: string;
-  suggestions?: string[];
-  autoFillData?: Record<string, any>;
-  functionCall?: FunctionResponse;
 }
 
 /**
@@ -99,24 +77,24 @@ export const generateGeminiResponse = async (
       },
     ];
 
-    // Define function declarations
-    const functionDeclarations: FunctionDeclaration[] = [
+    // Define function declarations for Gemini's format
+    const functionDeclarations: GoogleFunctionDeclaration[] = [
       {
         name: "buscar_restaurantes",
         description: "Busca restaurantes próximos com base em critérios como tipo de culinária, localização, etc.",
         parameters: {
-          type: "object",
+          type: SchemaType.OBJECT,
           properties: {
             culinaria: {
-              type: "string",
+              type: SchemaType.STRING,
               description: "Tipo de culinária (ex: italiana, japonesa, brasileira)"
             },
             localizacao: {
-              type: "string",
+              type: SchemaType.STRING,
               description: "Localização para buscar (ex: centro, zona sul)"
             },
             preco: {
-              type: "string",
+              type: SchemaType.STRING,
               description: "Faixa de preço (barato, médio, caro)",
               enum: ["barato", "médio", "caro"]
             }
@@ -128,10 +106,10 @@ export const generateGeminiResponse = async (
         name: "verificar_status_pedido",
         description: "Verifica o status atual de um pedido",
         parameters: {
-          type: "object",
+          type: SchemaType.OBJECT,
           properties: {
             numero_pedido: {
-              type: "string",
+              type: SchemaType.STRING,
               description: "Número do pedido para verificar"
             }
           },
@@ -220,6 +198,14 @@ export const generateGeminiResponse = async (
     };
   }
 };
+
+// Types for responses
+export interface GeminiResponse {
+  responseText: string;
+  suggestions?: string[];
+  autoFillData?: Record<string, any>;
+  functionCall?: FunctionResponse;
+}
 
 /**
  * Extract suggestions from Gemini response text
@@ -346,7 +332,7 @@ const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
         tempo_estimado
       `)
       .eq('numero_pedido', numeroPedido)
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
     
@@ -366,11 +352,12 @@ const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
     }
     
     const restauranteName = data.restaurantes?.nome || 'Restaurante';
+    const tempoEstimado = data.tempo_estimado ? data.tempo_estimado.toString() : 'Não informado';
     
     return `Pedido #${data.numero_pedido} do ${restauranteName}:\n` +
       `Status: ${statusPt}\n` +
       `Feito em: ${new Date(data.criado_em).toLocaleString('pt-BR')}\n` +
-      `Tempo estimado: ${data.tempo_estimado || 'Não informado'} minutos`;
+      `Tempo estimado: ${tempoEstimado} minutos`;
     
   } catch (error) {
     console.error('Error in verificarStatusPedido:', error);
@@ -417,7 +404,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       .select('*')
       .eq('usuario_id', userId)
       .eq('isdefault', true)
-      .single();
+      .maybeSingle();
     
     if (!addressError && addressData) {
       context.userAddress = addressData;
