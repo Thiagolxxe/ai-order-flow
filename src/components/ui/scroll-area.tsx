@@ -22,12 +22,22 @@ const ScrollArea = React.forwardRef<
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         className="h-full w-full rounded-[inherit]"
+        style={{ 
+          scrollbarGutter: 'stable',
+          scrollbarWidth: 'thin'
+        }}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar orientation="vertical" />
+      <ScrollBar 
+        orientation="vertical" 
+        forceMount={type === "always"}
+      />
       {(orientation === "horizontal" || orientation === "both") && (
-        <ScrollBar orientation="horizontal" />
+        <ScrollBar 
+          orientation="horizontal" 
+          forceMount={type === "always"}
+        />
       )}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
@@ -38,22 +48,26 @@ ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 const ScrollBar = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
->(({ className, orientation = "vertical", ...props }, ref) => (
+>(({ className, orientation = "vertical", forceMount = false, ...props }, ref) => (
   <ScrollAreaPrimitive.ScrollAreaScrollbar
     ref={ref}
     orientation={orientation}
     className={cn(
       "flex touch-none select-none transition-colors",
       orientation === "vertical" &&
-        "h-full w-3 border-l border-l-transparent p-[1px]",
+        "h-full w-4 border-l border-l-transparent p-[2px]",
       orientation === "horizontal" &&
-        "h-3 flex-col border-t border-t-transparent p-[1px]",
+        "h-4 flex-col border-t border-t-transparent p-[2px]",
       className
     )}
+    forceMount={forceMount}
     {...props}
   >
     <ScrollAreaPrimitive.ScrollAreaThumb 
-      className="relative flex-1 rounded-full bg-border" 
+      className={cn(
+        "relative rounded-full bg-border",
+        orientation === "vertical" ? "w-2" : "h-2"
+      )}
     />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))

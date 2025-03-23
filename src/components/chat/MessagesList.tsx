@@ -22,24 +22,28 @@ const MessagesList = ({ messages }: MessagesListProps) => {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         console.log('Scrolling to bottom in MessagesList');
       }
-    }, 300);
+    }, 500);
     
     return () => clearTimeout(timeoutId);
   }, [messages]);
 
   return (
     <ScrollArea 
-      className="flex-1 py-4 px-4 h-full" 
+      className="flex-1" 
       aria-label="Mensagens da conversa"
       ref={scrollAreaRef}
       type="always"
-      style={{ 
-        scrollbarGutter: 'stable',
-        scrollbarWidth: 'thin'
-      }}
+      orientation="vertical"
       viewportRef={scrollAreaRef}
+      style={{ 
+        height: '450px',
+        maxHeight: '450px',
+        scrollbarGutter: 'stable',
+        scrollbarWidth: 'thin',
+        overflowY: 'auto'
+      }}
     >
-      <div className="space-y-2">
+      <div className="space-y-2 py-4 px-4">
         {messages.map(message => (
           <ChatMessage 
             key={message.id} 

@@ -33,21 +33,24 @@ const ChatContent = ({
   }, [activeConversation, messages]);
   
   return (
-    <Card className="md:col-span-2">
+    <Card className="md:col-span-2 flex flex-col">
       <CardContent className="p-0 h-[600px] flex flex-col" aria-describedby="chat-content-description">
         <span id="chat-content-description" className="sr-only">
           Área de conversa de chat, contendo cabeçalho, mensagens e campo para envio de novas mensagens
         </span>
         {activeConversation ? (
           <>
-            <ChatHeader conversation={activeChat} />
+            <ChatHeader conversation={activeChat} className="shrink-0" />
             <MessagesList 
               messages={messages[activeConversation] || []} 
             />
-            <MessageInput onSendMessage={(text) => {
-              console.log('Sending new message:', text);
-              onSendMessage(text);
-            }} />
+            <MessageInput 
+              onSendMessage={(text) => {
+                console.log('Sending new message:', text);
+                onSendMessage(text);
+              }} 
+              className="shrink-0"
+            />
           </>
         ) : (
           <EmptyChatState />

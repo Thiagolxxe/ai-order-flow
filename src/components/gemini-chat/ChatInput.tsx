@@ -7,9 +7,10 @@ import { Send } from 'lucide-react';
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
   isLoading: boolean;
+  className?: string;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, className }) => {
   const [input, setInput] = useState('');
 
   const handleSendMessage = async () => {
@@ -35,7 +36,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
   };
 
   return (
-    <div className="p-4 border-t mt-auto">
+    <div className={`p-4 border-t bg-background shrink-0 ${className || ''}`}>
       <div className="flex space-x-2">
         <Input 
           value={input}

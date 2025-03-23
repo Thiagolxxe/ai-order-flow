@@ -22,7 +22,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         console.log('Scrolling to bottom in GeminiChatMessages');
       }
-    }, 300);
+    }, 500); // Increased timeout for better reliability
     
     return () => clearTimeout(timeoutId);
   }, [messages, isLoading]);
@@ -45,13 +45,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   return (
     <ScrollArea 
       ref={scrollAreaRef}
-      className="flex-1 p-4 h-[calc(100%-80px)]" 
+      className="flex-1 p-4" 
       type="always"
-      style={{ 
-        scrollbarGutter: 'stable',
-        scrollbarWidth: 'thin'
-      }}
+      orientation="vertical"
       viewportRef={scrollAreaRef}
+      style={{ 
+        height: 'calc(100vh - 250px)',
+        maxHeight: 'calc(100vh - 250px)',
+        scrollbarGutter: 'stable',
+        scrollbarWidth: 'thin',
+        overflowY: 'auto'
+      }}
     >
       <div className="flex flex-col">
         {messages.map((message) => (
