@@ -57,7 +57,7 @@ const GeminiChatAssistant: React.FC = () => {
           <Sparkles className="h-6 w-6 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0 h-full flex flex-col">
+      <SheetContent className="w-full sm:max-w-md p-0 h-[95vh] flex flex-col">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center">
             <Sparkles className="mr-2 h-5 w-5 text-primary" />
@@ -71,18 +71,20 @@ const GeminiChatAssistant: React.FC = () => {
             <TabsTrigger value="suggestions">Sugestões</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="chat" className="flex-1 flex flex-col p-0 h-full overflow-hidden">
-            <ChatMessages 
-              messages={messages} 
-              isLoading={isLoading} 
-            />
-            <ChatInput 
-              onSendMessage={sendMessage} 
-              isLoading={isLoading} 
-            />
+          <TabsContent value="chat" className="flex-1 flex flex-col p-0 overflow-hidden">
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <ChatMessages 
+                messages={messages} 
+                isLoading={isLoading} 
+              />
+              <ChatInput 
+                onSendMessage={sendMessage} 
+                isLoading={isLoading} 
+              />
+            </div>
           </TabsContent>
           
-          <TabsContent value="suggestions" className="flex-1 p-0 h-full overflow-hidden">
+          <TabsContent value="suggestions" className="flex-1 p-0 overflow-hidden">
             <SuggestionsList 
               suggestions={suggestions} 
               onSuggestionClick={handleSuggestionClick}

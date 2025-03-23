@@ -16,23 +16,28 @@ const MessagesList = ({ messages }: MessagesListProps) => {
   useEffect(() => {
     if (messages.length === 0) return;
     
-    // Schedule the scroll with a small delay to ensure rendering is complete
+    // Schedule the scroll with a delay to ensure rendering is complete
     const timeoutId = setTimeout(() => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         console.log('Scrolling to bottom in MessagesList');
       }
-    }, 200);
+    }, 300);
     
     return () => clearTimeout(timeoutId);
   }, [messages]);
 
   return (
     <ScrollArea 
-      className="flex-1 py-4 px-4 h-full overflow-y-auto relative" 
+      className="flex-1 py-4 px-4 h-full" 
       aria-label="Mensagens da conversa"
       ref={scrollAreaRef}
-      type="always" // Ensures the scrollbar is always visible
+      type="always"
+      style={{ 
+        scrollbarGutter: 'stable',
+        scrollbarWidth: 'thin'
+      }}
+      viewportRef={scrollAreaRef}
     >
       <div className="space-y-2">
         {messages.map(message => (
