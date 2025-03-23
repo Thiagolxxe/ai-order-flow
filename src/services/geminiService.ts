@@ -3,7 +3,10 @@
 import { 
   generateGeminiResponse,
   handleFunctionCall,
-  fetchUserContext,
+  fetchUserContext
+} from './gemini';
+
+import type {
   OrderContext,
   ChatMessage,
   FunctionResponse,
@@ -13,7 +16,10 @@ import {
 export {
   generateGeminiResponse,
   handleFunctionCall,
-  fetchUserContext,
+  fetchUserContext
+};
+
+export type {
   OrderContext,
   ChatMessage,
   FunctionResponse,

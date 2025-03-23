@@ -101,7 +101,7 @@ export const verificarStatusPedido = async (numeroPedido: string): Promise<strin
         restaurantes (nome),
         entregador_id,
         criado_em,
-        tempo_estimado
+        tempo_estimado_minutos
       `)
       .eq('numero_pedido', numeroPedido)
       .maybeSingle();
@@ -124,7 +124,7 @@ export const verificarStatusPedido = async (numeroPedido: string): Promise<strin
     }
     
     const restauranteName = data.restaurantes?.nome || 'Restaurante';
-    const tempoEstimado = data.tempo_estimado ? String(data.tempo_estimado) : 'Não informado';
+    const tempoEstimado = data.tempo_estimado_minutos ? String(data.tempo_estimado_minutos) : 'Não informado';
     
     return `Pedido #${data.numero_pedido} do ${restauranteName}:\n` +
       `Status: ${statusPt}\n` +

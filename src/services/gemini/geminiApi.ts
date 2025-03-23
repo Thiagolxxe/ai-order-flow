@@ -1,5 +1,10 @@
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel } from "@google/generative-ai";
+import { 
+  GoogleGenerativeAI, 
+  HarmCategory, 
+  HarmBlockThreshold, 
+  FunctionDeclaration
+} from "@google/generative-ai";
 import { ChatMessage, GeminiResponse, OrderContext, functionDeclarations } from "./types";
 
 // Google Gemini API key - Note: In production, this should be stored in environment variables
@@ -100,7 +105,7 @@ export const generateGeminiResponse = async (
         maxOutputTokens: 1024,
       },
       tools: [{
-        functionDeclarations
+        functionDeclarations: functionDeclarations as FunctionDeclaration[]
       }]
     });
 
@@ -109,7 +114,7 @@ export const generateGeminiResponse = async (
     const responseText = result.response.text();
     
     // Check for function calls
-    let functionCall: FunctionResponse | undefined;
+    let functionCall = undefined;
     const functionCalling = result.response.functionCalls();
     
     if (functionCalling && functionCalling.length > 0) {

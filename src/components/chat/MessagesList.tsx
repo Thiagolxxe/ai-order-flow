@@ -52,7 +52,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
             isUser={message.sender === 'user'} 
           />
         ))}
-        <div ref={messagesEndRef} style={{ height: '32px' }} />
+        <div ref={messagesEndRef} style={{ height: "48px" }} />
       </div>
     </ScrollArea>
   );
