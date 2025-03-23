@@ -114,7 +114,7 @@ const Navbar = () => {
           to="/" 
           className="flex items-center transition-all"
         >
-          <div className="h-10 sm:h-8 w-auto">
+          <div className="h-14 sm:h-12 w-auto">
             <AppLogo className="h-full w-auto" />
           </div>
         </Link>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -18,7 +17,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link to="/" className="flex items-center">
-              <div className="h-8 w-auto max-w-[180px]">
+              <div className="h-12 w-auto max-w-[220px]">
                 <AppLogo className="h-full w-auto" />
               </div>
             </Link>
