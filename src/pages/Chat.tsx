@@ -12,6 +12,7 @@ import {
   RestaurantIcon,
   BagIcon
 } from '@/assets/icons';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Tipo para mensagens
 type Message = {
@@ -280,42 +281,44 @@ const Chat = () => {
         {/* Lista de conversas */}
         <Card className="md:col-span-1">
           <CardContent className="p-4">
-            <div className="space-y-1">
-              {conversations.map(conversation => (
-                <ChatContact 
-                  key={conversation.id}
-                  conversation={conversation}
-                  active={activeConversation === conversation.id}
-                  onClick={() => {
-                    setActiveConversation(conversation.id);
-                    
-                    // Marcar mensagens como lidas
-                    if (messages[conversation.id]) {
-                      setMessages(prevMessages => ({
-                        ...prevMessages,
-                        [conversation.id]: prevMessages[conversation.id].map(msg => ({ ...msg, read: true }))
-                      }));
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-1">
+                {conversations.map(conversation => (
+                  <ChatContact 
+                    key={conversation.id}
+                    conversation={conversation}
+                    active={activeConversation === conversation.id}
+                    onClick={() => {
+                      setActiveConversation(conversation.id);
                       
-                      // Atualizar contagem de não lidas
-                      setConversations(prevConversations => 
-                        prevConversations.map(conv => 
-                          conv.id === conversation.id ? { ...conv, unread: 0 } : conv
-                        )
-                      );
-                    }
-                  }}
-                />
-              ))}
-              
-              {conversations.length === 0 && (
-                <div className="text-center py-10">
-                  <ChatIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">
-                    Nenhuma conversa iniciada
-                  </p>
-                </div>
-              )}
-            </div>
+                      // Marcar mensagens como lidas
+                      if (messages[conversation.id]) {
+                        setMessages(prevMessages => ({
+                          ...prevMessages,
+                          [conversation.id]: prevMessages[conversation.id].map(msg => ({ ...msg, read: true }))
+                        }));
+                        
+                        // Atualizar contagem de não lidas
+                        setConversations(prevConversations => 
+                          prevConversations.map(conv => 
+                            conv.id === conversation.id ? { ...conv, unread: 0 } : conv
+                          )
+                        );
+                      }
+                    }}
+                  />
+                ))}
+                
+                {conversations.length === 0 && (
+                  <div className="text-center py-10">
+                    <ChatIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">
+                      Nenhuma conversa iniciada
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
         
@@ -346,17 +349,19 @@ const Chat = () => {
                   </div>
                 </div>
                 
-                {/* Mensagens */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  {messages[activeConversation]?.map(message => (
-                    <ChatMessage 
-                      key={message.id} 
-                      message={message} 
-                      isUser={message.sender === 'user'} 
-                    />
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
+                {/* Mensagens - usando ScrollArea para rolagem adequada */}
+                <ScrollArea className="flex-1 py-4 px-4">
+                  <div className="space-y-2">
+                    {messages[activeConversation]?.map(message => (
+                      <ChatMessage 
+                        key={message.id} 
+                        message={message} 
+                        isUser={message.sender === 'user'} 
+                      />
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
                 
                 {/* Input de mensagem */}
                 <div className="p-4 border-t">
