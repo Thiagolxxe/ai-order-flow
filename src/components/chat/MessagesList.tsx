@@ -22,15 +22,14 @@ const MessagesList = ({ messages }: MessagesListProps) => {
       
       // Use requestAnimationFrame to ensure DOM updates have completed
       requestAnimationFrame(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-          console.log('Scrolled to bottom using scrollIntoView');
-        }
-        
         if (viewportRef.current) {
+          // Definir directamente o scrollTop para forçar o scroll
           viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
           console.log('Set viewport scrollTop to:', viewportRef.current.scrollHeight);
         }
+        
+        // Como backup, use scrollIntoView com comportamento "auto" em vez de "smooth"
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
       });
     } else {
       console.log('messagesEndRef or viewportRef is null, cannot scroll');
@@ -41,7 +40,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
 
   return (
     <ScrollArea 
-      className="flex-1 py-4 px-4 overflow-y-auto" 
+      className="flex-1 py-4 px-4 h-full overflow-y-auto" 
       aria-label="Mensagens da conversa"
       viewportRef={viewportRef}
     >
@@ -53,7 +52,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
             isUser={message.sender === 'user'} 
           />
         ))}
-        <div ref={messagesEndRef} style={{ height: '1px', marginTop: '10px' }} />
+        <div ref={messagesEndRef} style={{ height: '24px' }} />
       </div>
     </ScrollArea>
   );

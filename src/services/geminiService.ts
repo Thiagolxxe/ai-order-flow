@@ -1,5 +1,5 @@
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel, FunctionDeclaration as GoogleFunctionDeclaration, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel, FunctionDeclaration } from "@google/generative-ai";
 import { supabase } from '@/integrations/supabase/client';
 
 // Google Gemini API key - Note: In production, this should be stored in environment variables
@@ -95,23 +95,23 @@ export const generateGeminiResponse = async (
     ];
 
     // Define function declarations for Gemini's format
-    const functionDeclarations: GoogleFunctionDeclaration[] = [
+    const functionDeclarations: FunctionDeclaration[] = [
       {
         name: "buscar_restaurantes",
         description: "Busca restaurantes próximos com base em critérios como tipo de culinária, localização, etc.",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
             culinaria: {
-              type: SchemaType.STRING,
+              type: "STRING",
               description: "Tipo de culinária (ex: italiana, japonesa, brasileira)"
             },
             localizacao: {
-              type: SchemaType.STRING,
+              type: "STRING",
               description: "Localização para buscar (ex: centro, zona sul)"
             },
             preco: {
-              type: SchemaType.STRING,
+              type: "STRING",
               description: "Faixa de preço (barato, médio, caro)"
             }
           },
@@ -122,10 +122,10 @@ export const generateGeminiResponse = async (
         name: "verificar_status_pedido",
         description: "Verifica o status atual de um pedido",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
             numero_pedido: {
-              type: SchemaType.STRING,
+              type: "STRING",
               description: "Número do pedido para verificar"
             }
           },
@@ -136,10 +136,10 @@ export const generateGeminiResponse = async (
         name: "obter_previsao_tempo",
         description: "Obtém a previsão do tempo para a localização do usuário",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
             cidade: {
-              type: SchemaType.STRING,
+              type: "STRING",
               description: "Nome da cidade (opcional se a localização do usuário estiver no contexto)"
             }
           },
@@ -277,7 +277,7 @@ export const handleFunctionCall = async (functionCall: FunctionResponse, context
       
       case 'obter_previsao_tempo':
         return await obterPrevisaoTempo(
-          functionCall.arguments.cidade || (context?.userLocation?.cidade)
+          functionCall.arguments.cidade || (context?.userLocation?.cidade || '')
         );
       
       default:
@@ -379,7 +379,7 @@ const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
     }
     
     const restauranteName = data.restaurantes?.nome || 'Restaurante';
-    const tempoEstimado = data.tempo_estimado ? data.tempo_estimado.toString() : 'Não informado';
+    const tempoEstimado = data.tempo_estimado ? String(data.tempo_estimado) : 'Não informado';
     
     return `Pedido #${data.numero_pedido} do ${restauranteName}:\n` +
       `Status: ${statusPt}\n` +

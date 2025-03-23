@@ -15,28 +15,35 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   // Scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current && viewportRef.current) {
-      // Use requestAnimationFrame to ensure DOM updates have completed
+      // Use requestAnimationFrame para garantir que o DOM foi atualizado
       requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Definir altura máxima para garantir que o scroll funcione corretamente
+        if (viewportRef.current) {
+          // Forçar o scroll para o final, mesmo que o conteúdo ainda esteja renderizando
+          viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+          
+          console.log('Forçando scroll para o final', {
+            scrollHeight: viewportRef.current.scrollHeight,
+            clientHeight: viewportRef.current.clientHeight,
+            scrollTop: viewportRef.current.scrollTop
+          });
+        }
         
-        // Also directly set scrollTop as a fallback mechanism
-        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
-        console.log('Scrolled to bottom in ChatMessages', {
-          scrollHeight: viewportRef.current.scrollHeight
-        });
+        // Usar scrollIntoView como segunda opção
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
       });
     }
   }, [messages, isLoading]);
   
-  // Render message content with formatting
+  // Renderizar conteúdo da mensagem com formatação
   const renderMessageContent = (content: string) => {
-    // Basic markdown-like formatting
+    // Formatação básica markdown
     return content
       .split('\n')
       .map((line, i) => {
-        // Bold text
+        // Texto em negrito
         line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italic text
+        // Texto em itálico
         line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
         
         return line ? <p key={i} dangerouslySetInnerHTML={{ __html: line }} /> : <br key={i} />;
@@ -45,7 +52,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
 
   return (
     <ScrollArea 
-      className="flex-1 p-4 h-full" 
+      className="flex-1 p-4 h-[calc(100%-80px)] overflow-y-auto" 
       viewportRef={viewportRef}
     >
       <div className="flex flex-col">
@@ -75,7 +82,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-1" />
       </div>
     </ScrollArea>
   );
