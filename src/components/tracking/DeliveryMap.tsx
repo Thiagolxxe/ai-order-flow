@@ -84,9 +84,10 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
-        center={centerPosition}
         zoom={13}
       >
+        <SetMapView center={centerPosition} />
+        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
@@ -117,8 +118,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
           </Popup>
         </Marker>
-        
-        <SetMapView center={centerPosition} />
       </MapContainer>
     </div>
   );
