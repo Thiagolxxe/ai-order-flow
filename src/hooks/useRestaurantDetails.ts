@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getIdFromParams } from '@/utils/id-helpers';
+import { getIdFromParams, isValidUUID } from '@/utils/id-helpers';
 import { getRestaurantData } from '@/services/restaurantService';
 import { DEFAULT_RESTAURANT_IMAGE } from '@/utils/restaurant-helpers';
 
