@@ -11,6 +11,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   MessageCircle, 
   Send, 
@@ -109,7 +110,7 @@ const GeminiChatAssistant: React.FC = () => {
           </TabsList>
           
           <TabsContent value="chat" className="flex-1 flex flex-col p-0">
-            <div className="flex-1 overflow-auto p-4">
+            <ScrollArea className="flex-1 p-4">
               {messages.map((message) => (
                 <div 
                   key={message.id}
@@ -137,7 +138,7 @@ const GeminiChatAssistant: React.FC = () => {
                 </div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+            </ScrollArea>
             
             <div className="p-4 border-t mt-auto">
               <div className="flex space-x-2">
@@ -155,53 +156,55 @@ const GeminiChatAssistant: React.FC = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="suggestions" className="flex-1 overflow-auto p-4">
-            <h3 className="font-medium mb-3">Sugestões do assistente</h3>
-            {suggestions.length > 0 ? (
-              <div className="space-y-2">
-                {suggestions.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="w-full justify-start text-left h-auto py-3"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <span className="truncate">{suggestion}</span>
-                    <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0" />
-                  </Button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">
-                Nenhuma sugestão disponível no momento.
-              </p>
-            )}
-            
-            {restaurant && (
-              <div className="mt-6">
-                <h4 className="font-medium mb-2 flex items-center">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Resumo do Pedido
-                </h4>
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="font-medium">{restaurant.nome}</p>
-                  {cartItems.length > 0 ? (
-                    <div className="mt-2 space-y-1 text-sm">
-                      {cartItems.map((item, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>{item.quantity}x {item.name}</span>
-                          <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Seu carrinho está vazio
-                    </p>
-                  )}
+          <TabsContent value="suggestions" className="flex-1 p-0">
+            <ScrollArea className="h-full p-4">
+              <h3 className="font-medium mb-3">Sugestões do assistente</h3>
+              {suggestions.length > 0 ? (
+                <div className="space-y-2">
+                  {suggestions.map((suggestion, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-3"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <span className="truncate">{suggestion}</span>
+                      <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0" />
+                    </Button>
+                  ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-muted-foreground">
+                  Nenhuma sugestão disponível no momento.
+                </p>
+              )}
+              
+              {restaurant && (
+                <div className="mt-6">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Resumo do Pedido
+                  </h4>
+                  <div className="bg-muted p-3 rounded-md">
+                    <p className="font-medium">{restaurant.nome}</p>
+                    {cartItems.length > 0 ? (
+                      <div className="mt-2 space-y-1 text-sm">
+                        {cartItems.map((item, index) => (
+                          <div key={index} className="flex justify-between">
+                            <span>{item.quantity}x {item.name}</span>
+                            <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Seu carrinho está vazio
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </SheetContent>
