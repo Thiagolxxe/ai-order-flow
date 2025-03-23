@@ -19,7 +19,10 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
 
   return (
     <div className="p-4 border-t">
-      <div className="flex gap-2">
+      <div className="flex gap-2" aria-describedby="message-input-description">
+        <span id="message-input-description" className="sr-only">
+          Campo para envio de mensagens na conversa
+        </span>
         <Input
           placeholder="Digite sua mensagem..."
           value={newMessage}
@@ -29,8 +32,9 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
               handleSend();
             }
           }}
+          aria-label="Mensagem"
         />
-        <Button onClick={handleSend}>
+        <Button onClick={handleSend} aria-label="Enviar mensagem">
           <SendIcon className="w-4 h-4" />
         </Button>
       </div>

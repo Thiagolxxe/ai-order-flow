@@ -26,7 +26,10 @@ const ChatContent = ({
   
   return (
     <Card className="md:col-span-2">
-      <CardContent className="p-0 h-[600px] flex flex-col">
+      <CardContent className="p-0 h-[600px] flex flex-col" aria-describedby="chat-content-description">
+        <span id="chat-content-description" className="sr-only">
+          Área de conversa de chat, contendo cabeçalho, mensagens e campo para envio de novas mensagens
+        </span>
         {activeConversation ? (
           <>
             <ChatHeader conversation={activeChat} />

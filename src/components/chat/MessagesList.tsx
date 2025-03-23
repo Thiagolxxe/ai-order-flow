@@ -11,7 +11,7 @@ interface MessagesListProps {
 const MessagesList = ({ messages }: MessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Rolar para a última mensagem quando as mensagens mudarem
+  // Scroll to the last message when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -19,7 +19,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
   }, [messages]);
 
   return (
-    <ScrollArea className="flex-1 py-4 px-4">
+    <ScrollArea className="flex-1 py-4 px-4" aria-label="Mensagens da conversa">
       <div className="space-y-2">
         {messages.map(message => (
           <ChatMessage 

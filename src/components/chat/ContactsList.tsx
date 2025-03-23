@@ -26,7 +26,8 @@ const ContactsList = ({
   return (
     <Card className="md:col-span-1">
       <CardContent className="p-4">
-        <ScrollArea className="h-[500px]">
+        <h2 id="contacts-heading" className="sr-only">Lista de contatos</h2>
+        <ScrollArea className="h-[500px]" aria-labelledby="contacts-heading">
           <div className="space-y-1">
             {conversations.map(conversation => (
               <ChatContact 
@@ -36,14 +37,14 @@ const ContactsList = ({
                 onClick={() => {
                   setActiveConversation(conversation.id);
                   
-                  // Marcar mensagens como lidas
+                  // Mark messages as read
                   if (messages[conversation.id]) {
                     setMessages(prevMessages => ({
                       ...prevMessages,
                       [conversation.id]: prevMessages[conversation.id].map(msg => ({ ...msg, read: true }))
                     }));
                     
-                    // Atualizar contagem de não lidas
+                    // Update unread count
                     setConversations(prevConversations => 
                       prevConversations.map(conv => 
                         conv.id === conversation.id ? { ...conv, unread: 0 } : conv
@@ -55,7 +56,7 @@ const ContactsList = ({
             ))}
             
             {conversations.length === 0 && (
-              <div className="text-center py-10">
+              <div className="text-center py-10" aria-live="polite">
                 <ChatIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">
                   Nenhuma conversa iniciada
