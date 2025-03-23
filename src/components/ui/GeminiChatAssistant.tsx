@@ -26,6 +26,7 @@ import { useCart } from '@/hooks/useCart';
 const GeminiChatAssistant: React.FC = () => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const { cartItems, restaurant } = useCart();
   
   // Initialize Gemini AI hook with cart context
@@ -52,10 +53,19 @@ const GeminiChatAssistant: React.FC = () => {
   
   // Scroll to bottom of messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && viewportRef.current) {
+      // Use requestAnimationFrame to ensure DOM updates have completed
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        
+        // Also directly set scrollTop as a fallback mechanism
+        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+        console.log('Scrolled to bottom in GeminiChatAssistant', {
+          scrollHeight: viewportRef.current.scrollHeight
+        });
+      });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
   
   // Handle sending messages
   const handleSendMessage = async () => {
@@ -110,7 +120,10 @@ const GeminiChatAssistant: React.FC = () => {
           </TabsList>
           
           <TabsContent value="chat" className="flex-1 flex flex-col p-0 h-full overflow-hidden">
-            <ScrollArea className="flex-1 p-4 h-full">
+            <ScrollArea 
+              className="flex-1 p-4 h-full" 
+              viewportRef={viewportRef}
+            >
               <div className="flex flex-col">
                 {messages.map((message) => (
                   <div 

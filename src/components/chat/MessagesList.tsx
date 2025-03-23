@@ -20,28 +20,18 @@ const MessagesList = ({ messages }: MessagesListProps) => {
     if (messagesEndRef.current && viewportRef.current) {
       console.log('messagesEndRef and viewportRef exist, scrolling to bottom');
       
-      // Method 1: Using scrollIntoView on the last message
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      
-      // Method 2: Using scrollTop direct manipulation on viewport
-      setTimeout(() => {
+      // Use requestAnimationFrame to ensure DOM updates have completed
+      requestAnimationFrame(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+          console.log('Scrolled to bottom using scrollIntoView');
+        }
+        
         if (viewportRef.current) {
           viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
-          console.log('Set viewportRef scrollTop to:', viewportRef.current.scrollHeight);
+          console.log('Set viewport scrollTop to:', viewportRef.current.scrollHeight);
         }
-      }, 100);
-      
-      // Method 3: Using Element.scrollTo API
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        if (viewportRef.current) {
-          viewportRef.current.scrollTo({
-            top: viewportRef.current.scrollHeight,
-            behavior: 'smooth'
-          });
-          console.log('Used scrollTo API to scroll to bottom');
-        }
-      }, 200);
+      });
     } else {
       console.log('messagesEndRef or viewportRef is null, cannot scroll');
       console.log('messagesEndRef exists:', !!messagesEndRef.current);
