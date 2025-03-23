@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -101,32 +100,18 @@ const Checkout = () => {
           return;
         }
         
-        // Initialize default values for numerical properties
-        if (!savedCheckoutData.items) {
-          savedCheckoutData.items = [];
-        }
+        // Initialize default values for numerical properties and ensure items array exists
+        const defaultedData = {
+          ...savedCheckoutData,
+          items: savedCheckoutData.items || [],
+          subtotal: savedCheckoutData.subtotal || 0,
+          discount: savedCheckoutData.discount || 0,
+          discountValue: savedCheckoutData.discountValue || 0,
+          deliveryFee: savedCheckoutData.deliveryFee || 0,
+          total: savedCheckoutData.total || 0
+        };
         
-        if (typeof savedCheckoutData.subtotal !== 'number') {
-          savedCheckoutData.subtotal = 0;
-        }
-        
-        if (typeof savedCheckoutData.discount !== 'number') {
-          savedCheckoutData.discount = 0;
-        }
-        
-        if (typeof savedCheckoutData.discountValue !== 'number') {
-          savedCheckoutData.discountValue = 0;
-        }
-        
-        if (typeof savedCheckoutData.deliveryFee !== 'number') {
-          savedCheckoutData.deliveryFee = 0;
-        }
-        
-        if (typeof savedCheckoutData.total !== 'number') {
-          savedCheckoutData.total = 0;
-        }
-        
-        setCheckoutData(savedCheckoutData);
+        setCheckoutData(defaultedData);
         
         // Buscar endereços do usuário se autenticado
         if (isAuthenticated && user) {

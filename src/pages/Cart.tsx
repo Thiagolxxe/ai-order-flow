@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -48,44 +47,49 @@ const Cart = () => {
           return;
         }
         
-        // Validar se o ID do restaurante é um UUID válido
+        // Validar se o ID do restaurante é válido
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(restaurantId)) {
-          console.error('ID do restaurante inválido:', restaurantId);
+        
+        // Handle numeric IDs (1-5) by converting them to UUIDs
+        let validRestaurantId = restaurantId;
+        if (/^\d+$/.test(restaurantId)) {
+          const numericId = parseInt(restaurantId);
+          if (numericId > 0 && numericId <= 5) {
+            validRestaurantId = `00000000-0000-0000-0000-00000000000${numericId}`;
+            console.log(`Converting numeric ID ${restaurantId} to test UUID: ${validRestaurantId}`);
+          }
+        }
+        
+        if (!uuidRegex.test(validRestaurantId)) {
+          console.error('ID do restaurante inválido:', validRestaurantId);
           setCartItems([]);
           setLoading(false);
           return;
         }
         
-        // Obter os itens do carrinho
-        const savedCart = localStorage.getItem(`cart_${restaurantId}`);
+        // Obter os itens do carrinho usando o ID validado
+        const savedCart = localStorage.getItem(`cart_${validRestaurantId}`);
         if (!savedCart) {
           setCartItems([]);
           setLoading(false);
           return;
         }
         
-        const parsedCart: { id: string; quantity: number }[] = JSON.parse(savedCart);
-        if (parsedCart.length === 0) {
+        const parsedCart = JSON.parse(savedCart);
+        if (!parsedCart || !parsedCart.items || parsedCart.items.length === 0) {
           setCartItems([]);
           setLoading(false);
           return;
         }
         
-        // Validar que todos os IDs dos itens são válidos
-        const validItemIds = parsedCart.filter(item => uuidRegex.test(item.id));
-        
-        if (validItemIds.length === 0) {
-          setCartItems([]);
-          setLoading(false);
-          return;
-        }
+        // Ensure we're using the valid restaurant ID for all operations
+        localStorage.setItem('currentRestaurant', validRestaurantId);
         
         // Buscar detalhes do restaurante
         const { data: restaurantData, error: restaurantError } = await supabase
           .from('restaurantes')
           .select('id, nome, taxa_entrega')
-          .eq('id', restaurantId)
+          .eq('id', validRestaurantId)
           .maybeSingle();
         
         if (restaurantError) {
@@ -95,41 +99,14 @@ const Cart = () => {
           return;
         }
         
-        if (!restaurantData) {
-          console.error('Restaurante não encontrado:', restaurantId);
-          toast.error('Restaurante não encontrado');
-          setLoading(false);
-          return;
-        }
-        
-        // Buscar detalhes dos itens do cardápio
-        const itemIds = validItemIds.map(item => item.id);
-        const { data: menuItemsData, error: menuItemsError } = await supabase
-          .from('itens_cardapio')
-          .select('id, nome, preco, imagem_url')
-          .in('id', itemIds);
-        
-        if (menuItemsError) {
-          console.error('Erro ao buscar itens do cardápio:', menuItemsError);
-          toast.error('Não foi possível carregar os itens do carrinho');
-          setLoading(false);
-          return;
-        }
-        
-        // Montar os itens do carrinho com os detalhes
-        const cartItemsWithDetails = validItemIds.map(cartItem => {
-          const menuItem = menuItemsData.find(mi => mi.id === cartItem.id);
-          return {
-            id: cartItem.id,
-            name: menuItem?.nome || 'Item não encontrado',
-            price: menuItem?.preco || 0,
-            image: menuItem?.imagem_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500&auto=format&fit=crop',
-            quantity: cartItem.quantity
-          };
+        setRestaurant(restaurantData || {
+          id: validRestaurantId,
+          nome: 'Restaurante',
+          taxa_entrega: parsedCart.deliveryFee || 0
         });
+        setCartItems(parsedCart.items || []);
+        setDiscount(parsedCart.discount || 0);
         
-        setRestaurant(restaurantData);
-        setCartItems(cartItemsWithDetails);
       } catch (error) {
         console.error('Erro ao carregar dados do carrinho:', error);
         toast.error('Não foi possível carregar os dados do carrinho');
@@ -262,7 +239,7 @@ const Cart = () => {
       toast.error('Adicione itens ao carrinho para continuar');
     } else {
       // Salvar dados do pedido para o checkout
-      localStorage.setItem('checkout_data', JSON.stringify({
+      const checkoutData = {
         restaurantId: restaurant?.id,
         items: cartItems,
         subtotal,
@@ -270,7 +247,13 @@ const Cart = () => {
         discountValue,
         deliveryFee,
         total
-      }));
+      };
+      
+      localStorage.setItem('checkout_data', JSON.stringify(checkoutData));
+      
+      if (restaurant) {
+        localStorage.setItem(`cart_${restaurant.id}`, JSON.stringify(checkoutData));
+      }
       
       navigate('/finalizar');
     }
