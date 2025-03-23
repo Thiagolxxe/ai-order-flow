@@ -34,24 +34,25 @@ export const generateGeminiResponse = async (
 ): Promise<GeminiResponse> => {
   try {
     // Create prompt with context
-    let systemPrompt = `You are an AI assistant for a food delivery app called DelivGo. 
-    You help users order food, track their orders, and answer questions about restaurants and menu items.
-    Be friendly, helpful, and concise. If you don't know something, say so and offer to help with something else.`;
+    let systemPrompt = `Você é um assistente virtual para um aplicativo de entrega de comida chamado DelivGo. 
+    Você ajuda os usuários a fazer pedidos, acompanhar seus pedidos e responder perguntas sobre restaurantes e itens do menu.
+    Seja amigável, prestativo e conciso. Se você não souber algo, diga isso e ofereça ajuda com outra coisa.
+    IMPORTANTE: Responda SEMPRE em português do Brasil, independente do idioma da pergunta.`;
 
     // Add context information if available
     if (context) {
       if (context.restaurantName) {
-        systemPrompt += `\nThe user is currently looking at ${context.restaurantName}.`;
+        systemPrompt += `\nO usuário está atualmente visualizando ${context.restaurantName}.`;
       }
       
       if (context.cartItems && context.cartItems.length > 0) {
-        systemPrompt += `\nThe user's cart contains: ${context.cartItems.map(item => 
+        systemPrompt += `\nO carrinho do usuário contém: ${context.cartItems.map(item => 
           `${item.quantity}x ${item.name} (R$${item.price.toFixed(2)})`).join(', ')}`;
       }
       
       if (context.previousOrders && context.previousOrders.length > 0) {
-        systemPrompt += `\nPrevious orders: ${context.previousOrders.map(order => 
-          `Order #${order.numero_pedido} from ${order.restaurante_nome}`).join(', ')}`;
+        systemPrompt += `\nPedidos anteriores: ${context.previousOrders.map(order => 
+          `Pedido #${order.numero_pedido} de ${order.restaurante_nome}`).join(', ')}`;
       }
     }
 
@@ -80,7 +81,7 @@ export const generateGeminiResponse = async (
         },
         {
           role: "model",
-          parts: [{ text: "I understand. I'll help users with their food delivery needs as a DelivGo assistant." }],
+          parts: [{ text: "Entendido. Vou ajudar os usuários com suas necessidades de entrega de comida como assistente do DelivGo, sempre respondendo em português." }],
         },
       ],
       generationConfig: {
