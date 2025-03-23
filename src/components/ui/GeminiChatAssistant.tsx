@@ -109,35 +109,37 @@ const GeminiChatAssistant: React.FC = () => {
             <TabsTrigger value="suggestions">Sugestões</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="chat" className="flex-1 flex flex-col p-0">
-            <ScrollArea className="flex-1 p-4">
-              {messages.map((message) => (
-                <div 
-                  key={message.id}
-                  className={`mb-4 max-w-[80%] ${
-                    message.role === 'user' 
-                      ? 'ml-auto bg-primary text-primary-foreground' 
-                      : 'mr-auto bg-muted'
-                  } rounded-lg p-3`}
-                >
-                  <div className="text-sm">
-                    {renderMessageContent(message.content)}
+          <TabsContent value="chat" className="flex-1 flex flex-col p-0 h-full overflow-hidden">
+            <ScrollArea className="flex-1 p-4 h-full">
+              <div className="flex flex-col">
+                {messages.map((message) => (
+                  <div 
+                    key={message.id}
+                    className={`mb-4 max-w-[80%] ${
+                      message.role === 'user' 
+                        ? 'ml-auto bg-primary text-primary-foreground' 
+                        : 'mr-auto bg-muted'
+                    } rounded-lg p-3`}
+                  >
+                    <div className="text-sm">
+                      {renderMessageContent(message.content)}
+                    </div>
+                    <p className="text-xs mt-1 opacity-70 text-right">
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                  <p className="text-xs mt-1 opacity-70 text-right">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="mr-auto bg-muted rounded-lg p-3 mb-4 max-w-[80%]">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75"></div>
-                    <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150"></div>
-                    <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-300"></div>
+                ))}
+                {isLoading && (
+                  <div className="mr-auto bg-muted rounded-lg p-3 mb-4 max-w-[80%]">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75"></div>
+                      <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150"></div>
+                      <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-300"></div>
+                    </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </ScrollArea>
             
             <div className="p-4 border-t mt-auto">
@@ -156,54 +158,56 @@ const GeminiChatAssistant: React.FC = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="suggestions" className="flex-1 p-0">
+          <TabsContent value="suggestions" className="flex-1 p-0 h-full overflow-hidden">
             <ScrollArea className="h-full p-4">
-              <h3 className="font-medium mb-3">Sugestões do assistente</h3>
-              {suggestions.length > 0 ? (
-                <div className="space-y-2">
-                  {suggestions.map((suggestion, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className="w-full justify-start text-left h-auto py-3"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      <span className="truncate">{suggestion}</span>
-                      <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0" />
-                    </Button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  Nenhuma sugestão disponível no momento.
-                </p>
-              )}
-              
-              {restaurant && (
-                <div className="mt-6">
-                  <h4 className="font-medium mb-2 flex items-center">
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Resumo do Pedido
-                  </h4>
-                  <div className="bg-muted p-3 rounded-md">
-                    <p className="font-medium">{restaurant.nome}</p>
-                    {cartItems.length > 0 ? (
-                      <div className="mt-2 space-y-1 text-sm">
-                        {cartItems.map((item, index) => (
-                          <div key={index} className="flex justify-between">
-                            <span>{item.quantity}x {item.name}</span>
-                            <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Seu carrinho está vazio
-                      </p>
-                    )}
+              <div className="flex flex-col h-full">
+                <h3 className="font-medium mb-3">Sugestões do assistente</h3>
+                {suggestions.length > 0 ? (
+                  <div className="space-y-2">
+                    {suggestions.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        className="w-full justify-start text-left h-auto py-3"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        <span className="truncate">{suggestion}</span>
+                        <ChevronRight className="ml-auto h-4 w-4 flex-shrink-0" />
+                      </Button>
+                    ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-muted-foreground">
+                    Nenhuma sugestão disponível no momento.
+                  </p>
+                )}
+                
+                {restaurant && (
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-2 flex items-center">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Resumo do Pedido
+                    </h4>
+                    <div className="bg-muted p-3 rounded-md">
+                      <p className="font-medium">{restaurant.nome}</p>
+                      {cartItems.length > 0 ? (
+                        <div className="mt-2 space-y-1 text-sm">
+                          {cartItems.map((item, index) => (
+                            <div key={index} className="flex justify-between">
+                              <span>{item.quantity}x {item.name}</span>
+                              <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Seu carrinho está vazio
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </ScrollArea>
           </TabsContent>
         </Tabs>
