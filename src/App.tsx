@@ -39,8 +39,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <UserProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
           <div className="flex flex-col min-h-screen">
             <Navbar />
@@ -84,6 +82,8 @@ const App = () => (
             <Footer />
           </div>
           <GeminiChatAssistant />
+          <Toaster />
+          <Sonner position="top-right" richColors />
         </BrowserRouter>
       </TooltipProvider>
     </UserProvider>
