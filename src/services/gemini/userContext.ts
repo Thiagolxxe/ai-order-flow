@@ -35,6 +35,22 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       }));
     }
     
+    // Fetch user's profile information
+    const { data: profileData, error: profileError } = await supabase
+      .from('perfis')
+      .select('nome, sobrenome, telefone')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (!profileError && profileData) {
+      context.userProfile = {
+        nome: profileData.nome || '',
+        sobrenome: profileData.sobrenome || '',
+        nomeCompleto: `${profileData.nome || ''} ${profileData.sobrenome || ''}`.trim(),
+        telefone: profileData.telefone
+      };
+    }
+    
     // Fetch user's default address
     const { data: addressData, error: addressError } = await supabase
       .from('enderecos')
@@ -52,6 +68,23 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
         estado: addressData.estado,
         cep: addressData.cep
       };
+    }
+    
+    // Fetch user's most frequently ordered items
+    if (context.previousOrders && context.previousOrders.length > 0) {
+      const orderIds = context.previousOrders.map(order => order.id);
+      
+      const { data: frequentItems, error: itemsError } = await supabase
+        .from('itens_pedido')
+        .select('nome_item_cardapio, COUNT(*)')
+        .in('pedido_id', orderIds)
+        .group('nome_item_cardapio')
+        .order('count', { ascending: false })
+        .limit(3);
+      
+      if (!itemsError && frequentItems) {
+        context.frequentItems = frequentItems.map(item => item.nome_item_cardapio);
+      }
     }
     
     return context;

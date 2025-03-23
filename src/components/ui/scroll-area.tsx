@@ -1,74 +1,70 @@
 
+"use client"
+
 import * as React from "react"
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
 import { cn } from "@/lib/utils"
 
+interface ScrollAreaProps 
+  extends React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
+  orientation?: "horizontal" | "vertical" | "both";
+  viewportRef?: React.RefObject<HTMLDivElement>;
+  type?: "auto" | "always" | "scroll" | "hover"; 
+}
+
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
-    viewportRef?: React.RefObject<HTMLDivElement>;
-    type?: "auto" | "always" | "scroll" | "hover";
-    orientation?: "vertical" | "horizontal" | "both";
-  }
->(({ className, children, viewportRef, type = "auto", orientation = "vertical", ...props }, ref) => {
-  return (
-    <ScrollAreaPrimitive.Root
-      ref={ref}
-      className={cn("relative overflow-hidden", className)}
-      type={type}
-      {...props}
+  ScrollAreaProps
+>(({ className, orientation = "vertical", viewportRef, type = "auto", children, ...props }, ref) => (
+  <ScrollAreaPrimitive.Root
+    ref={ref}
+    className={cn("relative overflow-hidden", className)}
+    type={type as "auto" | "always" | "scroll" | "hover"}
+    {...props}
+  >
+    <ScrollAreaPrimitive.Viewport
+      ref={viewportRef}
+      className="h-full w-full rounded-[inherit]"
+      style={{ 
+        scrollbarWidth: 'thin',
+        scrollbarGutter: 'stable',
+      }}
     >
-      <ScrollAreaPrimitive.Viewport
-        ref={viewportRef}
-        className="h-full w-full rounded-[inherit]"
-        style={{ 
-          scrollbarGutter: 'stable',
-          scrollbarWidth: 'thin'
-        }}
-      >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      <ScrollBar 
-        orientation="vertical" 
-        forceMount={type === "always"}
-      />
-      {(orientation === "horizontal" || orientation === "both") && (
-        <ScrollBar 
-          orientation="horizontal" 
-          forceMount={type === "always"}
-        />
-      )}
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  )
-})
+      {children}
+    </ScrollAreaPrimitive.Viewport>
+    
+    {(orientation === "vertical" || orientation === "both") && (
+      <ScrollBar orientation="vertical" />
+    )}
+    
+    {(orientation === "horizontal" || orientation === "both") && (
+      <ScrollBar orientation="horizontal" />
+    )}
+    
+    <ScrollAreaPrimitive.Corner />
+  </ScrollAreaPrimitive.Root>
+))
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
 const ScrollBar = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
->(({ className, orientation = "vertical", forceMount = false, ...props }, ref) => (
+>(({ className, orientation = "vertical", ...props }, ref) => (
   <ScrollAreaPrimitive.ScrollAreaScrollbar
     ref={ref}
     orientation={orientation}
     className={cn(
       "flex touch-none select-none transition-colors",
       orientation === "vertical" &&
-        "h-full w-4 border-l border-l-transparent p-[2px]",
+        "h-full w-2.5 border-l border-l-transparent p-[1px]",
       orientation === "horizontal" &&
-        "h-4 flex-col border-t border-t-transparent p-[2px]",
+        "h-2.5 flex-col border-t border-t-transparent p-[1px]",
       className
     )}
-    forceMount={forceMount}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb 
-      className={cn(
-        "relative rounded-full bg-border",
-        orientation === "vertical" ? "w-2" : "h-2"
-      )}
-    />
+    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName

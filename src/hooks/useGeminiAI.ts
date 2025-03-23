@@ -147,12 +147,21 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
   useEffect(() => {
     const generateWelcomeMessage = async () => {
       if (messages.length === 0) {
+        // Create basic welcome message
+        let welcomeContent = 'Olá! Sou a assistente virtual do DelivGo. Como posso ajudar você hoje?';
+        
+        // Personalize if we have user profile
+        if (context.userProfile?.nome) {
+          welcomeContent = `Olá ${context.userProfile.nome}! Sou a assistente virtual do DelivGo. Como posso ajudar você hoje?`;
+        }
+        
         const welcomeMessage: Message = {
           id: Date.now().toString(),
           role: 'assistant',
-          content: 'Olá! Sou a assistente virtual do DelivGo. Como posso ajudar você hoje?',
+          content: welcomeContent,
           timestamp: new Date()
         };
+        
         setMessages([welcomeMessage]);
         
         // Generate suggestions based on context

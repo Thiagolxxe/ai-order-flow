@@ -30,6 +30,15 @@ export const generateGeminiResponse = async (
 
     // Add context information if available
     if (context) {
+      // Add user profile information for personalization
+      if (context.userProfile) {
+        // Use first name for personalization if available
+        if (context.userProfile.nome) {
+          systemPrompt += `\nVocê está conversando com ${context.userProfile.nomeCompleto || context.userProfile.nome}.`;
+          systemPrompt += `\nUtilize o nome do usuário na conversa para torná-la mais pessoal.`;
+        }
+      }
+      
       if (context.restaurantName) {
         systemPrompt += `\nO usuário está atualmente visualizando ${context.restaurantName}.`;
       }
@@ -42,6 +51,10 @@ export const generateGeminiResponse = async (
       if (context.previousOrders && context.previousOrders.length > 0) {
         systemPrompt += `\nPedidos anteriores: ${context.previousOrders.map(order => 
           `Pedido #${order.numero_pedido} de ${order.restaurante_nome}`).join(', ')}`;
+      }
+
+      if (context.frequentItems && context.frequentItems.length > 0) {
+        systemPrompt += `\nItens frequentemente pedidos: ${context.frequentItems.join(', ')}`;
       }
 
       if (context.userLocation) {

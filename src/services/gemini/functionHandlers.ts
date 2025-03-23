@@ -1,177 +1,271 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FunctionResponse, OrderContext } from './types';
+import { FunctionCall, FunctionResponse, OrderContext } from './types';
 
 /**
- * Handle function calls by executing the appropriate function
+ * Handle function calls from Gemini AI
  */
-export const handleFunctionCall = async (functionCall: FunctionResponse, context?: OrderContext): Promise<string> => {
-  if (!functionCall) return '';
+export const handleFunctionCall = async (
+  functionCall: FunctionCall,
+  context?: OrderContext
+): Promise<FunctionResponse> => {
+  console.log(`Handling function call: ${functionCall.name}`);
   
   try {
     switch (functionCall.name) {
-      case 'buscar_restaurantes':
-        return await buscarRestaurantes(
-          functionCall.arguments.culinaria, 
-          functionCall.arguments.localizacao, 
-          functionCall.arguments.preco
+      case 'get_order_status':
+        return await getOrderStatus(functionCall.arguments.order_number, context);
+      
+      case 'search_restaurants':
+        return await searchRestaurants(
+          functionCall.arguments.cuisine,
+          functionCall.arguments.location,
+          functionCall.arguments.name
         );
       
-      case 'verificar_status_pedido':
-        return await verificarStatusPedido(functionCall.arguments.numero_pedido);
-      
-      case 'obter_previsao_tempo':
-        return await obterPrevisaoTempo(
-          functionCall.arguments.cidade || (context?.userLocation?.cidade || '')
-        );
+      case 'reorder_previous_meal':
+        return await reorderPreviousMeal(functionCall.arguments.order_number, context);
       
       default:
-        return `Função não implementada: ${functionCall.name}`;
+        return {
+          result: `Função não implementada: ${functionCall.name}`
+        };
     }
   } catch (error) {
-    console.error(`Error executing function ${functionCall.name}:`, error);
-    return `Erro ao executar a função ${functionCall.name}. Por favor, tente novamente.`;
+    console.error(`Error handling function call ${functionCall.name}:`, error);
+    return {
+      result: `Erro ao processar função ${functionCall.name}: ${error.message || 'Erro desconhecido'}`
+    };
   }
 };
 
 /**
- * Implementation of function to search restaurants
+ * Get the status of a specific order
  */
-export const buscarRestaurantes = async (
-  culinaria: string, 
-  localizacao?: string, 
-  preco?: string
-): Promise<string> => {
+const getOrderStatus = async (
+  orderNumber: string,
+  context?: OrderContext
+): Promise<FunctionResponse> => {
   try {
-    // Query restaurants from Supabase based on parameters
-    let query = supabase
-      .from('restaurantes')
-      .select('*');
-    
-    if (culinaria) {
-      query = query.ilike('tipo_cozinha', `%${culinaria}%`);
+    // Validate order number
+    if (!orderNumber) {
+      return { result: 'Número do pedido não fornecido' };
     }
     
-    if (localizacao) {
-      query = query.ilike('bairro', `%${localizacao}%`);
-    }
-    
-    if (preco) {
-      let faixaPreco = '';
-      switch (preco) {
-        case 'barato': faixaPreco = '$'; break;
-        case 'médio': faixaPreco = '$$'; break;
-        case 'caro': faixaPreco = '$$$'; break;
-      }
-      
-      if (faixaPreco) {
-        query = query.eq('faixa_preco', faixaPreco);
-      }
-    }
-    
-    const { data, error } = await query.limit(5);
-    
-    if (error) throw error;
-    
-    if (!data || data.length === 0) {
-      return `Não encontrei restaurantes com esses critérios. Tente outras opções.`;
-    }
-    
-    return `Encontrei ${data.length} restaurantes:\n` + 
-      data.map(r => `- ${r.nome}: ${r.tipo_cozinha} (${r.faixa_preco})`).join('\n');
-    
-  } catch (error) {
-    console.error('Error in buscarRestaurantes:', error);
-    return 'Erro ao buscar restaurantes. Por favor, tente novamente.';
-  }
-};
-
-/**
- * Implementation of function to check order status
- */
-export const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
-  try {
+    // Query the database for the order
     const { data, error } = await supabase
       .from('pedidos')
       .select(`
         id,
-        numero_pedido,
         status,
-        restaurante_id,
-        restaurantes (nome),
-        entregador_id,
+        numero_pedido,
         criado_em,
-        tempo_estimado_minutos
+        restaurante_id,
+        restaurantes (
+          nome
+        )
       `)
-      .eq('numero_pedido', numeroPedido)
-      .maybeSingle();
+      .eq('numero_pedido', orderNumber)
+      .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching order status:', error);
+      return { result: `Pedido #${orderNumber} não encontrado` };
+    }
     
     if (!data) {
-      return `Não encontrei nenhum pedido com o número ${numeroPedido}.`;
+      return { result: `Pedido #${orderNumber} não encontrado` };
     }
     
-    // Format the status in Portuguese
-    let statusPt = 'Desconhecido';
-    switch (data.status) {
-      case 'pending': statusPt = 'Pendente'; break;
-      case 'preparing': statusPt = 'Em preparação'; break;
-      case 'ready': statusPt = 'Pronto para entrega'; break;
-      case 'delivering': statusPt = 'Em entrega'; break;
-      case 'delivered': statusPt = 'Entregue'; break;
-      case 'cancelled': statusPt = 'Cancelado'; break;
-    }
+    // Calculate estimated time based on order creation time
+    const orderDate = new Date(data.criado_em);
+    const now = new Date();
+    const minutesPassed = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60));
     
-    const restauranteName = data.restaurantes?.nome || 'Restaurante';
-    const tempoEstimado = data.tempo_estimado_minutos ? String(data.tempo_estimado_minutos) : 'Não informado';
+    // For demonstration, assume orders take 30-45 minutes
+    let estimatedTime = 45 - minutesPassed;
+    if (estimatedTime < 0) estimatedTime = 5; // If past expected time, say "5 more minutes"
     
-    return `Pedido #${data.numero_pedido} do ${restauranteName}:\n` +
-      `Status: ${statusPt}\n` +
-      `Feito em: ${new Date(data.criado_em).toLocaleString('pt-BR')}\n` +
-      `Tempo estimado: ${tempoEstimado} minutos`;
-    
+    // Format the response
+    return {
+      result: `Pedido #${data.numero_pedido} - ${formatOrderStatus(data.status)}`,
+      orderNumber: data.numero_pedido,
+      status: data.status,
+      restaurant: data.restaurantes?.nome || 'Restaurante',
+      estimatedTimeMinutes: estimatedTime,
+      orderId: data.id,
+      orderDate: data.criado_em
+    };
   } catch (error) {
-    console.error('Error in verificarStatusPedido:', error);
-    return 'Erro ao verificar o status do pedido. Por favor, tente novamente.';
+    console.error('Error in get order status function:', error);
+    return { result: 'Erro ao buscar status do pedido' };
   }
 };
 
 /**
- * Implementation of function to get weather forecast
+ * Search for restaurants based on criteria
  */
-export const obterPrevisaoTempo = async (cidade?: string): Promise<string> => {
+const searchRestaurants = async (
+  cuisine?: string,
+  location?: string,
+  name?: string
+): Promise<FunctionResponse> => {
   try {
-    if (!cidade) {
-      return 'Não foi possível identificar sua localização. Por favor, informe a cidade para obter a previsão do tempo.';
+    if (!cuisine && !location && !name) {
+      return { result: 'Nenhum critério de busca fornecido' };
     }
-
-    // Normalmente, faríamos uma chamada a uma API real de previsão do tempo aqui
-    // Para fins de demonstração, vamos simular uma resposta
-    const previsoes = [
-      'ensolarado', 'parcialmente nublado', 'nublado', 
-      'chuvoso', 'tempestade', 'neve', 'ventoso'
-    ];
-    const temperaturas = [
-      {min: 15, max: 25},
-      {min: 18, max: 28},
-      {min: 10, max: 20},
-      {min: 8, max: 15},
-      {min: 20, max: 32}
-    ];
     
-    // Seleciona uma previsão aleatória para simular
-    const previsao = previsoes[Math.floor(Math.random() * previsoes.length)];
-    const temperatura = temperaturas[Math.floor(Math.random() * temperaturas.length)];
+    // Start building the query
+    let query = supabase
+      .from('restaurantes')
+      .select(`
+        id,
+        nome,
+        tipo_cozinha,
+        cidade,
+        taxa_entrega,
+        valor_pedido_minimo
+      `)
+      .eq('ativo', true);
     
-    return `Previsão do tempo para ${cidade}:\n` +
-      `Clima: ${previsao}\n` +
-      `Temperatura: ${temperatura.min}°C a ${temperatura.max}°C\n` +
-      `Umidade: ${Math.floor(Math.random() * 50) + 30}%\n` +
-      `Atualizado em: ${new Date().toLocaleString('pt-BR')}`;
+    // Apply filters if provided
+    if (cuisine) {
+      query = query.ilike('tipo_cozinha', `%${cuisine}%`);
+    }
     
+    if (location) {
+      query = query.or(`cidade.ilike.%${location}%,endereco.ilike.%${location}%`);
+    }
+    
+    if (name) {
+      query = query.ilike('nome', `%${name}%`);
+    }
+    
+    // Execute the query
+    const { data, error } = await query.limit(5);
+    
+    if (error) {
+      console.error('Error searching restaurants:', error);
+      return { result: 'Erro ao buscar restaurantes' };
+    }
+    
+    if (!data || data.length === 0) {
+      return { 
+        result: 'Nenhum restaurante encontrado com os critérios fornecidos',
+        restaurants: []
+      };
+    }
+    
+    // Format the response
+    const restaurants = data.map(restaurant => ({
+      id: restaurant.id,
+      name: restaurant.nome,
+      cuisine: restaurant.tipo_cozinha,
+      city: restaurant.cidade,
+      deliveryFee: restaurant.taxa_entrega,
+      minimumOrder: restaurant.valor_pedido_minimo
+    }));
+    
+    return {
+      result: `Encontrados ${restaurants.length} restaurantes`,
+      restaurants
+    };
   } catch (error) {
-    console.error('Error in obterPrevisaoTempo:', error);
-    return 'Erro ao obter a previsão do tempo. Por favor, tente novamente.';
+    console.error('Error in search restaurants function:', error);
+    return { result: 'Erro ao buscar restaurantes' };
+  }
+};
+
+/**
+ * Prepare to reorder items from a previous order
+ */
+const reorderPreviousMeal = async (
+  orderNumber: string,
+  context?: OrderContext
+): Promise<FunctionResponse> => {
+  try {
+    if (!orderNumber) {
+      return { result: 'Número do pedido não fornecido' };
+    }
+    
+    // Query the database for the order and its items
+    const { data: order, error: orderError } = await supabase
+      .from('pedidos')
+      .select(`
+        id,
+        restaurante_id,
+        restaurantes (
+          nome,
+          id
+        )
+      `)
+      .eq('numero_pedido', orderNumber)
+      .single();
+    
+    if (orderError || !order) {
+      console.error('Error fetching order:', orderError);
+      return { result: `Pedido #${orderNumber} não encontrado` };
+    }
+    
+    // Get the items in this order
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('itens_pedido')
+      .select(`
+        id,
+        quantidade,
+        nome_item_cardapio,
+        preco_unitario
+      `)
+      .eq('pedido_id', order.id);
+    
+    if (itemsError) {
+      console.error('Error fetching order items:', itemsError);
+      return { result: 'Erro ao buscar itens do pedido' };
+    }
+    
+    if (!orderItems || orderItems.length === 0) {
+      return { result: 'Este pedido não possui itens' };
+    }
+    
+    // Format the items
+    const items = orderItems.map(item => ({
+      name: item.nome_item_cardapio,
+      quantity: item.quantidade,
+      price: item.preco_unitario
+    }));
+    
+    return {
+      result: `Pedido #${orderNumber} do restaurante ${order.restaurantes.nome} contém ${items.length} itens`,
+      restaurantId: order.restaurante_id,
+      restaurantName: order.restaurantes.nome,
+      items
+    };
+  } catch (error) {
+    console.error('Error in reorder previous meal function:', error);
+    return { result: 'Erro ao buscar detalhes do pedido' };
+  }
+};
+
+/**
+ * Format order status for display
+ */
+const formatOrderStatus = (status: string): string => {
+  switch (status) {
+    case 'pendente':
+      return 'Pedido pendente';
+    case 'confirmado':
+      return 'Pedido confirmado pelo restaurante';
+    case 'preparando':
+      return 'Pedido em preparação';
+    case 'pronto':
+      return 'Pedido pronto para entrega';
+    case 'em_entrega':
+      return 'Pedido em rota de entrega';
+    case 'entregue':
+      return 'Pedido entregado';
+    case 'cancelado':
+      return 'Pedido cancelado';
+    default:
+      return `Status: ${status}`;
   }
 };
