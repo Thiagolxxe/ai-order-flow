@@ -19,16 +19,37 @@ export type OrderContext = {
 };
 
 // Types for chat messages
-type ChatMessage = {
+export type ChatMessage = {
   role: 'user' | 'model';
   parts: { text: string }[];
 };
+
+// Types for function calling
+export interface FunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, {
+      type: string;
+      description: string;
+      enum?: string[];
+    }>;
+    required?: string[];
+  };
+}
+
+export interface FunctionResponse {
+  name: string;
+  arguments: Record<string, any>;
+}
 
 // Types for responses
 export interface GeminiResponse {
   responseText: string;
   suggestions?: string[];
   autoFillData?: Record<string, any>;
+  functionCall?: FunctionResponse;
 }
 
 /**
@@ -78,6 +99,47 @@ export const generateGeminiResponse = async (
       },
     ];
 
+    // Define function declarations
+    const functionDeclarations: FunctionDeclaration[] = [
+      {
+        name: "buscar_restaurantes",
+        description: "Busca restaurantes próximos com base em critérios como tipo de culinária, localização, etc.",
+        parameters: {
+          type: "object",
+          properties: {
+            culinaria: {
+              type: "string",
+              description: "Tipo de culinária (ex: italiana, japonesa, brasileira)"
+            },
+            localizacao: {
+              type: "string",
+              description: "Localização para buscar (ex: centro, zona sul)"
+            },
+            preco: {
+              type: "string",
+              description: "Faixa de preço (barato, médio, caro)",
+              enum: ["barato", "médio", "caro"]
+            }
+          },
+          required: ["culinaria"]
+        }
+      },
+      {
+        name: "verificar_status_pedido",
+        description: "Verifica o status atual de um pedido",
+        parameters: {
+          type: "object",
+          properties: {
+            numero_pedido: {
+              type: "string",
+              description: "Número do pedido para verificar"
+            }
+          },
+          required: ["numero_pedido"]
+        }
+      }
+    ];
+
     // Initialize chat history
     let history: ChatMessage[] = [];
     
@@ -118,11 +180,28 @@ export const generateGeminiResponse = async (
         topP: 0.95,
         maxOutputTokens: 1024,
       },
+      tools: [{
+        functionDeclarations
+      }]
     });
 
     // Generate a response using the current message
     const result = await chat.sendMessage(userInput);
     const responseText = result.response.text();
+    
+    // Check for function calls
+    let functionCall: FunctionResponse | undefined;
+    const functionCalling = result.response.functionCalls();
+    
+    if (functionCalling && functionCalling.length > 0) {
+      const call = functionCalling[0];
+      functionCall = {
+        name: call.name,
+        arguments: JSON.parse(call.args)
+      };
+      
+      console.log('Function call detected:', functionCall);
+    }
     
     // Parse potential suggestions or auto-fill data from the response
     const suggestions = extractSuggestions(responseText);
@@ -131,7 +210,8 @@ export const generateGeminiResponse = async (
     return {
       responseText,
       suggestions,
-      autoFillData
+      autoFillData,
+      functionCall
     };
   } catch (error) {
     console.error('Error generating Gemini response:', error);
@@ -167,6 +247,135 @@ const extractAutoFillData = (text: string): Record<string, any> | undefined => {
     }
   }
   return undefined;
+};
+
+/**
+ * Handle function calls by executing the appropriate function
+ */
+export const handleFunctionCall = async (functionCall: FunctionResponse): Promise<string> => {
+  if (!functionCall) return '';
+  
+  try {
+    switch (functionCall.name) {
+      case 'buscar_restaurantes':
+        return await buscarRestaurantes(
+          functionCall.arguments.culinaria, 
+          functionCall.arguments.localizacao, 
+          functionCall.arguments.preco
+        );
+      
+      case 'verificar_status_pedido':
+        return await verificarStatusPedido(functionCall.arguments.numero_pedido);
+      
+      default:
+        return `Função não implementada: ${functionCall.name}`;
+    }
+  } catch (error) {
+    console.error(`Error executing function ${functionCall.name}:`, error);
+    return `Erro ao executar a função ${functionCall.name}. Por favor, tente novamente.`;
+  }
+};
+
+/**
+ * Implementation of function to search restaurants
+ */
+const buscarRestaurantes = async (
+  culinaria: string, 
+  localizacao?: string, 
+  preco?: string
+): Promise<string> => {
+  try {
+    // Query restaurants from Supabase based on parameters
+    let query = supabase
+      .from('restaurantes')
+      .select('*');
+    
+    if (culinaria) {
+      query = query.ilike('tipo_cozinha', `%${culinaria}%`);
+    }
+    
+    if (localizacao) {
+      query = query.ilike('bairro', `%${localizacao}%`);
+    }
+    
+    if (preco) {
+      let faixaPreco = '';
+      switch (preco) {
+        case 'barato': faixaPreco = '$'; break;
+        case 'médio': faixaPreco = '$$'; break;
+        case 'caro': faixaPreco = '$$$'; break;
+      }
+      
+      if (faixaPreco) {
+        query = query.eq('faixa_preco', faixaPreco);
+      }
+    }
+    
+    const { data, error } = await query.limit(5);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      return `Não encontrei restaurantes com esses critérios. Tente outras opções.`;
+    }
+    
+    return `Encontrei ${data.length} restaurantes:\n` + 
+      data.map(r => `- ${r.nome}: ${r.tipo_cozinha} (${r.faixa_preco})`).join('\n');
+    
+  } catch (error) {
+    console.error('Error in buscarRestaurantes:', error);
+    return 'Erro ao buscar restaurantes. Por favor, tente novamente.';
+  }
+};
+
+/**
+ * Implementation of function to check order status
+ */
+const verificarStatusPedido = async (numeroPedido: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select(`
+        id,
+        numero_pedido,
+        status,
+        restaurante_id,
+        restaurantes (nome),
+        entregador_id,
+        criado_em,
+        tempo_estimado
+      `)
+      .eq('numero_pedido', numeroPedido)
+      .single();
+    
+    if (error) throw error;
+    
+    if (!data) {
+      return `Não encontrei nenhum pedido com o número ${numeroPedido}.`;
+    }
+    
+    // Format the status in Portuguese
+    let statusPt = 'Desconhecido';
+    switch (data.status) {
+      case 'pending': statusPt = 'Pendente'; break;
+      case 'preparing': statusPt = 'Em preparação'; break;
+      case 'ready': statusPt = 'Pronto para entrega'; break;
+      case 'delivering': statusPt = 'Em entrega'; break;
+      case 'delivered': statusPt = 'Entregue'; break;
+      case 'cancelled': statusPt = 'Cancelado'; break;
+    }
+    
+    const restauranteName = data.restaurantes?.nome || 'Restaurante';
+    
+    return `Pedido #${data.numero_pedido} do ${restauranteName}:\n` +
+      `Status: ${statusPt}\n` +
+      `Feito em: ${new Date(data.criado_em).toLocaleString('pt-BR')}\n` +
+      `Tempo estimado: ${data.tempo_estimado || 'Não informado'} minutos`;
+    
+  } catch (error) {
+    console.error('Error in verificarStatusPedido:', error);
+    return 'Erro ao verificar o status do pedido. Por favor, tente novamente.';
+  }
 };
 
 /**

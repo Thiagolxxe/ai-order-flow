@@ -4,7 +4,10 @@ import { useUser } from '@/context/UserContext';
 import { 
   generateGeminiResponse, 
   fetchUserContext, 
-  OrderContext
+  OrderContext,
+  ChatMessage,
+  handleFunctionCall,
+  FunctionResponse
 } from '@/services/geminiService';
 
 export interface Message {
@@ -63,7 +66,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
     
     try {
       // Convert previous messages to the format expected by Gemini
-      const previousMessages = messages.map(msg => ({
+      const previousMessages: ChatMessage[] = messages.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }]
       }));
@@ -71,11 +74,47 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
       // Generate response from Gemini using chat history
       const response = await generateGeminiResponse(messageContent, context, previousMessages);
       
+      // Check if there is a function call that needs to be handled
+      let finalResponseText = response.responseText;
+      
+      if (response.functionCall) {
+        // Show a message that a function is being executed
+        const processingMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Estou processando sua solicitação sobre ${response.functionCall.name.replace('_', ' ')}...`,
+          timestamp: new Date()
+        };
+        
+        setMessages(prevMessages => [...prevMessages, processingMessage]);
+        
+        // Handle the function call to get the result
+        const functionResult = await handleFunctionCall(response.functionCall);
+        
+        // Send the function result back to Gemini for final response
+        const followUpResponse = await generateGeminiResponse(
+          `Por favor, apresente estes resultados para o usuário de forma amigável: ${functionResult}`,
+          context,
+          [...previousMessages, {
+            role: 'user',
+            parts: [{ text: messageContent }]
+          }, {
+            role: 'model',
+            parts: [{ text: response.responseText }]
+          }]
+        );
+        
+        finalResponseText = followUpResponse.responseText;
+        
+        // Remove the processing message
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== processingMessage.id));
+      }
+      
       // Add AI response to messages
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: (Date.now() + 2).toString(),
         role: 'assistant',
-        content: response.responseText,
+        content: finalResponseText,
         timestamp: new Date()
       };
       
@@ -133,7 +172,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
     };
     
     generateWelcomeMessage();
-  }, [context, user?.id]);
+  }, [context, user?.id, messages.length]);
 
   return {
     messages,
