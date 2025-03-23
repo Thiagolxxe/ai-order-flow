@@ -1,10 +1,12 @@
-
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 
-// Google Gemini API key
+// Google Gemini API key - Note: In production, this should be stored in environment variables
 const GEMINI_API_KEY = 'AIzaSyBDh7U_XkWQgPO8Mhu8y60T2eyRwCmJy5c';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+// Initialize the Gemini API client
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Context types
 export type OrderContext = {
@@ -53,43 +55,45 @@ export const generateGeminiResponse = async (
       }
     }
 
-    // Make request to Gemini API
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+    // Get the generative model (Gemini Pro)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Configure safety settings
+    const safetySettings = [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: systemPrompt }]
-          },
-          {
-            role: 'model',
-            parts: [{ text: 'I understand. I\'ll help users with their food delivery needs as a DelivGo assistant.' }]
-          },
-          {
-            role: 'user',
-            parts: [{ text: userInput }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024
-        }
-      })
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+    ];
+
+    // Create a chat session
+    const chat = model.startChat({
+      safetySettings,
+      history: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "I understand. I'll help users with their food delivery needs as a DelivGo assistant." }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      },
     });
 
-    const data = await response.json();
-    
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error('No response generated');
-    }
-
-    const responseText = data.candidates[0].content.parts[0].text;
+    // Generate a response
+    const result = await chat.sendMessage(userInput);
+    const responseText = result.response.text();
     
     // Parse potential suggestions or auto-fill data from the response
     const suggestions = extractSuggestions(responseText);
