@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { generateGeminiResponse } from '@/services/geminiService';
+import { generateGeminiResponse } from '@/services/gemini';
 import { MapPin, Sparkles } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 

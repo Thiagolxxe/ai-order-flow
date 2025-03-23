@@ -15,35 +15,34 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   // Scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current && viewportRef.current) {
-      // Use requestAnimationFrame para garantir que o DOM foi atualizado
+      // Use requestAnimationFrame to ensure DOM updates are complete
       requestAnimationFrame(() => {
-        // Definir altura máxima para garantir que o scroll funcione corretamente
+        // Force scroll to the end
         if (viewportRef.current) {
-          // Forçar o scroll para o final, mesmo que o conteúdo ainda esteja renderizando
           viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
           
-          console.log('Forçando scroll para o final', {
+          console.log('Forcing scroll to the end', {
             scrollHeight: viewportRef.current.scrollHeight,
             clientHeight: viewportRef.current.clientHeight,
             scrollTop: viewportRef.current.scrollTop
           });
         }
         
-        // Usar scrollIntoView como segunda opção
+        // Use scrollIntoView as a backup
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
       });
     }
   }, [messages, isLoading]);
   
-  // Renderizar conteúdo da mensagem com formatação
+  // Render message content with formatting
   const renderMessageContent = (content: string) => {
-    // Formatação básica markdown
+    // Basic markdown formatting
     return content
       .split('\n')
       .map((line, i) => {
-        // Texto em negrito
+        // Bold text
         line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Texto em itálico
+        // Italic text
         line = line.replace(/\*(.*?)\*/g, '<em>$1</em>');
         
         return line ? <p key={i} dangerouslySetInnerHTML={{ __html: line }} /> : <br key={i} />;
@@ -82,7 +81,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} className="h-1" />
+        <div ref={messagesEndRef} className="h-4" />
       </div>
     </ScrollArea>
   );

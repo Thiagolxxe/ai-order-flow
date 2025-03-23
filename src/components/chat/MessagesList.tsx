@@ -23,12 +23,12 @@ const MessagesList = ({ messages }: MessagesListProps) => {
       // Use requestAnimationFrame to ensure DOM updates have completed
       requestAnimationFrame(() => {
         if (viewportRef.current) {
-          // Definir directamente o scrollTop para forçar o scroll
+          // Set scrollTop directly to force the scroll
           viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
           console.log('Set viewport scrollTop to:', viewportRef.current.scrollHeight);
         }
         
-        // Como backup, use scrollIntoView com comportamento "auto" em vez de "smooth"
+        // As a backup, use scrollIntoView with auto behavior
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
       });
     } else {
@@ -52,7 +52,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
             isUser={message.sender === 'user'} 
           />
         ))}
-        <div ref={messagesEndRef} style={{ height: '24px' }} />
+        <div ref={messagesEndRef} style={{ height: '32px' }} />
       </div>
     </ScrollArea>
   );

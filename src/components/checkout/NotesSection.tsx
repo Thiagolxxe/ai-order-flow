@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
-import { generateGeminiResponse } from '@/services/geminiService';
+import { generateGeminiResponse } from '@/services/gemini';
 
 interface NotesSectionProps {
   notes: string;

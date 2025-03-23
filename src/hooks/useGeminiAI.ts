@@ -8,7 +8,7 @@ import {
   ChatMessage,
   handleFunctionCall,
   FunctionResponse
-} from '@/services/geminiService';
+} from '@/services/gemini';
 
 export interface Message {
   id: string;
