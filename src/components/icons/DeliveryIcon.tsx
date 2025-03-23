@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const DeliveryIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
@@ -5,8 +6,9 @@ export const DeliveryIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 1024 768" 
-      width="24"
-      height="24"
+      width="100%"
+      height="100%"
+      preserveAspectRatio="xMidYMid meet"
       {...props}
     >
       <g id="logo-group">

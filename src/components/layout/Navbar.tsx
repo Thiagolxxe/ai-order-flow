@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -110,13 +109,13 @@ const Navbar = () => {
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Logo - Removed the text span since the SVG already contains "DeliverAI" */}
+        {/* Logo com tamanho ajustado */}
         <Link 
           to="/" 
           className="flex items-center transition-all"
         >
-          <div className="w-32 h-8 text-primary">
-            <AppLogo />
+          <div className="h-10 sm:h-8 w-auto">
+            <AppLogo className="h-full w-auto" />
           </div>
         </Link>
         

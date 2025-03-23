@@ -18,8 +18,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link to="/" className="flex items-center">
-              <div className="w-32 h-8 text-primary">
-                <AppLogo />
+              <div className="h-8 w-auto max-w-[180px]">
+                <AppLogo className="h-full w-auto" />
               </div>
             </Link>
             <p className="text-sm text-foreground/70 max-w-xs">
