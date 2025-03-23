@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon, Sparkles } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCheckoutData } from '@/hooks/useCheckoutData';
 import { useOrderProcessing } from '@/hooks/useOrderProcessing';
 import { PaymentMethod } from '@/components/checkout/types';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Components
 import DeliverySection from '@/components/checkout/DeliverySection';
@@ -16,6 +17,7 @@ import NotesSection from '@/components/checkout/NotesSection';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import CheckoutSkeleton from '@/components/checkout/CheckoutSkeleton';
 import EmptyCheckout from '@/components/checkout/EmptyCheckout';
+import AIAddressHelper from '@/components/checkout/AIAddressHelper';
 
 const Checkout = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,8 +38,14 @@ const Checkout = () => {
   
   const isMobile = useIsMobile();
   
-  // Processamento do pedido
-  const { isProcessing, processOrder } = useOrderProcessing({
+  // Processamento do pedido com IA
+  const { 
+    isProcessing, 
+    processOrder, 
+    requestAISuggestions,
+    aiSuggestions,
+    aiMessage
+  } = useOrderProcessing({
     checkoutData,
     selectedAddress,
     addresses,
@@ -46,6 +54,23 @@ const Checkout = () => {
     addressData: { street, complement, neighborhood, city, state, zipcode },
     isAuthenticated
   });
+
+  // Solicitar sugestões de IA quando os dados do checkout estiverem carregados
+  useEffect(() => {
+    if (checkoutData && !aiMessage) {
+      requestAISuggestions();
+    }
+  }, [checkoutData]);
+
+  // Função para preencher o formulário de endereço
+  const handleAddressSelect = (address: any) => {
+    setStreet(address.street);
+    setComplement(address.complement);
+    setNeighborhood(address.neighborhood);
+    setCity(address.city);
+    setState(address.state);
+    setZipcode(address.zipcode);
+  };
 
   if (loading) {
     return <CheckoutSkeleton />;
@@ -66,6 +91,17 @@ const Checkout = () => {
         </Button>
         <h1 className="text-2xl font-semibold">Finalizar Pedido</h1>
       </div>
+      
+      {/* AI Message */}
+      {aiMessage && (
+        <Alert className="mb-6 border-primary/20 bg-primary/5">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary">Assistente DelivGo</AlertTitle>
+          <AlertDescription>
+            {aiMessage}
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Conteúdo principal */}
@@ -90,6 +126,11 @@ const Checkout = () => {
             setZipcode={setZipcode}
           />
           
+          {/* AI Address Helper */}
+          {!isAuthenticated && (
+            <AIAddressHelper onAddressSelect={handleAddressSelect} />
+          )}
+          
           {/* Forma de pagamento */}
           <PaymentSection 
             selectedPayment={selectedPayment}
@@ -100,6 +141,7 @@ const Checkout = () => {
           <NotesSection 
             notes={notes}
             setNotes={setNotes}
+            orderItems={checkoutData.items}
           />
         </div>
         
@@ -110,6 +152,24 @@ const Checkout = () => {
             isProcessing={isProcessing}
             onConfirmOrder={processOrder}
           />
+          
+          {/* AI Suggestions */}
+          {aiSuggestions.length > 0 && (
+            <div className="mt-4 bg-muted p-4 rounded-md">
+              <div className="flex items-center mb-2">
+                <Sparkles className="h-4 w-4 text-primary mr-2" />
+                <h3 className="font-medium text-sm">Sugestões para seu pedido:</h3>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {aiSuggestions.map((suggestion, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-primary mr-2">•</span>
+                    <span>{suggestion}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/context/UserContext';
 import { CheckoutData, PaymentMethod } from '@/components/checkout/types';
+import { generateGeminiResponse } from '@/services/geminiService';
 
 interface AddressData {
   street: string;
@@ -35,9 +36,55 @@ export const useOrderProcessing = ({
   isAuthenticated
 }: OrderProcessingProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiMessage, setAiMessage] = useState<string>('');
   const navigate = useNavigate();
   const { user } = useUser();
 
+  // Request AI suggestions based on order data
+  const requestAISuggestions = async () => {
+    if (!checkoutData) return;
+    
+    try {
+      // Create context object for AI
+      const context = {
+        restaurantId: checkoutData.restaurantId,
+        cartItems: checkoutData.items || [],
+      };
+      
+      const prompt = `
+        Analise este pedido e forneça sugestões úteis.
+        Itens do pedido: ${checkoutData.items?.map(item => `${item.quantity}x ${item.name} (R$${item.price})`).join(', ')}
+        Subtotal: R$${checkoutData.subtotal}
+        Taxa de entrega: R$${checkoutData.deliveryFee}
+        Total: R$${checkoutData.total}
+        
+        Por favor, forneça 3 sugestões úteis no formato:
+        SUGGESTIONS: sugestão 1, sugestão 2, sugestão 3
+        
+        E uma mensagem personalizada para o cliente sobre o pedido.
+      `;
+      
+      const response = await generateGeminiResponse(prompt, context);
+      
+      if (response.suggestions) {
+        setAiSuggestions(response.suggestions);
+      }
+      
+      // Extract message part (everything before SUGGESTIONS if present)
+      let message = response.responseText;
+      const suggestionIndex = message.indexOf('SUGGESTIONS:');
+      if (suggestionIndex > -1) {
+        message = message.substring(0, suggestionIndex).trim();
+      }
+      
+      setAiMessage(message);
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+    }
+  };
+
+  // Process order
   const processOrder = async () => {
     if (!checkoutData) {
       toast.error("Dados do pedido não encontrados");
@@ -151,6 +198,9 @@ export const useOrderProcessing = ({
 
   return {
     isProcessing,
-    processOrder
+    processOrder,
+    requestAISuggestions,
+    aiSuggestions,
+    aiMessage
   };
 };

@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import ChatAssistant from "@/components/ui/ChatAssistant";
+import GeminiChatAssistant from "@/components/ui/GeminiChatAssistant";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -83,7 +83,7 @@ const App = () => (
             </main>
             <Footer />
           </div>
-          <ChatAssistant />
+          <GeminiChatAssistant />
         </BrowserRouter>
       </TooltipProvider>
     </UserProvider>
