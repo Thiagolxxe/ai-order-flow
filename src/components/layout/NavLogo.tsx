@@ -10,7 +10,7 @@ const NavLogo = () => {
       className="flex items-center transition-all"
     >
       <div className="h-20 sm:h-16 w-auto">
-        <LogoIcon className="h-full w-auto" width={400} height={400} />
+        <LogoIcon className="h-full w-auto" width={4000} height={4000} />
       </div>
     </Link>
   );
