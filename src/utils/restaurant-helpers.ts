@@ -30,7 +30,47 @@ export const calculateAverageRating = (ratings: { nota: number }[] | null): numb
  * Mock restaurant data for development and testing
  */
 export const getMockRestaurantData = (restaurantId: string): RestaurantDetailsData => {
-  if (restaurantId === TEST_UUIDS.RESTAURANT_1) {
+  // Handle numeric IDs mapped to specific test UUIDs
+  if (restaurantId === '00000000-0000-0000-0000-000000000001') {
+    return {
+      id: restaurantId,
+      name: 'Pizzaria Bella Napoli',
+      address: 'Rua Italia, 789, São Paulo - SP',
+      cuisine: 'Italiana',
+      rating: 4.5,
+      imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000',
+      deliveryPosition: {
+        lat: -23.5643,
+        lng: -46.6527
+      }
+    };
+  } else if (restaurantId === '00000000-0000-0000-0000-000000000002') {
+    return {
+      id: restaurantId,
+      name: 'Sabor Oriental',
+      address: 'Av. Liberdade, 1234, São Paulo - SP',
+      cuisine: 'Japonesa',
+      rating: 4.7,
+      imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000',
+      deliveryPosition: {
+        lat: -23.5643,
+        lng: -46.6527
+      }
+    };
+  } else if (restaurantId === '00000000-0000-0000-0000-000000000003') {
+    return {
+      id: restaurantId,
+      name: 'Hamburgeria Ground Zero',
+      address: 'Av. Paulista, 1000, São Paulo - SP',
+      cuisine: 'Americana',
+      rating: 4.6,
+      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1000',
+      deliveryPosition: {
+        lat: -23.5614,
+        lng: -46.6550
+      }
+    };
+  } else if (restaurantId === TEST_UUIDS.RESTAURANT_1) {
     return {
       id: restaurantId,
       name: 'Pizzaria Bella Napoli',

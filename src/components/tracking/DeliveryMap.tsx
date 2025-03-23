@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 
 // Define the marker icons to fix the missing default icons issue
 const createLeafletIcon = (iconUrl: string, iconSize: [number, number] = [25, 41]) => {
-  return L.icon({
+  return new L.Icon({
     iconUrl,
     iconSize,
     iconAnchor: [iconSize[0] / 2, iconSize[1]],
@@ -84,6 +84,7 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         id={mapId}
         style={{ height: '100%', width: '100%' }} 
         className="z-10"
+        zoom={13}
         center={centerPosition}
       >
         <TileLayer
@@ -91,8 +92,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         />
         
         <Marker 
-          position={[restaurantPosition.lat, restaurantPosition.lng]} 
-          icon={restaurantIcon}
+          position={[restaurantPosition.lat, restaurantPosition.lng]}
+          icon={restaurantIcon as L.Icon}
         >
           <Popup>
             <b>{restaurantName}</b><br />Restaurante
@@ -100,8 +101,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[deliveryPosition.lat, deliveryPosition.lng]} 
-          icon={deliveryIcon}
+          position={[deliveryPosition.lat, deliveryPosition.lng]}
+          icon={deliveryIcon as L.Icon}
         >
           <Popup>
             Entregador{vehicleType ? ` (${vehicleType})` : ''}
@@ -109,8 +110,8 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
         </Marker>
         
         <Marker 
-          position={[userPosition.lat, userPosition.lng]} 
-          icon={userIcon}
+          position={[userPosition.lat, userPosition.lng]}
+          icon={userIcon as L.Icon}
         >
           <Popup>
             {deliveryAddress ? deliveryAddress : 'Seu endereço de entrega'}
