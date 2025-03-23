@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Conversation, Message } from './types';
 import { Card, CardContent } from '@/components/ui/card';
 import ChatHeader from './ChatHeader';
@@ -24,6 +24,14 @@ const ChatContent = ({
     ? conversations.find(c => c.id === activeConversation) 
     : undefined;
   
+  // Log when active conversation changes
+  useEffect(() => {
+    console.log('Active conversation changed:', activeConversation);
+    if (activeConversation && messages[activeConversation]) {
+      console.log('Messages count for active conversation:', messages[activeConversation].length);
+    }
+  }, [activeConversation, messages]);
+  
   return (
     <Card className="md:col-span-2">
       <CardContent className="p-0 h-[600px] flex flex-col" aria-describedby="chat-content-description">
@@ -34,7 +42,10 @@ const ChatContent = ({
           <>
             <ChatHeader conversation={activeChat} />
             <MessagesList messages={messages[activeConversation] || []} />
-            <MessageInput onSendMessage={onSendMessage} />
+            <MessageInput onSendMessage={(text) => {
+              console.log('Sending new message:', text);
+              onSendMessage(text);
+            }} />
           </>
         ) : (
           <EmptyChatState />
