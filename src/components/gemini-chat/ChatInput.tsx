@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, KeyboardEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
@@ -18,6 +18,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
     setInput('');
   };
 
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
+
   return (
     <div className="p-4 border-t mt-auto">
       <div className="flex space-x-2">
@@ -25,7 +31,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Digite sua mensagem..."
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          onKeyPress={handleKeyPress}
           disabled={isLoading}
         />
         <Button onClick={handleSendMessage} disabled={isLoading}>

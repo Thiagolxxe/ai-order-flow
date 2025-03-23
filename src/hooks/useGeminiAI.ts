@@ -4,8 +4,7 @@ import { useUser } from '@/context/UserContext';
 import { 
   generateGeminiResponse, 
   fetchUserContext, 
-  OrderContext, 
-  GeminiResponse 
+  OrderContext
 } from '@/services/geminiService';
 
 export interface Message {
@@ -46,7 +45,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
   }, []);
 
   // Send message to Gemini
-  const sendMessage = useCallback(async (messageContent: string) => {
+  const sendMessage = useCallback(async (messageContent: string): Promise<void> => {
     if (!messageContent.trim()) return;
     
     // Add user message to state
@@ -63,8 +62,14 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
     setIsLoading(true);
     
     try {
-      // Generate response from Gemini
-      const response = await generateGeminiResponse(messageContent, context);
+      // Convert previous messages to the format expected by Gemini
+      const previousMessages = messages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
+      
+      // Generate response from Gemini using chat history
+      const response = await generateGeminiResponse(messageContent, context, previousMessages);
       
       // Add AI response to messages
       const assistantMessage: Message = {
@@ -80,8 +85,6 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
       if (response.suggestions) {
         setSuggestions(response.suggestions);
       }
-      
-      return response;
     } catch (error) {
       console.error('Error sending message to Gemini:', error);
       
@@ -94,12 +97,10 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
       };
       
       setMessages(prevMessages => [...prevMessages, errorMessage]);
-      
-      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [context]);
+  }, [context, messages]);
 
   // Generate initial welcome message
   useEffect(() => {
@@ -115,13 +116,17 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
         
         // Generate suggestions based on context
         if (user?.id) {
-          const response = await generateGeminiResponse(
-            "Gere algumas sugestões iniciais para o usuário baseadas no contexto atual. Formato SUGGESTIONS: sugestão 1, sugestão 2, sugestão 3",
-            context
-          );
-          
-          if (response.suggestions) {
-            setSuggestions(response.suggestions);
+          try {
+            const response = await generateGeminiResponse(
+              "Gere algumas sugestões iniciais para o usuário baseadas no contexto atual. Formato SUGGESTIONS: sugestão 1, sugestão 2, sugestão 3",
+              context
+            );
+            
+            if (response.suggestions) {
+              setSuggestions(response.suggestions);
+            }
+          } catch (error) {
+            console.error('Error generating initial suggestions:', error);
           }
         }
       }

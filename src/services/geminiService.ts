@@ -1,5 +1,5 @@
+
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
-import { useUser } from '@/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 
 // Google Gemini API key - Note: In production, this should be stored in environment variables
@@ -18,6 +18,12 @@ export type OrderContext = {
   suggestions?: string[];
 };
 
+// Types for chat messages
+type ChatMessage = {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+};
+
 // Types for responses
 export interface GeminiResponse {
   responseText: string;
@@ -30,7 +36,8 @@ export interface GeminiResponse {
  */
 export const generateGeminiResponse = async (
   userInput: string,
-  context?: OrderContext
+  context?: OrderContext,
+  previousMessages?: ChatMessage[]
 ): Promise<GeminiResponse> => {
   try {
     // Create prompt with context
@@ -71,10 +78,12 @@ export const generateGeminiResponse = async (
       },
     ];
 
-    // Create a chat session
-    const chat = model.startChat({
-      safetySettings,
-      history: [
+    // Initialize chat history
+    let history: ChatMessage[] = [];
+    
+    // Add system prompt if we don't have previous messages
+    if (!previousMessages || previousMessages.length === 0) {
+      history = [
         {
           role: "user",
           parts: [{ text: systemPrompt }],
@@ -83,7 +92,26 @@ export const generateGeminiResponse = async (
           role: "model",
           parts: [{ text: "Entendido. Vou ajudar os usuários com suas necessidades de entrega de comida como assistente do DelivGo, sempre respondendo em português." }],
         },
-      ],
+      ];
+    } else {
+      // If we have a conversation history, prepend the system prompt as the first exchange
+      history = [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "Entendido. Vou ajudar os usuários com suas necessidades de entrega de comida como assistente do DelivGo, sempre respondendo em português." }],
+        },
+        ...previousMessages
+      ];
+    }
+
+    // Create a chat session with history
+    const chat = model.startChat({
+      safetySettings,
+      history,
       generationConfig: {
         temperature: 0.7,
         topK: 40,
@@ -92,7 +120,7 @@ export const generateGeminiResponse = async (
       },
     });
 
-    // Generate a response
+    // Generate a response using the current message
     const result = await chat.sendMessage(userInput);
     const responseText = result.response.text();
     
