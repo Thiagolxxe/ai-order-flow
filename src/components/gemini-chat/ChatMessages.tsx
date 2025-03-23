@@ -15,17 +15,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
   useEffect(() => {
     if (messages.length === 0 && !isLoading) return;
     
-    // Use requestAnimationFrame to ensure DOM updates are complete
-    const scrollToBottom = () => {
+    // Schedule the scroll with a larger delay to ensure rendering is complete
+    const timeoutId = setTimeout(() => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        console.log('Scrolling to bottom in GeminiChatMessages');
       }
-    };
-    
-    // Schedule the scroll with a small delay to ensure rendering is complete
-    const timeoutId = setTimeout(() => {
-      requestAnimationFrame(scrollToBottom);
-    }, 100);
+    }, 250);
     
     return () => clearTimeout(timeoutId);
   }, [messages, isLoading]);
@@ -49,6 +45,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isLoading }) => {
     <ScrollArea 
       className="flex-1 p-4 h-[calc(100%-80px)] overflow-y-auto" 
       type="always" // This ensures the scrollbar is always visible
+      style={{ scrollbarWidth: 'thin' }} // Add additional styling for the scrollbar
     >
       <div className="flex flex-col">
         {messages.map((message) => (

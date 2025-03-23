@@ -16,17 +16,13 @@ const MessagesList = ({ messages }: MessagesListProps) => {
   useEffect(() => {
     if (messages.length === 0) return;
     
-    // Use requestAnimationFrame to ensure DOM updates have completed
-    const scrollToBottom = () => {
+    // Schedule the scroll with a small delay to ensure rendering is complete
+    const timeoutId = setTimeout(() => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        console.log('Scrolling to bottom in MessagesList');
       }
-    };
-    
-    // Schedule the scroll for the next animation frame
-    const timeoutId = setTimeout(() => {
-      requestAnimationFrame(scrollToBottom);
-    }, 100);
+    }, 200);
     
     return () => clearTimeout(timeoutId);
   }, [messages]);
@@ -36,7 +32,7 @@ const MessagesList = ({ messages }: MessagesListProps) => {
       className="flex-1 py-4 px-4 h-full overflow-y-auto relative" 
       aria-label="Mensagens da conversa"
       ref={scrollAreaRef}
-      type="always" // This ensures the scrollbar is always visible
+      type="always" // Ensures the scrollbar is always visible
     >
       <div className="space-y-2">
         {messages.map(message => (
