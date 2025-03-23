@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { UserProvider } from "@/context/UserContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import GeminiChatAssistant from "@/components/ui/GeminiChatAssistant";
+import GeminiChatAssistant from "@/components/gemini-chat/GeminiChatAssistant";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
