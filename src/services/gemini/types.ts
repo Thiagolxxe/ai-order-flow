@@ -116,5 +116,49 @@ export const functionDeclarations = [
       },
       required: ['order_number']
     }
+  },
+  {
+    name: 'add_item_to_cart',
+    description: 'Add a menu item to the shopping cart',
+    parameters: {
+      type: 'object',
+      properties: {
+        item_id: {
+          type: 'string',
+          description: 'The ID of the menu item to add'
+        },
+        quantity: {
+          type: 'number',
+          description: 'The quantity of the item to add (default: 1)'
+        },
+        special_instructions: {
+          type: 'string',
+          description: 'Special instructions for the item'
+        }
+      },
+      required: ['item_id']
+    }
+  },
+  {
+    name: 'recommend_restaurants',
+    description: 'Get personalized restaurant recommendations based on user history and preferences',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'initiate_checkout',
+    description: 'Start the checkout process for a specific restaurant',
+    parameters: {
+      type: 'object',
+      properties: {
+        restaurant_id: {
+          type: 'string',
+          description: 'The ID of the restaurant to checkout with'
+        }
+      },
+      required: ['restaurant_id']
+    }
   }
 ];

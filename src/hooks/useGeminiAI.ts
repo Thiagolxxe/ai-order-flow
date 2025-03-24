@@ -1,6 +1,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
+import { useCart } from '@/hooks/useCart';
+import { toast } from 'sonner';
 import { 
   generateGeminiResponse, 
   fetchUserContext, 
@@ -23,6 +25,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
   const [context, setContext] = useState<OrderContext>(initialContext || {});
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const { user } = useUser();
+  const { addItem, startCheckout } = useCart();
 
   // Load user context on initialization
   useEffect(() => {
@@ -48,6 +51,36 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
       ...newContext
     }));
   }, []);
+
+  // Handle function call response and perform actions
+  const processAIAction = useCallback((functionResponse: FunctionResponse) => {
+    if (functionResponse.action === 'add_to_cart' && functionResponse.item) {
+      const item = functionResponse.item;
+      
+      // Add item to cart using the cart hook
+      addItem({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        restaurantId: item.restaurantId,
+        specialInstructions: item.specialInstructions
+      });
+      
+      toast.success(`${item.quantity}x ${item.name} adicionado ao carrinho`);
+      return true;
+    }
+    
+    if (functionResponse.action === 'initiate_checkout' && functionResponse.restaurant) {
+      // Start checkout process
+      startCheckout(functionResponse.restaurant.id);
+      
+      toast.success(`Iniciando checkout para ${functionResponse.restaurant.name}`);
+      return true;
+    }
+    
+    return false;
+  }, [addItem, startCheckout]);
 
   // Send message to Gemini
   const sendMessage = useCallback(async (messageContent: string): Promise<void> => {
@@ -93,9 +126,12 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
         // Handle the function call to get the result, passing the context
         const functionResult = await handleFunctionCall(response.functionCall, context);
         
+        // Check if we need to perform special actions based on the function result
+        const actionPerformed = processAIAction(functionResult);
+        
         // Send the function result back to Gemini for final response
         const followUpResponse = await generateGeminiResponse(
-          `Por favor, apresente estes resultados para o usuário de forma amigável: ${functionResult}`,
+          `Por favor, apresente estes resultados para o usuário de forma amigável: ${JSON.stringify(functionResult)}. ${actionPerformed ? 'A ação foi executada com sucesso.' : 'Nenhuma ação automática foi executada.'}`,
           context,
           [...previousMessages, {
             role: 'user',
@@ -141,7 +177,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
     } finally {
       setIsLoading(false);
     }
-  }, [context, messages]);
+  }, [context, messages, processAIAction]);
 
   // Generate initial welcome message
   useEffect(() => {

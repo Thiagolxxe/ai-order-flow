@@ -70,15 +70,14 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       };
     }
     
-    // Fetch user's most frequently ordered items
+    // Fetch user's most frequently ordered items - Fixed query to use aggregation properly
     if (context.previousOrders && context.previousOrders.length > 0) {
       const orderIds = context.previousOrders.map(order => order.id);
       
       const { data: frequentItems, error: itemsError } = await supabase
         .from('itens_pedido')
-        .select('nome_item_cardapio, COUNT(*)')
+        .select('nome_item_cardapio, count')
         .in('pedido_id', orderIds)
-        .group('nome_item_cardapio')
         .order('count', { ascending: false })
         .limit(3);
       

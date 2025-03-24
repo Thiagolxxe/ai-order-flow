@@ -51,15 +51,23 @@ export const generateGeminiResponse = async (
       if (context.previousOrders && context.previousOrders.length > 0) {
         systemPrompt += `\nPedidos anteriores: ${context.previousOrders.map(order => 
           `Pedido #${order.numero_pedido} de ${order.restaurante_nome}`).join(', ')}`;
+        
+        systemPrompt += `\nSugira ao usuário que ele pode reordenar um pedido anterior se for relevante à conversa.`;
       }
 
       if (context.frequentItems && context.frequentItems.length > 0) {
         systemPrompt += `\nItens frequentemente pedidos: ${context.frequentItems.join(', ')}`;
+        systemPrompt += `\nSugira ao usuário esses itens populares se for relevante à conversa.`;
       }
 
       if (context.userLocation) {
         systemPrompt += `\nLocalização do usuário: ${context.userLocation.cidade || ''}, ${context.userLocation.estado || ''}, ${context.userLocation.cep || ''}`;
+        systemPrompt += `\nUtilize essa localização para oferecer sugestões mais precisas.`;
       }
+      
+      // Additional instruction for order manipulation
+      systemPrompt += `\nVocê pode ajudar a agilizar o pedido usando funções como add_item_to_cart para adicionar itens ao carrinho e 
+      initiate_checkout para iniciar o processo de checkout. Use recommend_restaurants para sugerir restaurantes com base no histórico do usuário.`;
     }
 
     // Get the generative model (Gemini Pro)
