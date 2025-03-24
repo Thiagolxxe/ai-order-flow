@@ -25,7 +25,41 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
   const [context, setContext] = useState<OrderContext>(initialContext || {});
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const { user } = useUser();
-  const { addItem, startCheckout } = useCart();
+  const cart = useCart();
+
+  // Create custom cart actions
+  const addItem = useCallback((item: any) => {
+    if (cart && typeof cart.increaseQuantity === 'function') {
+      // Check if item exists in cart
+      const existingItem = cart.cartItems.find(cartItem => cartItem.id === item.id);
+      
+      if (existingItem) {
+        // If item exists, increase quantity
+        for (let i = 0; i < item.quantity; i++) {
+          cart.increaseQuantity(item.id);
+        }
+      } else {
+        // For new items, we would need to have an actual addItem method
+        // For now, we'll just show a toast message
+        toast.error("Função adicionar item ainda não implementada completamente");
+        console.log("Tentando adicionar item:", item);
+      }
+    }
+  }, [cart]);
+
+  // Create custom checkout action
+  const startCheckout = useCallback((restaurantId: string) => {
+    if (cart && typeof cart.saveCheckoutData === 'function') {
+      const success = cart.saveCheckoutData();
+      
+      if (success) {
+        // Redirect to checkout page
+        window.location.href = '/checkout';
+      } else {
+        toast.error("Não foi possível iniciar o checkout");
+      }
+    }
+  }, [cart]);
 
   // Load user context on initialization
   useEffect(() => {

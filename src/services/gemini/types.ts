@@ -144,7 +144,16 @@ export const functionDeclarations = [
     description: 'Get personalized restaurant recommendations based on user history and preferences',
     parameters: {
       type: 'object',
-      properties: {}
+      properties: {
+        location_filter: {
+          type: 'string',
+          description: 'Optional location to filter recommendations by'
+        },
+        cuisine_type: {
+          type: 'string',
+          description: 'Optional cuisine type to filter recommendations by'
+        }
+      }
     }
   },
   {
