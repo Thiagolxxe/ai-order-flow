@@ -23,7 +23,7 @@ const ChatHeader = ({ conversation, className }: ChatHeaderProps) => {
 
   return (
     <div className={`flex items-center gap-3 p-4 border-b ${className || ''}`}>
-      <Avatar>
+      <Avatar className="h-10 w-10">
         {conversation.avatar ? (
           <AvatarImage src={conversation.avatar} alt={conversation.name} />
         ) : null}

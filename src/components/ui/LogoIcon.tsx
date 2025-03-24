@@ -1,15 +1,16 @@
+
 import React from 'react';
 
 interface LogoIconProps {
   className?: string;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
 }
 
 const LogoIcon: React.FC<LogoIconProps> = ({ 
   className = "", 
-  width = 148.5, 
-  height = 148.5 
+  width = "100%", 
+  height = "100%" 
 }) => {
   return (
     <svg 
@@ -18,6 +19,7 @@ const LogoIcon: React.FC<LogoIconProps> = ({
       width={width}
       height={height}
       className={className}
+      preserveAspectRatio="xMidYMid meet"
     >
       <g id="logo-group">
         <g id="logo-center" transform="translate(276.4418162500001 0)">

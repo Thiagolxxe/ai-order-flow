@@ -57,14 +57,15 @@ export const AIIcon = Sparkles;
 export const LogoIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
+    width="100%"
+    height="100%"
     viewBox="0 0 1024 768"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g id="logo-center" transform="translate(276.4418162500001 0)">
       <g id="title" transform="translate(0 0)">
