@@ -20,7 +20,7 @@ const LogoIcon: React.FC<LogoIconProps> = ({
       height={height}
       className={className}
       preserveAspectRatio="xMidYMid meet"
-      style={{ minWidth: "120px" }}
+      style={{ minWidth: "160px", minHeight: "64px" }}
     >
       <g id="logo-group">
         <g id="logo-center" transform="translate(276.4418162500001 0)">

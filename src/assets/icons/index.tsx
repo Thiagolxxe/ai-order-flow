@@ -66,7 +66,7 @@ export const LogoIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
     preserveAspectRatio="xMidYMid meet"
-    style={{ minWidth: "120px", minHeight: "48px" }}
+    style={{ minWidth: "160px", minHeight: "64px" }}
   >
     <g id="logo-center" transform="translate(276.4418162500001 0)">
       <g id="title" transform="translate(0 0)">
