@@ -9,8 +9,8 @@ const NavLogo = () => {
       to="/" 
       className="flex items-center transition-all"
     >
-      <div className="h-16 w-48 flex items-center">
-        <LogoIcon width="100%" height="100%" className="h-full w-full" />
+      <div className="h-12 sm:h-14 md:h-16 w-40 sm:w-48 md:w-56 flex items-center">
+        <LogoIcon className="h-full w-full" />
       </div>
     </Link>
   );

@@ -9,6 +9,7 @@ export const DeliveryIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
       width={props.width || "100%"}
       height={props.height || "100%"}
       preserveAspectRatio="xMidYMid meet"
+      style={{ minWidth: "120px", minHeight: "48px" }}
       {...props}
     >
       <g id="logo-group">
