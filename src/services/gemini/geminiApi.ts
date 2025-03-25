@@ -119,49 +119,63 @@ export const generateGeminiResponse = async (
       ];
     }
 
-    // Create a chat session with history
-    const chat = model.startChat({
-      safetySettings,
-      history,
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      },
-      tools: [{
-        functionDeclarations: functionDeclarations as FunctionDeclaration[]
-      }]
-    });
+    try {
+      // Create a chat session with history
+      const chat = model.startChat({
+        safetySettings,
+        history,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        },
+        tools: [{
+          functionDeclarations: functionDeclarations as FunctionDeclaration[]
+        }]
+      });
 
-    // Generate a response using the current message
-    const result = await chat.sendMessage(userInput);
-    const responseText = result.response.text();
-    
-    // Check for function calls
-    let functionCall = undefined;
-    const functionCalling = result.response.functionCalls();
-    
-    if (functionCalling && functionCalling.length > 0) {
-      const call = functionCalling[0];
-      functionCall = {
-        name: call.name,
-        arguments: JSON.parse(JSON.stringify(call.args))
-      };
+      // Generate a response using the current message
+      const result = await chat.sendMessage(userInput);
+      const responseText = result.response.text();
       
-      console.log('Function call detected:', functionCall);
-    }
-    
-    // Parse potential suggestions or auto-fill data from the response
-    const suggestions = extractSuggestions(responseText);
-    const autoFillData = extractAutoFillData(responseText);
+      // Check for function calls
+      let functionCall = undefined;
+      
+      try {
+        const functionCalling = result.response.functionCalls();
+        
+        if (functionCalling && functionCalling.length > 0) {
+          const call = functionCalling[0];
+          functionCall = {
+            name: call.name,
+            arguments: JSON.parse(JSON.stringify(call.args))
+          };
+          
+          console.log('Function call detected:', functionCall);
+        }
+      } catch (functionError) {
+        console.error('Error processing function calls:', functionError);
+        // Continue without function calls
+      }
+      
+      // Parse potential suggestions or auto-fill data from the response
+      const suggestions = extractSuggestions(responseText);
+      const autoFillData = extractAutoFillData(responseText);
 
-    return {
-      responseText,
-      suggestions,
-      autoFillData,
-      functionCall
-    };
+      return {
+        responseText,
+        suggestions,
+        autoFillData,
+        functionCall
+      };
+    } catch (chatError) {
+      console.error('Error in chat session:', chatError);
+      // Fallback to a simpler response without function calls
+      return {
+        responseText: 'Desculpe, estou tendo dificuldades para processar sua solicitação. Pode tentar novamente com uma pergunta mais simples?'
+      };
+    }
   } catch (error) {
     console.error('Error generating Gemini response:', error);
     return {
@@ -174,26 +188,36 @@ export const generateGeminiResponse = async (
  * Extract suggestions from Gemini response text
  */
 const extractSuggestions = (text: string): string[] | undefined => {
-  // Look for patterns like "SUGGESTIONS: item1, item2, item3"
-  const suggestionMatch = text.match(/SUGGESTIONS:\s*([\s\S]+?)(?:\n\n|\n|$)/i);
-  if (suggestionMatch && suggestionMatch[1]) {
-    return suggestionMatch[1].split(',').map(s => s.trim()).filter(s => s);
+  try {
+    // Look for patterns like "SUGGESTIONS: item1, item2, item3"
+    const suggestionMatch = text.match(/SUGGESTIONS:\s*([\s\S]+?)(?:\n\n|\n|$)/i);
+    if (suggestionMatch && suggestionMatch[1]) {
+      return suggestionMatch[1].split(',').map(s => s.trim()).filter(s => s);
+    }
+    return undefined;
+  } catch (error) {
+    console.error('Error extracting suggestions:', error);
+    return undefined;
   }
-  return undefined;
 };
 
 /**
  * Extract auto-fill data from Gemini response text
  */
 const extractAutoFillData = (text: string): Record<string, any> | undefined => {
-  // Look for patterns like "AUTOFILL: {"field": "value", ...}"
-  const autofillMatch = text.match(/AUTOFILL:\s*(\{[\s\S]+?\})(?:\n\n|\n|$)/i);
-  if (autofillMatch && autofillMatch[1]) {
-    try {
-      return JSON.parse(autofillMatch[1]);
-    } catch (e) {
-      console.error('Failed to parse autofill data:', e);
+  try {
+    // Look for patterns like "AUTOFILL: {"field": "value", ...}"
+    const autofillMatch = text.match(/AUTOFILL:\s*(\{[\s\S]+?\})(?:\n\n|\n|$)/i);
+    if (autofillMatch && autofillMatch[1]) {
+      try {
+        return JSON.parse(autofillMatch[1]);
+      } catch (e) {
+        console.error('Failed to parse autofill data:', e);
+      }
     }
+    return undefined;
+  } catch (error) {
+    console.error('Error extracting autofill data:', error);
+    return undefined;
   }
-  return undefined;
 };

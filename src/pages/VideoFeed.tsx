@@ -46,6 +46,7 @@ const VideoFeed = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
   const navigate = useNavigate();
   const feedContainerRef = useRef<HTMLDivElement>(null);
   const { sendMessage } = useGeminiAI();
@@ -66,20 +67,32 @@ const VideoFeed = () => {
   };
   
   const openChat = (dishName: string, restaurantName: string) => {
-    // Prepare a welcome message about the specific dish
-    const initialPrompt = `Olá! Você está interessado no ${dishName} do restaurante ${restaurantName}? Posso ajudar com este pedido ou sugerir outras opções.`;
-    
-    // Send the message to Gemini
-    sendMessage(initialPrompt);
-    
-    // Open the chat assistant modal
-    document.dispatchEvent(new CustomEvent('openGeminiChat'));
-    
-    // Log for debugging
-    console.log(`Opening chat for ${dishName} from ${restaurantName}`);
-    
-    // Show a toast confirming the action
-    toast.success(`Iniciando conversa sobre ${dishName}`);
+    try {
+      // Prepare a welcome message about the specific dish
+      const initialPrompt = `Olá! Você está interessado no ${dishName} do restaurante ${restaurantName}? Posso ajudar com este pedido ou sugerir outras opções.`;
+      
+      // Send the message to Gemini
+      sendMessage(initialPrompt)
+        .then(() => {
+          // Open the chat assistant modal
+          document.dispatchEvent(new CustomEvent('openGeminiChat'));
+          
+          // Show a toast confirming the action
+          toast.success(`Iniciando conversa sobre ${dishName}`);
+        })
+        .catch((error) => {
+          console.error('Error opening chat:', error);
+          toast.error('Não foi possível iniciar o chat agora. Tente novamente mais tarde.');
+          setErrorState('Erro ao iniciar chat');
+        });
+      
+      // Log for debugging
+      console.log(`Opening chat for ${dishName} from ${restaurantName}`);
+    } catch (error) {
+      console.error('Error in openChat function:', error);
+      toast.error('Ocorreu um erro ao abrir o chat. Tente novamente.');
+      setErrorState('Erro ao iniciar chat');
+    }
   };
 
   const handleNext = () => {
@@ -114,6 +127,17 @@ const VideoFeed = () => {
     navigate(`/restaurante/${restaurantId}`);
   };
 
+  // Limpar estado de erro após 5 segundos
+  useEffect(() => {
+    if (errorState) {
+      const timer = setTimeout(() => {
+        setErrorState(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [errorState]);
+
   return (
     <div className="fixed inset-0 bg-black">
       <div 
@@ -140,9 +164,15 @@ const VideoFeed = () => {
           variant="outline"
           className="rounded-full bg-primary/80 hover:bg-primary text-white border-none w-12 h-12"
           onClick={() => openChat(activeVideo.dishName, activeVideo.restaurantName)}
+          disabled={!!errorState}
         >
           <MessageCircle size={24} />
         </Button>
+        {errorState && (
+          <span className="bg-black/80 text-white px-2 py-1 rounded text-xs">
+            {errorState}
+          </span>
+        )}
       </div>
       
       <VideoControls 

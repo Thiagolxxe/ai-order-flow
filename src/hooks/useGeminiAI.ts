@@ -29,35 +29,53 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
 
   // Create custom cart actions
   const addItem = useCallback((item: any) => {
-    if (cart && typeof cart.increaseQuantity === 'function') {
-      // Check if item exists in cart
-      const existingItem = cart.cartItems.find(cartItem => cartItem.id === item.id);
-      
-      if (existingItem) {
-        // If item exists, increase quantity
-        for (let i = 0; i < item.quantity; i++) {
-          cart.increaseQuantity(item.id);
+    try {
+      if (cart && typeof cart.increaseQuantity === 'function') {
+        // Check if item exists in cart
+        const existingItem = cart.cartItems.find(cartItem => cartItem.id === item.id);
+        
+        if (existingItem) {
+          // If item exists, increase quantity
+          for (let i = 0; i < item.quantity; i++) {
+            cart.increaseQuantity(item.id);
+          }
+          return true;
+        } else {
+          // For new items, we would need to have an actual addItem method
+          // For now, we'll just show a toast message
+          toast.error("Função adicionar item ainda não implementada completamente");
+          console.log("Tentando adicionar item:", item);
+          return false;
         }
-      } else {
-        // For new items, we would need to have an actual addItem method
-        // For now, we'll just show a toast message
-        toast.error("Função adicionar item ainda não implementada completamente");
-        console.log("Tentando adicionar item:", item);
       }
+      return false;
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
+      toast.error("Erro ao adicionar item ao carrinho");
+      return false;
     }
   }, [cart]);
 
   // Create custom checkout action
   const startCheckout = useCallback((restaurantId: string) => {
-    if (cart && typeof cart.saveCheckoutData === 'function') {
-      const success = cart.saveCheckoutData();
-      
-      if (success) {
-        // Redirect to checkout page
-        window.location.href = '/checkout';
-      } else {
-        toast.error("Não foi possível iniciar o checkout");
+    try {
+      if (cart && typeof cart.saveCheckoutData === 'function') {
+        const success = cart.saveCheckoutData();
+        
+        if (success) {
+          // Redirect to checkout page
+          window.location.href = '/checkout';
+          return true;
+        } else {
+          toast.error("Não foi possível iniciar o checkout");
+          return false;
+        }
       }
+      return false;
+    } catch (error) {
+      console.error('Error starting checkout:', error);
+      toast.error("Erro ao iniciar o checkout");
+      return false;
     }
   }, [cart]);
 
@@ -65,13 +83,17 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
   useEffect(() => {
     const loadUserContext = async () => {
       if (user?.id) {
-        const userContext = await fetchUserContext(user.id);
-        setContext(prevContext => ({
-          ...prevContext,
-          ...userContext
-        }));
-        
-        console.log('Carregado contexto do usuário:', userContext);
+        try {
+          const userContext = await fetchUserContext(user.id);
+          setContext(prevContext => ({
+            ...prevContext,
+            ...userContext
+          }));
+          
+          console.log('Carregado contexto do usuário:', userContext);
+        } catch (error) {
+          console.error('Error loading user context:', error);
+        }
       }
     };
     
@@ -88,32 +110,41 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
 
   // Handle function call response and perform actions
   const processAIAction = useCallback((functionResponse: FunctionResponse) => {
-    if (functionResponse.action === 'add_to_cart' && functionResponse.item) {
-      const item = functionResponse.item;
+    try {
+      if (functionResponse.action === 'add_to_cart' && functionResponse.item) {
+        const item = functionResponse.item;
+        
+        // Add item to cart using the cart hook
+        const success = addItem({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          restaurantId: item.restaurantId,
+          specialInstructions: item.specialInstructions
+        });
+        
+        if (success) {
+          toast.success(`${item.quantity}x ${item.name} adicionado ao carrinho`);
+        }
+        return success;
+      }
       
-      // Add item to cart using the cart hook
-      addItem({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        restaurantId: item.restaurantId,
-        specialInstructions: item.specialInstructions
-      });
+      if (functionResponse.action === 'initiate_checkout' && functionResponse.restaurant) {
+        // Start checkout process
+        const success = startCheckout(functionResponse.restaurant.id);
+        
+        if (success) {
+          toast.success(`Iniciando checkout para ${functionResponse.restaurant.name}`);
+        }
+        return success;
+      }
       
-      toast.success(`${item.quantity}x ${item.name} adicionado ao carrinho`);
-      return true;
+      return false;
+    } catch (error) {
+      console.error('Error processing AI action:', error);
+      return false;
     }
-    
-    if (functionResponse.action === 'initiate_checkout' && functionResponse.restaurant) {
-      // Start checkout process
-      startCheckout(functionResponse.restaurant.id);
-      
-      toast.success(`Iniciando checkout para ${functionResponse.restaurant.name}`);
-      return true;
-    }
-    
-    return false;
   }, [addItem, startCheckout]);
 
   // Send message to Gemini
@@ -157,26 +188,31 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
         
         setMessages(prevMessages => [...prevMessages, processingMessage]);
         
-        // Handle the function call to get the result, passing the context
-        const functionResult = await handleFunctionCall(response.functionCall, context);
-        
-        // Check if we need to perform special actions based on the function result
-        const actionPerformed = processAIAction(functionResult);
-        
-        // Send the function result back to Gemini for final response
-        const followUpResponse = await generateGeminiResponse(
-          `Por favor, apresente estes resultados para o usuário de forma amigável: ${JSON.stringify(functionResult)}. ${actionPerformed ? 'A ação foi executada com sucesso.' : 'Nenhuma ação automática foi executada.'}`,
-          context,
-          [...previousMessages, {
-            role: 'user',
-            parts: [{ text: messageContent }]
-          }, {
-            role: 'model',
-            parts: [{ text: response.responseText }]
-          }]
-        );
-        
-        finalResponseText = followUpResponse.responseText;
+        try {
+          // Handle the function call to get the result, passing the context
+          const functionResult = await handleFunctionCall(response.functionCall, context);
+          
+          // Check if we need to perform special actions based on the function result
+          const actionPerformed = processAIAction(functionResult);
+          
+          // Send the function result back to Gemini for final response
+          const followUpResponse = await generateGeminiResponse(
+            `Por favor, apresente estes resultados para o usuário de forma amigável: ${JSON.stringify(functionResult)}. ${actionPerformed ? 'A ação foi executada com sucesso.' : 'Nenhuma ação automática foi executada.'}`,
+            context,
+            [...previousMessages, {
+              role: 'user',
+              parts: [{ text: messageContent }]
+            }, {
+              role: 'model',
+              parts: [{ text: response.responseText }]
+            }]
+          );
+          
+          finalResponseText = followUpResponse.responseText;
+        } catch (functionError) {
+          console.error('Error handling function call:', functionError);
+          finalResponseText = 'Desculpe, tive um problema ao processar sua solicitação. Vamos tentar de outra forma?';
+        }
         
         // Remove the processing message
         setMessages(prevMessages => prevMessages.filter(msg => msg.id !== processingMessage.id));
@@ -247,6 +283,7 @@ export const useGeminiAI = (initialContext?: Partial<OrderContext>) => {
             }
           } catch (error) {
             console.error('Error generating initial suggestions:', error);
+            // Continue without suggestions
           }
         }
       }
