@@ -40,6 +40,46 @@ const MOCK_VIDEOS = [
     likes: 2405,
     description: 'Hambúrguer duplo com cheddar derretido, bacon crocante e molho especial da casa.',
   },
+  {
+    id: '4',
+    restaurantId: '00000000-0000-0000-0000-000000000r04',
+    restaurantName: 'Cantina Toscana',
+    dishName: 'Fettuccine Alfredo',
+    price: 54.90,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-homemade-pasta-being-prepared-close-up-43083-large.mp4',
+    likes: 1876,
+    description: 'Massa fresca artesanal com molho cremoso de queijo parmesão e manteiga.',
+  },
+  {
+    id: '5',
+    restaurantId: '00000000-0000-0000-0000-000000000r05',
+    restaurantName: 'Doceria Sweet Dreams',
+    dishName: 'Bolo de Chocolate Trufado',
+    price: 18.90,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-mixing-chocolate-dough-for-pastries-in-close-up-13313-large.mp4',
+    likes: 3201,
+    description: 'Fatia generosa do nosso bolo de chocolate premium, com recheio de trufa e cobertura de ganache.',
+  },
+  {
+    id: '6',
+    restaurantId: '00000000-0000-0000-0000-000000000r06',
+    restaurantName: 'Café Serenidade',
+    dishName: 'Cappuccino Especial',
+    price: 12.90,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-coffee-into-a-cappuccino-cup-22592-large.mp4',
+    likes: 1542,
+    description: 'Cappuccino cremoso com espuma perfeita e um toque de canela, servido com biscoitinho amanteigado.',
+  },
+  {
+    id: '7',
+    restaurantId: '00000000-0000-0000-0000-000000000r07',
+    restaurantName: 'Churrascaria Fogo Gaúcho',
+    dishName: 'Picanha Premium',
+    price: 89.90,
+    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-barbecue-meat-being-flipped-on-a-grill-43069-large.mp4',
+    likes: 2875,
+    description: 'Corte nobre de picanha grelhada no ponto perfeito, acompanha farofa, vinagrete e pão de alho.',
+  }
 ];
 
 const VideoFeed = () => {

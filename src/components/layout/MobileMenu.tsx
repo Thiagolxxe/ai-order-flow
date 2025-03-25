@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Home, Store, Tag, Package, User, LogOut, PlayCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 
 interface MobileMenuProps {
   isOpen?: boolean;
@@ -14,7 +14,7 @@ interface MobileMenuProps {
 
 const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
   const [open, setOpen] = useState(isOpen || false);
-  const { user, logout } = useAuth();
+  const { user, signOut } = useUser();
   
   const handleLinkClick = () => {
     setOpen(false);
@@ -97,7 +97,7 @@ const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
                 <button
                   className="w-full flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors text-left"
                   onClick={() => {
-                    logout();
+                    signOut();
                     handleLinkClick();
                   }}
                 >

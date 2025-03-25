@@ -45,7 +45,8 @@ const App = () => (
             <Navbar />
             <main className="flex-1 pt-16">
               <Routes>
-                <Route path="/" element={<Index />} />
+                {/* Redirecionando a página inicial para o feed de vídeos */}
+                <Route path="/" element={<Navigate to="/videos" replace />} />
                 <Route path="/restaurante/:id" element={<RestaurantDetails />} />
                 <Route path="/restaurante/:id/menu" element={<Menu />} />
                 <Route path="/carrinho" element={<Cart />} />
@@ -58,6 +59,9 @@ const App = () => (
                 <Route path="/pedidos" element={<OrderHistory />} />
                 <Route path="/pedido/:id" element={<OrderDetails />} />
                 
+                {/* Mantendo a rota original do Index para acesso via /home */}
+                <Route path="/home" element={<Index />} />
+                
                 {/* Corrigindo as rotas */}
                 <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
                 <Route path="/entregador" element={<DeliveryDashboard />} />
@@ -66,7 +70,7 @@ const App = () => (
                 <Route path="/notificacoes" element={<Notifications />} />
                 <Route path="/promocoes" element={<Promotions />} />
                 
-                {/* Nova rota do feed de vídeos */}
+                {/* Rota do feed de vídeos */}
                 <Route path="/videos" element={<VideoFeed />} />
                 
                 {/* Adicionando redirecionamentos para rotas em inglês */}

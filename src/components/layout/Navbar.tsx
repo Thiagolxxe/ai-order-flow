@@ -46,7 +46,7 @@ const Navbar = () => {
         
         {/* Navegação Desktop */}
         <nav className="hidden md:flex items-center space-x-1">
-          <NavLinks userRole={userRole || null} />
+          <NavLinks />
         </nav>
         
         {/* Lado direito - botões de autenticação ou menu do usuário */}
@@ -63,7 +63,7 @@ const Navbar = () => {
       {/* Menu móvel */}
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
-        userRole={userRole} 
+        userRole={userRole || null} 
         isAuthenticated={isAuthenticated} 
       />
     </header>
