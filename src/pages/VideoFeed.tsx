@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VideoCard from '@/components/video-feed/VideoCard';
@@ -8,7 +7,7 @@ import { MessageCircle } from 'lucide-react';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { toast } from 'sonner';
 
-// Mock video data - in a real app, this would come from an API
+// Mock video data using more reliable video sources
 const MOCK_VIDEOS = [
   {
     id: '1',
@@ -16,7 +15,7 @@ const MOCK_VIDEOS = [
     restaurantName: 'Pizzaria Bella Napoli',
     dishName: 'Pizza Margherita',
     price: 49.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-person-eating-pizza-with-a-fork-and-43122-large.mp4',
+    videoUrl: 'https://cdn.lovable.dev/assets/videos/pizza.mp4',
     likes: 1243,
     description: 'Nossa deliciosa pizza margherita tradicional, com molho de tomate caseiro, muçarela de búfala e manjericão fresco.',
   },
@@ -26,7 +25,7 @@ const MOCK_VIDEOS = [
     restaurantName: 'Sabor Oriental',
     dishName: 'Combinado Especial',
     price: 89.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-and-eating-a-slice-of-sushi-34551-large.mp4',
+    videoUrl: 'https://cdn.lovable.dev/assets/videos/sushi.mp4',
     likes: 856,
     description: 'Combinado especial com 16 peças variadas de sushi e sashimi, ideal para compartilhar.',
   },
@@ -36,7 +35,7 @@ const MOCK_VIDEOS = [
     restaurantName: 'Hamburgeria Ground Zero',
     dishName: 'Burger Duplo',
     price: 39.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-cooking-a-burger-on-a-barbecue-grill-24051-large.mp4',
+    videoUrl: 'https://cdn.lovable.dev/assets/videos/burger.mp4',
     likes: 2405,
     description: 'Hambúrguer duplo com cheddar derretido, bacon crocante e molho especial da casa.',
   },
@@ -46,7 +45,7 @@ const MOCK_VIDEOS = [
     restaurantName: 'Cantina Toscana',
     dishName: 'Fettuccine Alfredo',
     price: 54.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-homemade-pasta-being-prepared-close-up-43083-large.mp4',
+    videoUrl: 'https://cdn.lovable.dev/assets/videos/pasta.mp4',
     likes: 1876,
     description: 'Massa fresca artesanal com molho cremoso de queijo parmesão e manteiga.',
   },
@@ -56,29 +55,9 @@ const MOCK_VIDEOS = [
     restaurantName: 'Doceria Sweet Dreams',
     dishName: 'Bolo de Chocolate Trufado',
     price: 18.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-mixing-chocolate-dough-for-pastries-in-close-up-13313-large.mp4',
+    videoUrl: 'https://cdn.lovable.dev/assets/videos/chocolate.mp4',
     likes: 3201,
     description: 'Fatia generosa do nosso bolo de chocolate premium, com recheio de trufa e cobertura de ganache.',
-  },
-  {
-    id: '6',
-    restaurantId: '00000000-0000-0000-0000-000000000r06',
-    restaurantName: 'Café Serenidade',
-    dishName: 'Cappuccino Especial',
-    price: 12.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-coffee-into-a-cappuccino-cup-22592-large.mp4',
-    likes: 1542,
-    description: 'Cappuccino cremoso com espuma perfeita e um toque de canela, servido com biscoitinho amanteigado.',
-  },
-  {
-    id: '7',
-    restaurantId: '00000000-0000-0000-0000-000000000r07',
-    restaurantName: 'Churrascaria Fogo Gaúcho',
-    dishName: 'Picanha Premium',
-    price: 89.90,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-barbecue-meat-being-flipped-on-a-grill-43069-large.mp4',
-    likes: 2875,
-    description: 'Corte nobre de picanha grelhada no ponto perfeito, acompanha farofa, vinagrete e pão de alho.',
   }
 ];
 

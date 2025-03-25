@@ -1,7 +1,8 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Heart, Share2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Video {
   id: string;
@@ -24,16 +25,33 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Handle video playback based on active state
   useEffect(() => {
     if (!videoRef.current) return;
     
     if (isActive) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(err => {
-        console.error("Error playing video:", err);
-      });
+      try {
+        videoRef.current.currentTime = 0;
+        const playPromise = videoRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsLoading(false);
+              setError(null);
+            })
+            .catch(err => {
+              console.error("Error playing video:", err);
+              setError("Não foi possível reproduzir o vídeo");
+            });
+        }
+      } catch (err) {
+        console.error("Error in video playback:", err);
+        setError("Erro ao carregar o vídeo");
+      }
     } else {
       videoRef.current.pause();
     }
@@ -46,8 +64,42 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
     }
   }, [muted]);
 
+  // Handle video events
+  const handleVideoLoaded = () => {
+    setIsLoading(false);
+    setError(null);
+  };
+
+  const handleVideoError = () => {
+    setIsLoading(false);
+    setError("Erro ao carregar o vídeo");
+    console.error("Video failed to load:", video.videoUrl);
+  };
+
   return (
     <div className="relative h-full w-full">
+      {/* Loading state */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+          <div className="flex flex-col items-center">
+            <Skeleton className="h-40 w-40 rounded-lg bg-gray-700" />
+            <p className="text-white/80 mt-4">Carregando vídeo...</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Error state */}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+          <div className="flex flex-col items-center text-center p-4">
+            <p className="text-white font-semibold text-lg">{error}</p>
+            <p className="text-white/70 mt-2">
+              {video.dishName} - {video.restaurantName}
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Video */}
       <video
         ref={videoRef}
@@ -57,6 +109,9 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
         loop
         muted={muted}
         onClick={onMuteToggle}
+        onLoadedData={handleVideoLoaded}
+        onError={handleVideoError}
+        poster={`https://source.unsplash.com/random/800x600/?${video.dishName.split(' ')[0].toLowerCase()},food`}
       />
       
       {/* Dark overlay gradient */}
