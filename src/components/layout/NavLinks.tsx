@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, Flame } from 'lucide-react';
 
 const NavLinks = () => {
   const location = useLocation();
@@ -32,7 +32,7 @@ const NavLinks = () => {
         "flex items-center gap-1",
         isActive('/videos') ? "text-primary" : "text-muted-foreground hover:text-primary"
       )}>
-        <PlayCircle size={18} />
+        <Flame size={18} className={isActive('/videos') ? "text-primary animate-pulse" : ""} />
         Vídeos
       </Link>
       <Link to="/promocoes" className={linkClasses('/promocoes')}>

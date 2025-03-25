@@ -74,9 +74,9 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
           <Button 
             variant="ghost" 
             size="icon" 
-            className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11"
+            className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
           >
-            <Heart size={24} />
+            <Heart size={24} className="hover:fill-primary hover:text-primary transition-colors" />
             <span className="sr-only">Curtir</span>
           </Button>
           <span className="text-white text-xs mt-1 font-medium">{video.likes}</span>
@@ -85,7 +85,7 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11"
+          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
         >
           <Share2 size={24} />
           <span className="sr-only">Compartilhar</span>
@@ -94,7 +94,7 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11"
+          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
           onClick={onViewRestaurant}
         >
           <Info size={24} />
@@ -105,10 +105,10 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
       {/* Bottom info */}
       <div className="absolute bottom-safe inset-x-0 p-4 text-white">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-lg font-bold">R$ {video.price.toFixed(2)}</p>
+          <p className="text-lg font-bold">R$ {video.price.toFixed(2).replace('.', ',')}</p>
           <Button 
             variant="outline" 
-            className="text-sm rounded-full bg-primary hover:bg-primary/90 text-white border-primary px-4"
+            className="text-sm rounded-full bg-primary hover:bg-primary/90 text-white border-primary px-4 hover:scale-105 transition-all"
             onClick={onViewRestaurant}
           >
             Ver Restaurante

@@ -28,7 +28,7 @@ const VideoControls = ({ video, onNext, onPrevious, onMuteToggle, muted }: Video
       <Button
         variant="ghost"
         size="icon"
-        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10"
+        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10 transition-all hover:scale-110"
         onClick={onPrevious}
       >
         <ChevronUp size={24} />
@@ -38,7 +38,7 @@ const VideoControls = ({ video, onNext, onPrevious, onMuteToggle, muted }: Video
       <Button
         variant="ghost"
         size="icon"
-        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10"
+        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10 transition-all hover:scale-110"
         onClick={onNext}
       >
         <ChevronDown size={24} />
@@ -48,7 +48,7 @@ const VideoControls = ({ video, onNext, onPrevious, onMuteToggle, muted }: Video
       <Button
         variant="ghost"
         size="icon"
-        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10 mt-4"
+        className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-10 h-10 mt-4 transition-all hover:scale-110"
         onClick={onMuteToggle}
       >
         {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
