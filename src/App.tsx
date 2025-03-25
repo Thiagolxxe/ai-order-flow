@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,6 +32,7 @@ import Promotions from "./pages/Promotions";
 import LiveTrackingMap from "./pages/LiveTrackingMap";
 import RestaurantsExplore from "./pages/RestaurantsExplore";
 import Chat from "./pages/Chat";
+import VideoFeed from "./pages/VideoFeed"; // Novo import
 
 const queryClient = new QueryClient();
 
@@ -63,6 +65,9 @@ const App = () => (
                 <Route path="/favoritos" element={<Favorites />} />
                 <Route path="/notificacoes" element={<Notifications />} />
                 <Route path="/promocoes" element={<Promotions />} />
+                
+                {/* Nova rota do feed de vídeos */}
+                <Route path="/videos" element={<VideoFeed />} />
                 
                 {/* Adicionando redirecionamentos para rotas em inglês */}
                 <Route path="/restaurants" element={<Navigate to="/restaurantes" replace />} />

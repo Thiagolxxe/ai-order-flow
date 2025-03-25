@@ -2,81 +2,46 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { PlayCircle } from 'lucide-react';
 
-interface NavLinkProps {
-  name: string;
-  path: string;
-  isMobile?: boolean;
-}
-
-const NavLink = ({ name, path, isMobile = false }: NavLinkProps) => {
+const NavLinks = () => {
   const location = useLocation();
   
-  return (
-    <Link
-      key={path}
-      to={path}
-      className={cn(
-        'text-sm font-medium transition-all',
-        isMobile 
-          ? 'px-4 py-3 rounded-lg' 
-          : 'px-4 py-2 rounded-full',
-        location.pathname === path
-          ? 'text-primary bg-primary/10' 
-          : 'text-foreground/70 hover:text-foreground hover:bg-secondary'
-      )}
-    >
-      {name}
-    </Link>
-  );
-};
-
-interface NavLinksProps {
-  userRole: string | null;
-  isMobile?: boolean;
-}
-
-const NavLinks = ({ userRole, isMobile = false }: NavLinksProps) => {
-  // Links de navegação baseados no papel do usuário
-  const getNavLinks = () => {
-    switch(userRole) {
-      case 'restaurante':
-        return [
-          { name: 'Painel', path: '/restaurant/dashboard' },
-          { name: 'Pedidos', path: '/restaurant/orders' },
-          { name: 'Cardápio', path: '/restaurant/menu' },
-          { name: 'Configurações', path: '/restaurant/settings' },
-        ];
-      case 'entregador':
-        return [
-          { name: 'Pedidos Disponíveis', path: '/delivery/orders' },
-          { name: 'Minhas Entregas', path: '/delivery/my-deliveries' },
-          { name: 'Ganhos', path: '/delivery/earnings' },
-        ];
-      case 'cliente':
-      default:
-        return [
-          { name: 'Início', path: '/' },
-          { name: 'Restaurantes', path: '/restaurantes' },
-          { name: 'Pedidos', path: '/pedidos' },
-          { name: 'Ajuda', path: '/ajuda' },
-        ];
-    }
+  const isActive = (path: string) => {
+    return location.pathname === path ||
+           (path !== '/' && location.pathname.startsWith(path));
   };
   
-  const navLinks = getNavLinks();
+  const linkClasses = (path: string) => cn(
+    "text-sm font-medium transition-colors",
+    isActive(path) 
+      ? "text-foreground" 
+      : "text-muted-foreground hover:text-foreground"
+  );
   
   return (
-    <>
-      {navLinks.map((link) => (
-        <NavLink 
-          key={link.path}
-          name={link.name} 
-          path={link.path} 
-          isMobile={isMobile} 
-        />
-      ))}
-    </>
+    <nav className="hidden md:flex items-center gap-6">
+      <Link to="/" className={linkClasses('/')}>
+        Início
+      </Link>
+      <Link to="/restaurantes" className={linkClasses('/restaurantes')}>
+        Restaurantes
+      </Link>
+      <Link to="/videos" className={cn(
+        linkClasses('/videos'),
+        "flex items-center gap-1",
+        isActive('/videos') ? "text-primary" : "text-muted-foreground hover:text-primary"
+      )}>
+        <PlayCircle size={18} />
+        Vídeos
+      </Link>
+      <Link to="/promocoes" className={linkClasses('/promocoes')}>
+        Promoções
+      </Link>
+      <Link to="/pedidos" className={linkClasses('/pedidos')}>
+        Meus Pedidos
+      </Link>
+    </nav>
   );
 };
 

@@ -1,35 +1,118 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import NavLinks from './NavLinks';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Menu, Home, Store, Tag, Package, User, LogOut, PlayCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
-interface MobileMenuProps {
-  isOpen: boolean;
-  userRole: string | null;
-  isAuthenticated: boolean;
-}
-
-const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
-  if (!isOpen) return null;
+const MobileMenu = () => {
+  const [open, setOpen] = useState(false);
+  const { user, logout } = useAuth();
+  
+  const handleLinkClick = () => {
+    setOpen(false);
+  };
   
   return (
-    <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-zinc-900 shadow-lg border-t animate-slide-down">
-      <div className="container mx-auto px-4 py-4 flex flex-col space-y-2">
-        <NavLinks userRole={userRole} isMobile={true} />
-        
-        {!isAuthenticated && (
-          <div className="pt-4 mt-2 border-t flex flex-col gap-3">
-            <Button variant="outline" asChild className="w-full">
-              <Link to="/login">Entrar</Link>
-            </Button>
-            <Button asChild className="w-full">
-              <Link to="/cadastro">Cadastrar</Link>
-            </Button>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label="Menu"
+        >
+          <Menu className="h-6 w-6" />
+        </Button>
+      </SheetTrigger>
+      
+      <SheetContent side="left" className="w-64">
+        <div className="flex flex-col h-full py-6">
+          <div className="flex flex-col space-y-1 mb-8">
+            <Link
+              to="/"
+              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+              onClick={handleLinkClick}
+            >
+              <Home className="mr-3 h-5 w-5" />
+              Início
+            </Link>
+            
+            <Link
+              to="/restaurantes"
+              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+              onClick={handleLinkClick}
+            >
+              <Store className="mr-3 h-5 w-5" />
+              Restaurantes
+            </Link>
+            
+            <Link
+              to="/videos"
+              className="flex items-center py-2 px-3 rounded-md hover:bg-muted text-primary transition-colors"
+              onClick={handleLinkClick}
+            >
+              <PlayCircle className="mr-3 h-5 w-5" />
+              Vídeos
+            </Link>
+            
+            <Link
+              to="/promocoes"
+              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+              onClick={handleLinkClick}
+            >
+              <Tag className="mr-3 h-5 w-5" />
+              Promoções
+            </Link>
+            
+            <Link
+              to="/pedidos"
+              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+              onClick={handleLinkClick}
+            >
+              <Package className="mr-3 h-5 w-5" />
+              Meus Pedidos
+            </Link>
           </div>
-        )}
-      </div>
-    </div>
+          
+          <div className="mt-auto">
+            {user ? (
+              <>
+                <Link
+                  to="/perfil"
+                  className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+                  onClick={handleLinkClick}
+                >
+                  <User className="mr-3 h-5 w-5" />
+                  Meu Perfil
+                </Link>
+                
+                <button
+                  className="w-full flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors text-left"
+                  onClick={() => {
+                    logout();
+                    handleLinkClick();
+                  }}
+                >
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Sair
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
+                onClick={handleLinkClick}
+              >
+                <User className="mr-3 h-5 w-5" />
+                Entrar
+              </Link>
+            )}
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 
