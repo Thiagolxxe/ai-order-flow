@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Menu, Home, Store, Tag, Package, User, LogOut, PlayCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-const MobileMenu = () => {
-  const [open, setOpen] = useState(false);
+interface MobileMenuProps {
+  isOpen?: boolean;
+  userRole?: string | null;
+  isAuthenticated?: boolean;
+}
+
+const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
+  const [open, setOpen] = useState(isOpen || false);
   const { user, logout } = useAuth();
   
   const handleLinkClick = () => {
