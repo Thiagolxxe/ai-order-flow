@@ -56,19 +56,7 @@ const Navbar = () => {
             userRole={userRole} 
           />
           
-          {/* Botão do menu móvel */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <CloseIcon className="w-5 h-5" />
-            ) : (
-              <MenuIcon className="w-5 h-5" />
-            )}
-          </Button>
+          {/* Mobile menu trigger - removemos para usar o SheetTrigger do MobileMenu */}
         </div>
       </div>
       
