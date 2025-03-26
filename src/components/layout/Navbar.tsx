@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
-import { MenuIcon, CloseIcon } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import NavLogo from './NavLogo';
 import NavLinks from './NavLinks';
@@ -16,7 +15,10 @@ const Navbar = () => {
   const { role: userRole, isAuthenticated } = useUser();
   const location = useLocation();
   
-  // Lidar com o efeito de rolagem
+  // Determine if we're on the video feed page to adjust styling
+  const isVideoPage = location.pathname === '/videos';
+  
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -26,7 +28,7 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Fechar menu móvel quando a rota muda
+  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
@@ -36,31 +38,42 @@ const Navbar = () => {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4',
         isScrolled 
-          ? 'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-subtle' 
-          : 'bg-transparent'
+          ? 'bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-subtle' 
+          : isVideoPage 
+            ? 'bg-transparent' 
+            : 'bg-white dark:bg-zinc-900'
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <NavLogo />
         
-        {/* Navegação Desktop */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
           <NavLinks />
         </nav>
         
-        {/* Lado direito - botões de autenticação ou menu do usuário */}
+        {/* Right side - authentication buttons or user menu */}
         <div className="flex items-center gap-3">
+          {isVideoPage && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mr-2 bg-background/80 backdrop-blur-sm border-background/20"
+              onClick={() => window.location.href = '/entregador/cadastro'}
+            >
+              Seja um entregador
+            </Button>
+          )}
+          
           <UserActions 
             isAuthenticated={isAuthenticated} 
             userRole={userRole} 
           />
-          
-          {/* Mobile menu trigger - removemos para usar o SheetTrigger do MobileMenu */}
         </div>
       </div>
       
-      {/* Menu móvel */}
+      {/* Mobile menu */}
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
         userRole={userRole || null} 

@@ -1,10 +1,9 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { toast } from 'sonner';
 
-// Mock video data with reliable sources - moved from the page component
+// Mock video data with reliable sources 
 export const MOCK_VIDEOS = [
   {
     id: '1',
@@ -70,7 +69,7 @@ export interface Video {
   dishName: string;
   price: number;
   videoUrl: string;
-  thumbnailUrl?: string;
+  thumbnailUrl: string; // Changed from optional to required to match VideoCard component expectations
   likes: number;
   description: string;
 }
@@ -169,7 +168,7 @@ export const useVideoFeed = () => {
       return () => clearTimeout(timer);
     }
   }, [errorState]);
-
+  
   return {
     activeVideoIndex,
     muted,

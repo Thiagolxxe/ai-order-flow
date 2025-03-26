@@ -22,9 +22,13 @@ import UserProfile from "./pages/UserProfile";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/OrderDetails";
 
-// Novas páginas
+// Páginas administrativas e de entregador
 import RestaurantAdmin from "./pages/admin/RestaurantAdmin";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
+import DeliveryProfile from "./pages/delivery/DeliveryProfile";
+import DeliveryRegistration from "./pages/delivery/DeliveryRegistration";
+
+// Outras páginas
 import Reviews from "./pages/Reviews";
 import Favorites from "./pages/Favorites";
 import Notifications from "./pages/Notifications";
@@ -32,7 +36,7 @@ import Promotions from "./pages/Promotions";
 import LiveTrackingMap from "./pages/LiveTrackingMap";
 import RestaurantsExplore from "./pages/RestaurantsExplore";
 import Chat from "./pages/Chat";
-import VideoFeed from "./pages/VideoFeed"; // Novo import
+import VideoFeed from "./pages/VideoFeed";
 
 const queryClient = new QueryClient();
 
@@ -62,9 +66,15 @@ const App = () => (
                 {/* Mantendo a rota original do Index para acesso via /home */}
                 <Route path="/home" element={<Index />} />
                 
-                {/* Corrigindo as rotas */}
-                <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
+                {/* Rotas de entregador */}
                 <Route path="/entregador" element={<DeliveryDashboard />} />
+                <Route path="/entregador/perfil" element={<DeliveryProfile />} />
+                <Route path="/entregador/cadastro" element={<DeliveryRegistration />} />
+                
+                {/* Rota de restaurante */}
+                <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
+                
+                {/* Outras rotas */}
                 <Route path="/avaliacoes/:id?" element={<Reviews />} />
                 <Route path="/favoritos" element={<Favorites />} />
                 <Route path="/notificacoes" element={<Notifications />} />
