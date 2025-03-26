@@ -22,11 +22,8 @@ import UserProfile from "./pages/UserProfile";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/OrderDetails";
 
-// Páginas administrativas e de entregador
+// Páginas administrativas
 import RestaurantAdmin from "./pages/admin/RestaurantAdmin";
-import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
-import DeliveryProfile from "./pages/delivery/DeliveryProfile";
-import DeliveryRegistration from "./pages/delivery/DeliveryRegistration";
 
 // Outras páginas
 import Reviews from "./pages/Reviews";
@@ -65,11 +62,6 @@ const App = () => (
                 
                 {/* Mantendo a rota original do Index para acesso via /home */}
                 <Route path="/home" element={<Index />} />
-                
-                {/* Rotas de entregador */}
-                <Route path="/entregador" element={<DeliveryDashboard />} />
-                <Route path="/entregador/perfil" element={<DeliveryProfile />} />
-                <Route path="/entregador/cadastro" element={<DeliveryRegistration />} />
                 
                 {/* Rota de restaurante */}
                 <Route path="/admin/restaurante" element={<RestaurantAdmin />} />

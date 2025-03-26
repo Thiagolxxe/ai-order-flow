@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ChatIcon,
   LocationIcon,
-  RestaurantIcon,
-  DeliveryIcon 
+  RestaurantIcon
 } from '@/assets/icons';
 import { DeliveryIcon as AppLogo } from '@/components/icons/DeliveryIcon';
 
@@ -23,7 +23,7 @@ const Footer = () => {
             </Link>
             <p className="text-sm text-foreground/70 max-w-xs">
               Uma plataforma revolucionária de entrega de comida com tecnologia de IA
-              conectando clientes, restaurantes e entregadores parceiros.
+              conectando clientes e restaurantes parceiros.
             </p>
             <div className="flex space-x-4 pt-2">
               <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
@@ -77,12 +77,6 @@ const Footer = () => {
                 <Link to="/restaurant/signup" className="text-foreground/70 hover:text-primary text-sm transition-colors flex items-center gap-1.5">
                   <RestaurantIcon className="w-4 h-4" />
                   Seja um Parceiro Restaurante
-                </Link>
-              </li>
-              <li>
-                <Link to="/delivery/signup" className="text-foreground/70 hover:text-primary text-sm transition-colors flex items-center gap-1.5">
-                  <DeliveryIcon className="w-4 h-4" />
-                  Seja um Parceiro Entregador
                 </Link>
               </li>
               <li>

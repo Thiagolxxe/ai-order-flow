@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
-import { Button } from '@/components/ui/button';
 import NavLogo from './NavLogo';
 import NavLinks from './NavLinks';
 import UserActions from './UserActions';
@@ -55,17 +54,6 @@ const Navbar = () => {
         
         {/* Right side - authentication buttons or user menu */}
         <div className="flex items-center gap-3">
-          {isVideoPage && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mr-2 bg-background/80 backdrop-blur-sm border-background/20"
-              onClick={() => window.location.href = '/entregador/cadastro'}
-            >
-              Seja um entregador
-            </Button>
-          )}
-          
           <UserActions 
             isAuthenticated={isAuthenticated} 
             userRole={userRole} 
