@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Heart, Share2, Info } from 'lucide-react';
+import { Heart, Share2, Info, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -11,6 +11,7 @@ interface Video {
   dishName: string;
   price: number;
   videoUrl: string;
+  thumbnailUrl: string;
   likes: number;
   description: string;
 }
@@ -76,8 +77,17 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
     console.error("Video failed to load:", video.videoUrl);
   };
 
+  // Generate a background image based on the dish name
+  const backgroundImage = `https://source.unsplash.com/random/800x600/?${video.dishName.split(' ')[0].toLowerCase()},food`;
+
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full bg-black">
+      {/* Background image for all states */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-30 blur-sm"
+        style={{ backgroundImage: `url(${video.thumbnailUrl || backgroundImage})` }}
+      />
+      
       {/* Loading state */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
@@ -111,7 +121,7 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
         onClick={onMuteToggle}
         onLoadedData={handleVideoLoaded}
         onError={handleVideoError}
-        poster={`https://source.unsplash.com/random/800x600/?${video.dishName.split(' ')[0].toLowerCase()},food`}
+        poster={video.thumbnailUrl || backgroundImage}
       />
       
       {/* Dark overlay gradient */}
@@ -154,6 +164,16 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
         >
           <Info size={24} />
           <span className="sr-only">Informações</span>
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
+          onClick={onMuteToggle}
+        >
+          {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+          <span className="sr-only">{muted ? 'Ativar som' : 'Desativar som'}</span>
         </Button>
       </div>
       

@@ -7,7 +7,7 @@ import { MessageCircle } from 'lucide-react';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { toast } from 'sonner';
 
-// Mock video data using more reliable video sources
+// Mock video data with more reliable sources
 const MOCK_VIDEOS = [
   {
     id: '1',
@@ -15,7 +15,8 @@ const MOCK_VIDEOS = [
     restaurantName: 'Pizzaria Bella Napoli',
     dishName: 'Pizza Margherita',
     price: 49.90,
-    videoUrl: 'https://cdn.lovable.dev/assets/videos/pizza.mp4',
+    videoUrl: 'https://player.vimeo.com/external/555770017.sd.mp4?s=ef1897927047c3dece4c46f99a44894eb2d200a5&profile_id=165&oauth2_token_id=57447761',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80',
     likes: 1243,
     description: 'Nossa deliciosa pizza margherita tradicional, com molho de tomate caseiro, muçarela de búfala e manjericão fresco.',
   },
@@ -25,7 +26,8 @@ const MOCK_VIDEOS = [
     restaurantName: 'Sabor Oriental',
     dishName: 'Combinado Especial',
     price: 89.90,
-    videoUrl: 'https://cdn.lovable.dev/assets/videos/sushi.mp4',
+    videoUrl: 'https://player.vimeo.com/external/535850519.sd.mp4?s=2ea81cfc906505f6cffcff0b9c1b918e7c87c65e&profile_id=165&oauth2_token_id=57447761',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80',
     likes: 856,
     description: 'Combinado especial com 16 peças variadas de sushi e sashimi, ideal para compartilhar.',
   },
@@ -35,7 +37,8 @@ const MOCK_VIDEOS = [
     restaurantName: 'Hamburgeria Ground Zero',
     dishName: 'Burger Duplo',
     price: 39.90,
-    videoUrl: 'https://cdn.lovable.dev/assets/videos/burger.mp4',
+    videoUrl: 'https://player.vimeo.com/external/517090081.sd.mp4?s=40a99f60555a80e94bf85010d9fbcb29e0f66c26&profile_id=165&oauth2_token_id=57447761',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80',
     likes: 2405,
     description: 'Hambúrguer duplo com cheddar derretido, bacon crocante e molho especial da casa.',
   },
@@ -45,7 +48,8 @@ const MOCK_VIDEOS = [
     restaurantName: 'Cantina Toscana',
     dishName: 'Fettuccine Alfredo',
     price: 54.90,
-    videoUrl: 'https://cdn.lovable.dev/assets/videos/pasta.mp4',
+    videoUrl: 'https://player.vimeo.com/external/436572488.sd.mp4?s=eae5fb490e214deb9ff532dd98d101efe94e7a8b&profile_id=165&oauth2_token_id=57447761',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80',
     likes: 1876,
     description: 'Massa fresca artesanal com molho cremoso de queijo parmesão e manteiga.',
   },
@@ -55,7 +59,8 @@ const MOCK_VIDEOS = [
     restaurantName: 'Doceria Sweet Dreams',
     dishName: 'Bolo de Chocolate Trufado',
     price: 18.90,
-    videoUrl: 'https://cdn.lovable.dev/assets/videos/chocolate.mp4',
+    videoUrl: 'https://player.vimeo.com/external/482286340.sd.mp4?s=daca107cbca7febb0b07c6381170ce38bda14a91&profile_id=165&oauth2_token_id=57447761',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80',
     likes: 3201,
     description: 'Fatia generosa do nosso bolo de chocolate premium, com recheio de trufa e cobertura de ganache.',
   }
