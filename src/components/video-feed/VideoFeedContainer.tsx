@@ -7,8 +7,12 @@ interface VideoFeedContainerProps {
   videos: Video[];
   activeVideoIndex: number;
   muted: boolean;
+  likedVideos: string[];
   onMuteToggle: () => void;
   onViewRestaurant: (restaurantId: string) => void;
+  onLike: (videoId: string) => void;
+  onShare: (video: Video) => void;
+  onComment: (video: Video) => void;
   containerRef: React.RefObject<HTMLDivElement>;
   onScroll: () => void;
 }
@@ -17,8 +21,12 @@ const VideoFeedContainer = ({
   videos,
   activeVideoIndex,
   muted,
+  likedVideos,
   onMuteToggle,
   onViewRestaurant,
+  onLike,
+  onShare,
+  onComment,
   containerRef,
   onScroll
 }: VideoFeedContainerProps) => {
@@ -34,8 +42,12 @@ const VideoFeedContainer = ({
             video={video}
             isActive={index === activeVideoIndex}
             muted={muted}
+            isLiked={likedVideos.includes(video.id)}
             onMuteToggle={onMuteToggle}
             onViewRestaurant={() => onViewRestaurant(video.restaurantId)}
+            onLike={() => onLike(video.id)}
+            onShare={() => onShare(video)}
+            onComment={() => onComment(video)}
           />
         </div>
       ))}

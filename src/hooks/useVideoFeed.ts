@@ -79,6 +79,7 @@ export const useVideoFeed = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [errorState, setErrorState] = useState<string | null>(null);
+  const [likedVideos, setLikedVideos] = useState<string[]>([]);
   const navigate = useNavigate();
   const feedContainerRef = useRef<HTMLDivElement>(null);
   const { sendMessage } = useGeminiAI();
@@ -159,6 +160,62 @@ export const useVideoFeed = () => {
     navigate(`/restaurante/${restaurantId}`);
   }, [navigate]);
 
+  // New handlers for side buttons
+  const handleLike = useCallback((videoId: string) => {
+    setLikedVideos(prev => {
+      if (prev.includes(videoId)) {
+        // Unlike the video
+        const updatedVideos = MOCK_VIDEOS.map(video => {
+          if (video.id === videoId) {
+            return { ...video, likes: video.likes - 1 };
+          }
+          return video;
+        });
+        // Update the mock data
+        Object.assign(MOCK_VIDEOS, updatedVideos);
+        toast.success("Curtida removida");
+        return prev.filter(id => id !== videoId);
+      } else {
+        // Like the video
+        const updatedVideos = MOCK_VIDEOS.map(video => {
+          if (video.id === videoId) {
+            return { ...video, likes: video.likes + 1 };
+          }
+          return video;
+        });
+        // Update the mock data
+        Object.assign(MOCK_VIDEOS, updatedVideos);
+        toast.success("Vídeo curtido!");
+        return [...prev, videoId];
+      }
+    });
+  }, []);
+
+  const handleShare = useCallback((video: Video) => {
+    // In a real app, this would open a share dialog
+    toast.success(`Compartilhando ${video.dishName} do ${video.restaurantName}`);
+    
+    // Mock share functionality
+    if (navigator.share) {
+      navigator.share({
+        title: `${video.dishName} - ${video.restaurantName}`,
+        text: video.description,
+        url: window.location.href,
+      })
+      .catch((error) => {
+        console.error('Error sharing:', error);
+        toast.error('Não foi possível compartilhar este vídeo');
+      });
+    } else {
+      // Fallback for browsers that don't support navigator.share
+      toast.info('Compartilhamento disponível em breve!');
+    }
+  }, []);
+
+  const handleComment = useCallback((video: Video) => {
+    toast.info('Comentários estarão disponíveis em breve!');
+  }, []);
+
   // Clear error state after 5 seconds
   useEffect(() => {
     if (errorState) {
@@ -176,12 +233,16 @@ export const useVideoFeed = () => {
     errorState,
     activeVideo,
     feedContainerRef,
+    likedVideos,
     handleScroll,
     openChat,
     handleNext,
     handlePrevious,
     toggleMute,
     handleViewRestaurant,
+    handleLike,
+    handleShare,
+    handleComment,
     videos: MOCK_VIDEOS
   };
 };

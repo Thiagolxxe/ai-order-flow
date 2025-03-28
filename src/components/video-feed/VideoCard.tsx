@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Heart, Share2, Info, Volume2, VolumeX } from 'lucide-react';
+import { Heart, Share2, Info, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,9 +22,23 @@ interface VideoCardProps {
   muted: boolean;
   onMuteToggle: () => void;
   onViewRestaurant: () => void;
+  onLike: () => void;
+  onShare: () => void;
+  onComment: () => void;
+  isLiked: boolean;
 }
 
-const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: VideoCardProps) => {
+const VideoCard = ({ 
+  video, 
+  isActive, 
+  muted, 
+  onMuteToggle, 
+  onViewRestaurant,
+  onLike,
+  onShare,
+  onComment,
+  isLiked
+}: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,8 +154,12 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
             variant="ghost" 
             size="icon" 
             className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
+            onClick={onLike}
           >
-            <Heart size={24} className="hover:fill-primary hover:text-primary transition-colors" />
+            <Heart 
+              size={24} 
+              className={isLiked ? "fill-primary text-primary" : "hover:fill-primary hover:text-primary transition-colors"} 
+            />
             <span className="sr-only">Curtir</span>
           </Button>
           <span className="text-white text-xs mt-1 font-medium">{video.likes}</span>
@@ -151,9 +169,20 @@ const VideoCard = ({ video, isActive, muted, onMuteToggle, onViewRestaurant }: V
           variant="ghost" 
           size="icon" 
           className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
+          onClick={onShare}
         >
           <Share2 size={24} />
           <span className="sr-only">Compartilhar</span>
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
+          onClick={onComment}
+        >
+          <MessageCircle size={24} />
+          <span className="sr-only">Comentar</span>
         </Button>
         
         <Button 

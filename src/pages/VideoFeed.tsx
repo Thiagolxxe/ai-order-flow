@@ -12,12 +12,16 @@ const VideoFeed = () => {
     errorState,
     activeVideo,
     feedContainerRef,
+    likedVideos,
     handleScroll,
     openChat,
     handleNext,
     handlePrevious,
     toggleMute,
     handleViewRestaurant,
+    handleLike,
+    handleShare,
+    handleComment,
     videos
   } = useVideoFeed();
   
@@ -27,8 +31,12 @@ const VideoFeed = () => {
         videos={videos}
         activeVideoIndex={activeVideoIndex}
         muted={muted}
+        likedVideos={likedVideos}
         onMuteToggle={toggleMute}
         onViewRestaurant={handleViewRestaurant}
+        onLike={handleLike}
+        onShare={handleShare}
+        onComment={handleComment}
         containerRef={feedContainerRef}
         onScroll={handleScroll}
       />
