@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
@@ -69,7 +70,7 @@ export interface Video {
   dishName: string;
   price: number;
   videoUrl: string;
-  thumbnailUrl: string; // Changed from optional to required to match VideoCard component expectations
+  thumbnailUrl: string;
   likes: number;
   description: string;
 }

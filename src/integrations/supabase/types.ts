@@ -121,6 +121,70 @@ export type Database = {
           },
         ]
       }
+      comentarios_video: {
+        Row: {
+          conteudo: string
+          criado_em: string
+          id: string
+          likes: number | null
+          usuario_id: string
+          video_id: string
+        }
+        Insert: {
+          conteudo: string
+          criado_em?: string
+          id?: string
+          likes?: number | null
+          usuario_id: string
+          video_id: string
+        }
+        Update: {
+          conteudo?: string
+          criado_em?: string
+          id?: string
+          likes?: number | null
+          usuario_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_video_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curtidas_video: {
+        Row: {
+          criado_em: string
+          id: string
+          usuario_id: string
+          video_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          usuario_id: string
+          video_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          usuario_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curtidas_video_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enderecos: {
         Row: {
           bairro: string
@@ -841,14 +905,116 @@ export type Database = {
         }
         Relationships: []
       }
+      videos: {
+        Row: {
+          ativo: boolean | null
+          comentarios: number | null
+          criado_em: string
+          descricao: string | null
+          id: string
+          item_cardapio_id: string | null
+          likes: number | null
+          restaurante_id: string
+          thumbnail_url: string | null
+          titulo: string
+          video_url: string
+          views: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          comentarios?: number | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          item_cardapio_id?: string | null
+          likes?: number | null
+          restaurante_id: string
+          thumbnail_url?: string | null
+          titulo: string
+          video_url: string
+          views?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          comentarios?: number | null
+          criado_em?: string
+          descricao?: string | null
+          id?: string
+          item_cardapio_id?: string | null
+          likes?: number | null
+          restaurante_id?: string
+          thumbnail_url?: string | null
+          titulo?: string
+          video_url?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_item_cardapio_id_fkey"
+            columns: ["item_cardapio_id"]
+            isOneToOne: false
+            referencedRelation: "itens_cardapio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_restaurante_id_fkey"
+            columns: ["restaurante_id"]
+            isOneToOne: false
+            referencedRelation: "restaurantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos_salvos: {
+        Row: {
+          criado_em: string
+          id: string
+          usuario_id: string
+          video_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          usuario_id: string
+          video_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          usuario_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_salvos_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      increment_video_views: {
+        Args: {
+          video_id: string
+        }
+        Returns: undefined
+      }
       tem_funcao: {
         Args: {
           funcao: Database["public"]["Enums"]["tipo_funcao_usuario"]
+        }
+        Returns: boolean
+      }
+      toggle_video_like: {
+        Args: {
+          video_id: string
+          user_id: string
         }
         Returns: boolean
       }
