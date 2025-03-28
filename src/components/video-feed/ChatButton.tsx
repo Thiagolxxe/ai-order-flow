@@ -11,7 +11,7 @@ interface ChatButtonProps {
 
 const ChatButton = ({ onClick, disabled, errorState }: ChatButtonProps) => {
   return (
-    <div className="fixed right-4 bottom-24 flex flex-col items-center space-y-4 z-10">
+    <div className="fixed left-4 bottom-4 flex flex-col items-center space-y-4 z-20">
       <Button
         size="icon"
         variant="outline"

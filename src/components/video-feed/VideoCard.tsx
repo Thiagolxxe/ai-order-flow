@@ -142,25 +142,24 @@ const VideoCard = ({
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
       
       {/* Top info */}
-      <div className="absolute top-safe inset-x-0 p-4 text-white">
+      <div className="absolute top-0 inset-x-0 p-4 text-white z-20">
         <h2 className="font-semibold text-xl drop-shadow-lg">{video.dishName}</h2>
         <p className="text-white/90 text-sm drop-shadow-md">{video.restaurantName}</p>
       </div>
       
-      {/* Side icons */}
-      <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6">
+      {/* Side icons - moved to the right with proper spacing */}
+      <div className="absolute right-4 top-1/3 flex flex-col items-center space-y-8 z-20">
         <div className="flex flex-col items-center">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
             onClick={onLike}
+            className="rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white w-12 h-12 hover:scale-110 transition-all"
           >
             <Heart 
-              size={24} 
-              className={isLiked ? "fill-primary text-primary" : "hover:fill-primary hover:text-primary transition-colors"} 
+              size={26} 
+              className={isLiked ? "fill-primary text-primary" : "text-white hover:text-primary transition-colors"} 
             />
-            <span className="sr-only">Curtir</span>
           </Button>
           <span className="text-white text-xs mt-1 font-medium">{video.likes}</span>
         </div>
@@ -168,46 +167,33 @@ const VideoCard = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
-          onClick={onShare}
-        >
-          <Share2 size={24} />
-          <span className="sr-only">Compartilhar</span>
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
           onClick={onComment}
+          className="rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white w-12 h-12 hover:scale-110 transition-all"
         >
-          <MessageCircle size={24} />
-          <span className="sr-only">Comentar</span>
+          <MessageCircle size={26} />
         </Button>
         
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
-          onClick={onViewRestaurant}
+          onClick={onShare}
+          className="rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white w-12 h-12 hover:scale-110 transition-all"
         >
-          <Info size={24} />
-          <span className="sr-only">Informações</span>
+          <Share2 size={26} />
         </Button>
         
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white w-11 h-11 hover:scale-110 transition-all"
-          onClick={onMuteToggle}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onViewRestaurant}
+          className="rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white w-12 h-12 hover:scale-110 transition-all"
         >
-          {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-          <span className="sr-only">{muted ? 'Ativar som' : 'Desativar som'}</span>
+          <Info size={26} />
         </Button>
       </div>
       
       {/* Bottom info */}
-      <div className="absolute bottom-safe inset-x-0 p-4 text-white">
+      <div className="absolute bottom-20 inset-x-0 px-4 text-white z-20">
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold">R$ {video.price.toFixed(2).replace('.', ',')}</p>
           <Button 
@@ -220,6 +206,17 @@ const VideoCard = ({
         </div>
         <p className="text-sm text-white/90 line-clamp-2">{video.description}</p>
       </div>
+      
+      {/* Volume button at the bottom right */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute bottom-4 right-4 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white w-12 h-12 hover:scale-110 transition-all z-20"
+        onClick={onMuteToggle}
+      >
+        {muted ? <VolumeX size={26} /> : <Volume2 size={26} />}
+        <span className="sr-only">{muted ? 'Ativar som' : 'Desativar som'}</span>
+      </Button>
     </div>
   );
 };

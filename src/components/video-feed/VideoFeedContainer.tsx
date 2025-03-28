@@ -42,7 +42,7 @@ const VideoFeedContainer = ({
             video={video}
             isActive={index === activeVideoIndex}
             muted={muted}
-            isLiked={likedVideos.includes(video.id)}
+            isLiked={likedVideos && likedVideos.includes(video.id)}
             onMuteToggle={onMuteToggle}
             onViewRestaurant={() => onViewRestaurant(video.restaurantId)}
             onLike={() => onLike(video.id)}

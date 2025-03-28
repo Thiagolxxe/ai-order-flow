@@ -2,7 +2,6 @@
 import React from 'react';
 import VideoFeedContainer from '@/components/video-feed/VideoFeedContainer';
 import VideoControls from '@/components/video-feed/VideoControls';
-import ChatButton from '@/components/video-feed/ChatButton';
 import { useVideoFeed } from '@/hooks/useVideoFeed';
 
 const VideoFeed = () => {
@@ -14,7 +13,6 @@ const VideoFeed = () => {
     feedContainerRef,
     likedVideos,
     handleScroll,
-    openChat,
     handleNext,
     handlePrevious,
     toggleMute,
@@ -31,7 +29,7 @@ const VideoFeed = () => {
         videos={videos}
         activeVideoIndex={activeVideoIndex}
         muted={muted}
-        likedVideos={likedVideos}
+        likedVideos={likedVideos || []}
         onMuteToggle={toggleMute}
         onViewRestaurant={handleViewRestaurant}
         onLike={handleLike}
@@ -39,12 +37,6 @@ const VideoFeed = () => {
         onComment={handleComment}
         containerRef={feedContainerRef}
         onScroll={handleScroll}
-      />
-      
-      <ChatButton
-        onClick={() => openChat(activeVideo.dishName, activeVideo.restaurantName)}
-        disabled={!!errorState}
-        errorState={errorState}
       />
       
       <VideoControls 
