@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Video } from '@/hooks/useVideoFeed';
-import VideoCard from '@/components/video-feed/VideoCard';
+import VideoCard from '@/components/video-feed/video-card';
 
 interface VideoFeedContainerProps {
   videos: Video[];
