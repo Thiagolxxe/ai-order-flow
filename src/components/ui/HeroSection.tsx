@@ -1,24 +1,45 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Store } from 'lucide-react';
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  imageSrc?: string;
+}
+
+const HeroSection = ({ 
+  title = "Entregas rápidas e saborosas com Inteligência Artificial",
+  subtitle = "Peça sua comida favorita de restaurantes locais com a conveniência da IA.",
+  ctaText = "Descobrir Restaurantes",
+  ctaLink = "/restaurantes",
+  imageSrc = "/images/hero-food.webp"
+}: HeroSectionProps) => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5">
       <div className="container px-4 py-16 md:py-24 lg:py-32 mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-              Entregas rápidas e saborosas com <span className="text-primary">Inteligência Artificial</span>
+              {title.includes("Inteligência Artificial") ? (
+                <>
+                  Entregas rápidas e saborosas com <span className="text-primary">Inteligência Artificial</span>
+                </>
+              ) : (
+                title
+              )}
             </h1>
             <p className="text-lg sm:text-xl text-foreground/80">
-              Peça sua comida favorita de restaurantes locais com a conveniência da IA.
+              {subtitle}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg">
-                <Link to="/restaurantes">Descobrir Restaurantes</Link>
+                <Link to={ctaLink}>{ctaText}</Link>
               </Button>
               
               {/* Restaurante button */}
@@ -35,7 +56,7 @@ const HeroSection = () => {
           
           <div className="relative">
             <img
-              src="/images/hero-food.webp"
+              src={imageSrc}
               alt="Comida deliciosa"
               className="w-full rounded-lg shadow-xl object-cover aspect-video"
             />
