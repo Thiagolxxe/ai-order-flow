@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Video } from '@/hooks/useVideoFeed';
+import { Video } from '@/hooks/video-feed/types';
 import VideoCard from '@/components/video-feed/video-card';
 
 interface VideoFeedContainerProps {

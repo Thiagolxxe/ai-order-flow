@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Video } from '@/hooks/useVideoFeed';
+import { Video } from '@/hooks/video-feed/types';
 
 interface VideoInfoProps {
   video: Video;

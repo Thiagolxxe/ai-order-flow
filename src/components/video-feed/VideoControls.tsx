@@ -1,18 +1,7 @@
-
 import React from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface Video {
-  id: string;
-  restaurantId: string;
-  restaurantName: string;
-  dishName: string;
-  price: number;
-  videoUrl: string;
-  likes: number;
-  description: string;
-}
+import { Video } from '@/hooks/video-feed/types';
 
 interface VideoControlsProps {
   video: Video;

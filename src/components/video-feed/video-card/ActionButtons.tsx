@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Heart, Share2, Info, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Video } from '@/hooks/useVideoFeed';
+import { Video } from '@/hooks/video-feed/types';
 
 interface ActionButtonsProps {
   video: Video;

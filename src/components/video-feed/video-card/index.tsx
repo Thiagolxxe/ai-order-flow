@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Video } from '@/hooks/useVideoFeed';
+import { Video } from '@/hooks/video-feed/types';
 import VideoPlayer from './VideoPlayer';
 import VideoInfo from './VideoInfo';
 import ActionButtons from './ActionButtons';

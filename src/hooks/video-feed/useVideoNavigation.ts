@@ -23,10 +23,11 @@ export const useVideoNavigation = (
 
   const handleNext = useCallback(() => {
     if (activeVideoIndex < videosLength - 1) {
-      setActiveVideoIndex(prev => prev + 1);
+      const nextIndex = activeVideoIndex + 1;
+      setActiveVideoIndex(nextIndex);
       if (feedContainerRef.current) {
         feedContainerRef.current.scrollTo({
-          top: feedContainerRef.current.clientHeight * (activeVideoIndex + 1),
+          top: feedContainerRef.current.clientHeight * nextIndex,
           behavior: 'smooth'
         });
       }
@@ -35,10 +36,11 @@ export const useVideoNavigation = (
 
   const handlePrevious = useCallback(() => {
     if (activeVideoIndex > 0) {
-      setActiveVideoIndex(prev => prev - 1);
+      const prevIndex = activeVideoIndex - 1;
+      setActiveVideoIndex(prevIndex);
       if (feedContainerRef.current) {
         feedContainerRef.current.scrollTo({
-          top: feedContainerRef.current.clientHeight * (activeVideoIndex - 1),
+          top: feedContainerRef.current.clientHeight * prevIndex,
           behavior: 'smooth'
         });
       }
