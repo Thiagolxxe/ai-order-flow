@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +20,9 @@ import Register from "./pages/Register";
 import UserProfile from "./pages/UserProfile";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/OrderDetails";
+
+// Nova página de cadastro de restaurante
+import RestaurantSignup from "./pages/RestaurantSignup";
 
 // Páginas administrativas
 import RestaurantAdmin from "./pages/admin/RestaurantAdmin";
@@ -59,6 +61,9 @@ const App = () => (
                 <Route path="/perfil" element={<UserProfile />} />
                 <Route path="/pedidos" element={<OrderHistory />} />
                 <Route path="/pedido/:id" element={<OrderDetails />} />
+                
+                {/* Nova rota para cadastro de restaurantes */}
+                <Route path="/restaurante/cadastro" element={<RestaurantSignup />} />
                 
                 {/* Mantendo a rota original do Index para acesso via /home */}
                 <Route path="/home" element={<Index />} />
