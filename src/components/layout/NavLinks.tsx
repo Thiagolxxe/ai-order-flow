@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { PlayCircle, Flame } from 'lucide-react';
+import { PlayCircle, Flame, Store } from 'lucide-react';
 
 const NavLinks = () => {
   const location = useLocation();
@@ -40,6 +40,13 @@ const NavLinks = () => {
       </Link>
       <Link to="/pedidos" className={linkClasses('/pedidos')}>
         Meus Pedidos
+      </Link>
+      <Link to="/restaurante/cadastro" className={cn(
+        linkClasses('/restaurante/cadastro'),
+        "flex items-center gap-1 text-primary font-medium hover:text-primary/80"
+      )}>
+        <Store size={18} />
+        Para Restaurantes
       </Link>
     </nav>
   );

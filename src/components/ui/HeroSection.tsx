@@ -1,82 +1,48 @@
-
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from './button';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Store } from 'lucide-react';
 
-// Default fallback image from Unsplash
-const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000';
-
-export interface HeroSectionProps {
-  title: string;
-  subtitle: string;
-  ctaText: string;
-  ctaLink: string;
-  imageSrc: string;
-  className?: string;
-  imageClassName?: string;
-  contentClassName?: string;
-}
-
-export const HeroSection = ({
-  title,
-  subtitle,
-  ctaText,
-  ctaLink,
-  imageSrc,
-  className,
-  imageClassName,
-  contentClassName
-}: HeroSectionProps) => {
-  // Check if image URL is valid and use fallback if not
-  const [imageUrl, setImageUrl] = useState(
-    imageSrc && (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) 
-      ? imageSrc 
-      : DEFAULT_HERO_IMAGE
-  );
-
-  const handleImageError = () => {
-    console.log('Hero image failed to load:', imageUrl);
-    setImageUrl(DEFAULT_HERO_IMAGE);
-  };
-
+const HeroSection = () => {
   return (
-    <div className={cn(
-      'relative overflow-hidden bg-background py-10 md:py-16',
-      className
-    )}>
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div className={cn(
-            'flex flex-col space-y-6 text-center md:text-left',
-            contentClassName
-          )}>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
-            <p className="text-xl text-muted-foreground">{subtitle}</p>
+    <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5">
+      <div className="container px-4 py-16 md:py-24 lg:py-32 mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div className="flex flex-col space-y-6">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+              Entregas rápidas e saborosas com <span className="text-primary">Inteligência Artificial</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-foreground/80">
+              Peça sua comida favorita de restaurantes locais com a conveniência da IA.
+            </p>
             
-            <div className="flex justify-center md:justify-start">
-              <Button size="lg" asChild>
-                <Link to={ctaLink}>{ctaText}</Link>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button asChild size="lg">
+                <Link to="/restaurantes">Descobrir Restaurantes</Link>
               </Button>
+              
+              {/* Restaurante button */}
+              <div className="mt-4">
+                <Button asChild size="lg" variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-white">
+                  <Link to="/restaurante/cadastro" className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    <span>Cadastre seu Restaurante</span>
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
           
-          <div className="order-first md:order-last">
-            <div className={cn(
-              'aspect-video rounded-xl overflow-hidden shadow-lg',
-              imageClassName
-            )}>
-              <img 
-                src={imageUrl} 
-                alt="Hero" 
-                className="w-full h-full object-cover"
-                onError={handleImageError}
-              />
-            </div>
+          <div className="relative">
+            <img
+              src="/images/hero-food.webp"
+              alt="Comida deliciosa"
+              className="w-full rounded-lg shadow-xl object-cover aspect-video"
+            />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

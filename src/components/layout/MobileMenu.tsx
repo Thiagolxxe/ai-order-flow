@@ -1,121 +1,115 @@
-
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Menu, Home, Store, Tag, Package, User, LogOut, PlayCircle } from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
+import { Separator } from "@/components/ui/separator"
+import { Menu, User, Settings, HelpCircle, LogOut, Store } from 'lucide-react';
 
 interface MobileMenuProps {
-  isOpen?: boolean;
-  userRole?: string | null;
-  isAuthenticated?: boolean;
+  isOpen: boolean;
+  userRole: string | null;
+  isAuthenticated: boolean;
+  setIsOpen?: (open: boolean) => void;
 }
 
 const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
-  const [open, setOpen] = useState(isOpen || false);
-  const { user, signOut } = useUser();
-  
-  const handleLinkClick = () => {
-    setOpen(false);
-  };
-  
+  const location = useLocation();
+  const { pathname } = location;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const navLinks = [
+    { href: "/", label: "Início", icon: <Menu className="h-5 w-5" /> },
+    { href: "/restaurantes", label: "Restaurantes", icon: <Menu className="h-5 w-5" /> },
+    { href: "/videos", label: "Vídeos", icon: <Menu className="h-5 w-5" /> },
+    { href: "/promocoes", label: "Promoções", icon: <Menu className="h-5 w-5" /> },
+    { href: "/pedidos", label: "Meus Pedidos", icon: <Menu className="h-5 w-5" /> },
+  ];
+
+  const adminLinks = [
+    { href: "/admin/restaurante", label: "Painel do Restaurante", icon: <Settings className="h-5 w-5" /> },
+  ];
+
+  const userLinks = [
+    { href: "/perfil", label: "Meu Perfil", icon: <User className="h-5 w-5" /> },
+    { href: "/configuracoes", label: "Configurações", icon: <Settings className="h-5 w-5" /> },
+    { href: "/ajuda", label: "Ajuda", icon: <HelpCircle className="h-5 w-5" /> },
+    { href: "/logout", label: "Sair", icon: <LogOut className="h-5 w-5" /> },
+  ];
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          aria-label="Menu"
-        >
-          <Menu className="h-6 w-6" />
-        </Button>
-      </SheetTrigger>
-      
-      <SheetContent side="left" className="w-64">
-        <div className="flex flex-col h-full py-6">
-          <div className="flex flex-col space-y-1 mb-8">
-            <Link
-              to="/"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-              onClick={handleLinkClick}
-            >
-              <Home className="mr-3 h-5 w-5" />
-              Início
-            </Link>
-            
-            <Link
-              to="/restaurantes"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-              onClick={handleLinkClick}
-            >
-              <Store className="mr-3 h-5 w-5" />
-              Restaurantes
-            </Link>
-            
-            <Link
-              to="/videos"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-muted text-primary transition-colors"
-              onClick={handleLinkClick}
-            >
-              <PlayCircle className="mr-3 h-5 w-5" />
-              Vídeos
-            </Link>
-            
-            <Link
-              to="/promocoes"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-              onClick={handleLinkClick}
-            >
-              <Tag className="mr-3 h-5 w-5" />
-              Promoções
-            </Link>
-            
-            <Link
-              to="/pedidos"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-              onClick={handleLinkClick}
-            >
-              <Package className="mr-3 h-5 w-5" />
-              Meus Pedidos
-            </Link>
-          </div>
-          
-          <div className="mt-auto">
-            {user ? (
-              <>
-                <Link
-                  to="/perfil"
-                  className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-                  onClick={handleLinkClick}
-                >
-                  <User className="mr-3 h-5 w-5" />
-                  Meu Perfil
-                </Link>
-                
-                <button
-                  className="w-full flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors text-left"
-                  onClick={() => {
-                    signOut();
-                    handleLinkClick();
-                  }}
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Sair
-                </button>
-              </>
-            ) : (
+    <Sheet open={isOpen} onOpenChange={setIsMobileMenuOpen}>
+      <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>Navegue pelo DeliverAI</SheetDescription>
+        </SheetHeader>
+        <div className="py-4">
+          <nav className="flex flex-col space-y-1">
+            {navLinks.map((link) => (
               <Link
-                to="/login"
-                className="flex items-center py-2 px-3 rounded-md hover:bg-muted transition-colors"
-                onClick={handleLinkClick}
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "flex items-center py-3 px-4 hover:bg-accent/50 transition-colors",
+                  link.href === pathname && "bg-accent/50 font-medium"
+                )}
               >
-                <User className="mr-3 h-5 w-5" />
-                Entrar
+                {link.icon}
+                <span className="ml-3">{link.label}</span>
               </Link>
+            ))}
+            <Separator className="my-2" />
+            <Link
+              to="/restaurante/cadastro"
+              className="flex items-center py-3 px-4 text-primary hover:bg-accent/50 transition-colors"
+            >
+              <Store className="h-5 w-5" />
+              <span className="ml-3 font-medium">Cadastrar Restaurante</span>
+            </Link>
+            <Separator className="my-2" />
+            {userRole === 'restaurante' && isAuthenticated && (
+              <>
+                {adminLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className={cn(
+                      "flex items-center py-3 px-4 hover:bg-accent/50 transition-colors",
+                      link.href === pathname && "bg-accent/50 font-medium"
+                    )}
+                  >
+                    {link.icon}
+                    <span className="ml-3">{link.label}</span>
+                  </Link>
+                ))}
+                <Separator className="my-2" />
+              </>
             )}
-          </div>
+            {isAuthenticated && (
+              <>
+                {userLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className={cn(
+                      "flex items-center py-3 px-4 hover:bg-accent/50 transition-colors",
+                      link.href === pathname && "bg-accent/50 font-medium"
+                    )}
+                  >
+                    {link.icon}
+                    <span className="ml-3">{link.label}</span>
+                  </Link>
+                ))}
+              </>
+            )}
+          </nav>
         </div>
       </SheetContent>
     </Sheet>
