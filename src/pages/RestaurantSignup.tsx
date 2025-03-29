@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -7,6 +6,7 @@ import * as z from 'zod';
 import { toast } from 'sonner';
 import { ArrowLeftIcon, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { registerRestaurantOwner } from '@/services/restaurantService';
 import {
   Form,
   FormControl,
@@ -138,18 +138,12 @@ const RestaurantSignup = () => {
 
       if (restaurantError) throw restaurantError;
 
-      // 3. Adicionar função de restaurante ao usuário
-      // Fix for ambiguous funcao column issue
-      const { error: roleError } = await supabase
-        .from('funcoes_usuario')
-        .insert({
-          usuario_id: userId,
-          funcao: 'restaurante', // Here's where the ambiguity likely happens
-        });
-
-      if (roleError) {
-        console.error("Error inserting role:", roleError);
-        throw roleError;
+      // 3. Use the registerRestaurantOwner service function instead of direct database access
+      try {
+        await registerRestaurantOwner(userId);
+      } catch (roleError) {
+        console.error("Error registering restaurant owner role:", roleError);
+        throw new Error('Erro ao registrar função de proprietário de restaurante');
       }
 
       toast.success('Restaurante cadastrado com sucesso!');

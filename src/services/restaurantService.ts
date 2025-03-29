@@ -99,14 +99,18 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
  * Makes sure to use explicit table and column references to avoid ambiguity
  */
 export const registerRestaurantOwner = async (userId: string) => {
+  // Use explicit column names to avoid ambiguity
   const { error } = await supabase
     .from('funcoes_usuario')
     .insert({
       usuario_id: userId,
-      funcao: 'restaurante',
+      funcao: 'restaurante' as any, // Type casting to avoid TS errors with enum type
     });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error in registerRestaurantOwner:", error);
+    throw error;
+  }
   
   return true;
 };
