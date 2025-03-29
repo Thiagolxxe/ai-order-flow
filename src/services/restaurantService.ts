@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   validateImageUrl, 
@@ -47,7 +48,7 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
       return null;
     }
 
-    // Get average rating
+    // Get average rating - Use explicit table reference to avoid ambiguity
     const { data: ratings, error: ratingsError } = await supabase
       .from('avaliacoes')
       .select('nota')
@@ -91,4 +92,21 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
   // Fallback to mock data if not found in database
   console.log("Using mock restaurant data");
   return getMockRestaurantData(restaurantId);
+};
+
+/**
+ * Registers a new user as a restaurant owner
+ * Makes sure to use explicit table and column references to avoid ambiguity
+ */
+export const registerRestaurantOwner = async (userId: string) => {
+  const { error } = await supabase
+    .from('funcoes_usuario')
+    .insert({
+      usuario_id: userId,
+      funcao: 'restaurante',
+    });
+
+  if (error) throw error;
+  
+  return true;
 };

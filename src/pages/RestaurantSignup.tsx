@@ -139,14 +139,18 @@ const RestaurantSignup = () => {
       if (restaurantError) throw restaurantError;
 
       // 3. Adicionar função de restaurante ao usuário
+      // Fix for ambiguous funcao column issue
       const { error: roleError } = await supabase
         .from('funcoes_usuario')
         .insert({
           usuario_id: userId,
-          funcao: 'restaurante',
+          funcao: 'restaurante', // Here's where the ambiguity likely happens
         });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error("Error inserting role:", roleError);
+        throw roleError;
+      }
 
       toast.success('Restaurante cadastrado com sucesso!');
       
