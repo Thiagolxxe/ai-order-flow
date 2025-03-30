@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   validateImageUrl, 
@@ -32,9 +31,7 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
         tipo_cozinha,
         logo_url,
         banner_url,
-        faixa_preco,
-        latitude,
-        longitude
+        faixa_preco
       `)
       .eq('id', restaurantId)
       .maybeSingle();
@@ -61,9 +58,9 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
     // Use banner_url if available, otherwise use logo_url or a default image
     const imageUrl = validateImageUrl(data.banner_url || data.logo_url);
     
-    // Use restaurant coordinates if available, otherwise use default coordinates
-    const lat = data.latitude || -23.5643;
-    const lng = data.longitude || -46.6527;
+    // Define default coordinates
+    const defaultLat = -23.5643;
+    const defaultLng = -46.6527;
     
     // Format and return restaurant data
     return {
@@ -74,8 +71,8 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
       rating: avgRating,
       imageUrl: imageUrl,
       deliveryPosition: {
-        lat: lat,
-        lng: lng
+        lat: defaultLat,
+        lng: defaultLng
       }
     };
   } catch (e) {
