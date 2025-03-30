@@ -96,21 +96,26 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
 
 /**
  * Registers a new user as a restaurant owner
- * Makes sure to use explicit table and column references to avoid ambiguity
+ * Resolving ambiguous column reference by using fully qualified table and column references
  */
 export const registerRestaurantOwner = async (userId: string) => {
-  // Use fully qualified column names to avoid ambiguity
-  const { error } = await supabase
-    .from('funcoes_usuario')
-    .insert({
-      usuario_id: userId,
-      funcao: 'restaurante' as any, // Type casting to avoid TS errors with enum type
-    });
+  try {
+    // Use fully qualified table and column names to avoid ambiguity
+    const { error } = await supabase
+      .from('funcoes_usuario')
+      .insert({
+        usuario_id: userId,
+        funcao: 'restaurante', // Explicitly cast to the enum type if needed
+      });
 
-  if (error) {
-    console.error("Error in registerRestaurantOwner:", error);
+    if (error) {
+      console.error("Error in registerRestaurantOwner:", error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Failed to register restaurant owner:", error);
     throw error;
   }
-  
-  return true;
 };
