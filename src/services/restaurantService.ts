@@ -99,7 +99,7 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
  * Makes sure to use explicit table and column references to avoid ambiguity
  */
 export const registerRestaurantOwner = async (userId: string) => {
-  // Use explicit column names to avoid ambiguity
+  // Use fully qualified column names to avoid ambiguity
   const { error } = await supabase
     .from('funcoes_usuario')
     .insert({
