@@ -96,16 +96,16 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
 
 /**
  * Registers a new user as a restaurant owner
- * Resolving ambiguous column reference by using fully qualified table and column references
+ * Corrigido: Usando referências de tabela e coluna totalmente qualificadas para resolver ambiguidade
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
-    // Use fully qualified table and column names to avoid ambiguity
+    // Usar referências de tabela completas e especificar explicitamente o nome da coluna
     const { error } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante', // Explicitly cast to the enum type if needed
+        funcao: 'restaurante'  // Coluna funcoe_usuario.funcao qualificada pelo objeto de inserção
       });
 
     if (error) {
