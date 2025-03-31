@@ -1,39 +1,42 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useGeminiAI } from '@/hooks/useGeminiAI';
 
 export const useChatInteraction = (setErrorState: (error: string | null) => void) => {
-  const { sendMessage } = useGeminiAI();
-  
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
   const openChat = useCallback((dishName: string, restaurantName: string) => {
     try {
-      // Prepare a welcome message about the specific dish
-      const initialPrompt = `Olá! Você está interessado no ${dishName} do restaurante ${restaurantName}? Posso ajudar com este pedido ou sugerir outras opções.`;
+      setIsLoading(true);
       
-      // Send the message to Gemini
-      sendMessage(initialPrompt)
-        .then(() => {
-          // Open the chat assistant modal
-          document.dispatchEvent(new CustomEvent('openGeminiChat'));
-          
-          // Show a toast confirming the action
-          toast.success(`Iniciando conversa sobre ${dishName}`);
-        })
-        .catch((error) => {
-          console.error('Error opening chat:', error);
-          toast.error('Não foi possível iniciar o chat agora. Tente novamente mais tarde.');
-          setErrorState('Erro ao iniciar chat');
-        });
+      // Store the context for the chat
+      const chatContext = {
+        dishName,
+        restaurantName,
+        timestamp: new Date().toISOString()
+      };
       
-      // Log for debugging
-      console.log(`Opening chat for ${dishName} from ${restaurantName}`);
+      // Save chat context to local storage for the chat page to use
+      localStorage.setItem('food_chat_context', JSON.stringify(chatContext));
+      
+      // Navigate to the chat page with context
+      navigate(`/chat/food`);
+      
+      return true;
     } catch (error) {
-      console.error('Error in openChat function:', error);
-      toast.error('Ocorreu um erro ao abrir o chat. Tente novamente.');
-      setErrorState('Erro ao iniciar chat');
+      console.error('Error opening chat:', error);
+      setErrorState('Não foi possível abrir o chat');
+      toast.error('Erro ao abrir o chat');
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-  }, [sendMessage, setErrorState]);
+  };
 
-  return { openChat };
+  return {
+    openChat,
+    isLoading
+  };
 };
