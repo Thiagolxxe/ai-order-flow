@@ -33,7 +33,7 @@ export const useChatInteraction = (setErrorState: (error: string | null) => void
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate, setErrorState]);
 
   return {
     openChat,
