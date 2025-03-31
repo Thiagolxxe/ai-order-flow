@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   validateImageUrl, 
@@ -6,6 +7,7 @@ import {
 } from '@/utils/restaurant-helpers';
 import { RestaurantDetailsData } from '@/hooks/useRestaurantDetails';
 import { isValidUUID } from '@/utils/id-helpers';
+import { toast } from '@/components/ui/use-toast';
 
 /**
  * Fetches restaurant data from Supabase
@@ -98,17 +100,77 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
 };
 
 /**
+ * Creates a new restaurant owner and restaurant
+ */
+export const createRestaurant = async (restaurantData: any, userData: any) => {
+  try {
+    // 1. Create user account first
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          nome: userData.nome,
+          sobrenome: userData.sobrenome,
+        }
+      }
+    });
+
+    if (signUpError) throw signUpError;
+
+    if (!authData.user) {
+      throw new Error('Falha ao criar conta de usuário');
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Register the restaurant
+    const { data: restaurant, error: restaurantError } = await supabase
+      .from('restaurantes')
+      .insert({
+        nome: restaurantData.nome,
+        tipo_cozinha: restaurantData.tipo_cozinha,
+        descricao: restaurantData.descricao || null,
+        telefone: restaurantData.telefone,
+        endereco: restaurantData.endereco,
+        cidade: restaurantData.cidade,
+        estado: restaurantData.estado,
+        cep: restaurantData.cep,
+        faixa_preco: restaurantData.faixa_preco,
+        proprietario_id: userId,
+      })
+      .select()
+      .single();
+
+    if (restaurantError) throw restaurantError;
+
+    // 3. Add restaurant owner role
+    const { error: roleError } = await supabase
+      .from('funcoes_usuario')
+      .insert({
+        usuario_id: userId,
+        funcao: 'restaurante'
+      });
+
+    if (roleError) throw roleError;
+
+    return { success: true, restaurantId: restaurant.id, userId };
+  } catch (error: any) {
+    console.error('Error creating restaurant:', error);
+    return { success: false, error: error.message || 'Erro ao cadastrar restaurante' };
+  }
+};
+
+/**
  * Registers a new user as a restaurant owner
- * Corrigido: Usando referências de tabela e coluna totalmente qualificadas para resolver ambiguidade
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
-    // Usar referências de tabela completas e especificar explicitamente o nome da coluna
     const { error } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante'  // Coluna funcoe_usuario.funcao qualificada pelo objeto de inserção
+        funcao: 'restaurante'
       });
 
     if (error) {
