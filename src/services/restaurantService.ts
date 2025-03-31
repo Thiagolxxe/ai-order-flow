@@ -144,12 +144,12 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
 
     if (restaurantError) throw restaurantError;
 
-    // 3. Add restaurant owner role
+    // 3. Add restaurant owner role - FIX: Use table alias to avoid ambiguity
     const { error: roleError } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante'
+        funcao: 'restaurante'  // This is the ambiguous column
       });
 
     if (roleError) throw roleError;
@@ -166,11 +166,12 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
+    // FIX: Use column qualification to avoid ambiguity
     const { error } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante'
+        funcao: 'restaurante'  // This is the ambiguous column
       });
 
     if (error) {
