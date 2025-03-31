@@ -121,6 +121,32 @@ export type Database = {
           },
         ]
       }
+      cidades: {
+        Row: {
+          estado_uf: string
+          id: number
+          nome: string
+        }
+        Insert: {
+          estado_uf: string
+          id?: number
+          nome: string
+        }
+        Update: {
+          estado_uf?: string
+          id?: number
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cidades_estado_uf_fkey"
+            columns: ["estado_uf"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["uf"]
+          },
+        ]
+      }
       comentarios_video: {
         Row: {
           conteudo: string
@@ -327,6 +353,21 @@ export type Database = {
           },
         ]
       }
+      estados: {
+        Row: {
+          nome: string
+          uf: string
+        }
+        Insert: {
+          nome: string
+          uf: string
+        }
+        Update: {
+          nome?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       favoritos: {
         Row: {
           criado_em: string
@@ -359,20 +400,20 @@ export type Database = {
       funcoes_usuario: {
         Row: {
           criado_em: string
-          funcao: Database["public"]["Enums"]["tipo_funcao_usuario"]
           id: string
+          role_name: Database["public"]["Enums"]["user_role_type"]
           usuario_id: string
         }
         Insert: {
           criado_em?: string
-          funcao: Database["public"]["Enums"]["tipo_funcao_usuario"]
           id?: string
+          role_name: Database["public"]["Enums"]["user_role_type"]
           usuario_id: string
         }
         Update: {
           criado_em?: string
-          funcao?: Database["public"]["Enums"]["tipo_funcao_usuario"]
           id?: string
+          role_name?: Database["public"]["Enums"]["user_role_type"]
           usuario_id?: string
         }
         Relationships: []
@@ -1007,7 +1048,7 @@ export type Database = {
       }
       tem_funcao: {
         Args: {
-          funcao: Database["public"]["Enums"]["tipo_funcao_usuario"]
+          funcao: Database["public"]["Enums"]["user_role_type"]
         }
         Returns: boolean
       }
@@ -1022,7 +1063,7 @@ export type Database = {
     Enums: {
       app_role: "superadmin" | "admin" | "regulador"
       notification_type: "order" | "promo" | "system"
-      tipo_funcao_usuario: "cliente" | "restaurante" | "entregador" | "admin"
+      user_role_type: "cliente" | "restaurante" | "entregador" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never

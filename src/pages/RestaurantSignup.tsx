@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeftIcon, CheckCircle, Loader2 } from 'lucide-react';
-import { createRestaurant } from '@/services/restaurantService';
-import { toast } from 'sonner';
+import { createRestaurant, fetchEstados, fetchCidadesByEstado } from '@/services/restaurantService';
+import { toast } from '@/components/ui/use-toast';
 
 import {
   Form,
@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Form schema with validation
 const restaurantSchema = z.object({
@@ -46,10 +47,24 @@ const restaurantSchema = z.object({
 
 type RestaurantFormValues = z.infer<typeof restaurantSchema>;
 
+// Define types for states and cities
+type Estado = {
+  uf: string;
+  nome: string;
+};
+
+type Cidade = {
+  id: number;
+  nome: string;
+};
+
 const RestaurantSignup = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [cidades, setCidades] = useState<Cidade[]>([]);
+  const [selectedEstado, setSelectedEstado] = useState<string>('');
   
   // Initialize form with validation
   const form = useForm<RestaurantFormValues>({
@@ -70,6 +85,37 @@ const RestaurantSignup = () => {
       sobrenome_usuario: '',
     },
   });
+
+  // Fetch states on component mount
+  useEffect(() => {
+    const loadEstados = async () => {
+      const data = await fetchEstados();
+      setEstados(data);
+    };
+    
+    loadEstados();
+  }, []);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    const loadCidades = async () => {
+      if (selectedEstado) {
+        const data = await fetchCidadesByEstado(selectedEstado);
+        setCidades(data);
+      } else {
+        setCidades([]);
+      }
+    };
+    
+    loadCidades();
+  }, [selectedEstado]);
+
+  // Handle state selection
+  const handleEstadoChange = (value: string) => {
+    setSelectedEstado(value);
+    form.setValue('estado', value);
+    form.setValue('cidade', ''); // Reset city when state changes
+  };
 
   // Handle form submission
   const onSubmit = async (data: RestaurantFormValues) => {
@@ -104,12 +150,20 @@ const RestaurantSignup = () => {
       }
       
       // Show success state
-      toast.success('Restaurante cadastrado com sucesso!');
+      toast({
+        title: "Cadastro realizado",
+        description: "Restaurante cadastrado com sucesso!",
+        variant: "default"
+      });
       setIsComplete(true);
       
     } catch (error: any) {
       console.error('Erro ao cadastrar restaurante:', error);
-      toast.error(error.message || 'Erro ao cadastrar restaurante');
+      toast({
+        title: "Erro",
+        description: error.message || 'Erro ao cadastrar restaurante',
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -266,13 +320,27 @@ const RestaurantSignup = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="cidade"
+                    name="estado"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cidade</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: São Paulo" {...field} />
-                        </FormControl>
+                        <FormLabel>Estado</FormLabel>
+                        <Select 
+                          onValueChange={handleEstadoChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {estados.map(estado => (
+                              <SelectItem key={estado.uf} value={estado.uf}>
+                                {estado.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -280,13 +348,28 @@ const RestaurantSignup = () => {
                   
                   <FormField
                     control={form.control}
-                    name="estado"
+                    name="cidade"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: SP" maxLength={2} {...field} />
-                        </FormControl>
+                        <FormLabel>Cidade</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          disabled={!selectedEstado}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={selectedEstado ? "Selecione uma cidade" : "Selecione um estado primeiro"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {cidades.map(cidade => (
+                              <SelectItem key={cidade.id} value={cidade.nome}>
+                                {cidade.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

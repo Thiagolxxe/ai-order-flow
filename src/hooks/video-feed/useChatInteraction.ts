@@ -1,7 +1,7 @@
 
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export const useChatInteraction = (setErrorState: (error: string | null) => void) => {
   const navigate = useNavigate();
@@ -28,7 +28,11 @@ export const useChatInteraction = (setErrorState: (error: string | null) => void
     } catch (error) {
       console.error('Error opening chat:', error);
       setErrorState('Não foi possível abrir o chat');
-      toast.error('Erro ao abrir o chat');
+      toast({
+        title: "Erro",
+        description: "Erro ao abrir o chat",
+        variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);

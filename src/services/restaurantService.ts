@@ -144,12 +144,12 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
 
     if (restaurantError) throw restaurantError;
 
-    // 3. Add restaurant owner role - FIX: Use table alias to avoid ambiguity
+    // 3. Add restaurant owner role - Fixed: Use new column name
     const { error: roleError } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante'  // This is the ambiguous column
+        role_name: 'restaurante'  // Updated field name
       });
 
     if (roleError) throw roleError;
@@ -166,12 +166,12 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
-    // FIX: Use column qualification to avoid ambiguity
+    // Updated field name to avoid ambiguity
     const { error } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        funcao: 'restaurante'  // This is the ambiguous column
+        role_name: 'restaurante'  // Updated field name
       });
 
     if (error) {
@@ -183,5 +183,54 @@ export const registerRestaurantOwner = async (userId: string) => {
   } catch (error) {
     console.error("Failed to register restaurant owner:", error);
     throw error;
+  }
+};
+
+// New functions to fetch states and cities
+
+/**
+ * Gets all Brazilian states from the database
+ */
+export const fetchEstados = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('estados')
+      .select('uf, nome')
+      .order('nome');
+
+    if (error) {
+      console.error('Error fetching states:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch states:', error);
+    return [];
+  }
+};
+
+/**
+ * Gets cities by state from the database
+ */
+export const fetchCidadesByEstado = async (uf: string) => {
+  if (!uf) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('cidades')
+      .select('id, nome')
+      .eq('estado_uf', uf)
+      .order('nome');
+
+    if (error) {
+      console.error('Error fetching cities:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch cities:', error);
+    return [];
   }
 };
