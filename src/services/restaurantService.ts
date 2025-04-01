@@ -168,7 +168,7 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'
+        role_name: 'restaurante'  // Updated from 'funcao' to 'role_name' to match the database schema
       });
 
     if (roleError) {
@@ -193,7 +193,7 @@ export const registerRestaurantOwner = async (userId: string) => {
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'
+        role_name: 'restaurante'  // Updated from 'funcao' to 'role_name'
       });
 
     if (error) {

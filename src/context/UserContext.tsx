@@ -240,7 +240,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       // Look up the user role from funcoes_usuario table
       const { data: userRoles, error: rolesError } = await supabase
         .from("funcoes_usuario")
-        .select("funcao")
+        .select("role_name") // Updated from "funcao" to "role_name"
         .eq("usuario_id", userId);
         
       if (rolesError) {
@@ -252,7 +252,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       console.log("User roles:", userRoles);
       
       // Use the first role or default to guest if none found
-      const userRole = userRoles?.length > 0 ? userRoles[0].funcao : "guest";
+      const userRole = userRoles?.length > 0 ? userRoles[0].role_name : "guest"; // Updated from "funcao" to "role_name"
       setRole(userRole);
     } catch (error) {
       console.error("Exception fetching profile:", error);
