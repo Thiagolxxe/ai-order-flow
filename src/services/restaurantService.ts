@@ -212,25 +212,33 @@ export const fetchEstados = async () => {
 
 /**
  * Gets cities by state from the database
+ * Modificado para garantir que todas as cidades sejam carregadas
  */
 export const fetchCidadesByEstado = async (uf: string) => {
   if (!uf) return [];
   
   try {
-    const { data, error } = await supabase
+    console.log(`Fetching cities for state: ${uf}`);
+    
+    // Usando .limit() com um número alto para garantir que todas as cidades sejam retornadas
+    // O padrão do Supabase é 1000, então definimos explicitamente para um valor maior
+    const { data, error, count } = await supabase
       .from('cidades')
-      .select('id, nome')
+      .select('id, nome', { count: 'exact' })
       .eq('estado_uf', uf)
-      .order('nome');
+      .order('nome')
+      .limit(5000); // Um limite alto para garantir que todas as cidades sejam retornadas
 
     if (error) {
       console.error('Error fetching cities:', error);
       throw error;
     }
 
+    console.log(`Fetched ${count} cities for state ${uf}`);
     return data || [];
   } catch (error) {
     console.error('Failed to fetch cities:', error);
     return [];
   }
 };
+

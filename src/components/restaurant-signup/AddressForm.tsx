@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchEstados, fetchCidadesByEstado } from '@/services/restaurantService';
 import { RestaurantFormValues } from '@/pages/RestaurantSignup';
+import { Loader2 } from 'lucide-react';
 
 // Define types for states and cities
 type Estado = {
@@ -38,6 +39,7 @@ const AddressForm = <
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [selectedEstado, setSelectedEstado] = useState<string>('');
+  const [isLoadingCidades, setIsLoadingCidades] = useState<boolean>(false);
   
   // Fetch states on component mount
   useEffect(() => {
@@ -53,8 +55,17 @@ const AddressForm = <
   useEffect(() => {
     const loadCidades = async () => {
       if (selectedEstado) {
-        const data = await fetchCidadesByEstado(selectedEstado);
-        setCidades(data);
+        setIsLoadingCidades(true);
+        try {
+          console.log(`Carregando cidades para: ${selectedEstado}`);
+          const data = await fetchCidadesByEstado(selectedEstado);
+          console.log(`Cidades carregadas: ${data.length}`);
+          setCidades(data);
+        } catch (error) {
+          console.error("Erro ao carregar cidades:", error);
+        } finally {
+          setIsLoadingCidades(false);
+        }
       } else {
         setCidades([]);
       }
@@ -65,8 +76,14 @@ const AddressForm = <
 
   // Handle state selection
   const handleEstadoChange = (value: string, onChange: (...event: any[]) => void) => {
+    console.log(`Estado selecionado: ${value}`);
     setSelectedEstado(value);
     onChange(value);
+    // Limpar a cidade selecionada quando mudar o estado
+    const cityField = control._fields?.cidade;
+    if (cityField) {
+      control._formValues.cidade = "";
+    }
   };
 
   return (
@@ -125,14 +142,34 @@ const AddressForm = <
               <Select 
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                disabled={!selectedEstado}
+                disabled={!selectedEstado || isLoadingCidades}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder={selectedEstado ? "Selecione uma cidade" : "Selecione um estado primeiro"} />
+                    {isLoadingCidades ? (
+                      <div className="flex items-center">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span>Carregando...</span>
+                      </div>
+                    ) : (
+                      <SelectValue 
+                        placeholder={
+                          selectedEstado 
+                            ? cidades.length > 0 
+                              ? "Selecione uma cidade" 
+                              : "Nenhuma cidade encontrada" 
+                            : "Selecione um estado primeiro"
+                        } 
+                      />
+                    )}
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
+                  {cidades.length === 0 && !isLoadingCidades && selectedEstado && (
+                    <div className="p-2 text-center text-muted-foreground">
+                      Nenhuma cidade encontrada
+                    </div>
+                  )}
                   {cidades.map(cidade => (
                     <SelectItem key={cidade.id} value={cidade.nome}>
                       {cidade.nome}
@@ -140,6 +177,11 @@ const AddressForm = <
                   ))}
                 </SelectContent>
               </Select>
+              {cidades.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {cidades.length} cidades disponíveis
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}
