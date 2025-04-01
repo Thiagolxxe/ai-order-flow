@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import {
   FormField,
   FormItem,
@@ -75,7 +75,7 @@ const AddressForm = <
       
       <FormField
         control={control}
-        name="endereco" as={FieldPath<TFieldValues>}
+        name={"endereco" as any}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Endereço</FormLabel>
@@ -90,7 +90,7 @@ const AddressForm = <
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FormField
           control={control}
-          name="estado" as={FieldPath<TFieldValues>}
+          name={"estado" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estado</FormLabel>
@@ -118,7 +118,7 @@ const AddressForm = <
         
         <FormField
           control={control}
-          name="cidade" as={FieldPath<TFieldValues>}
+          name={"cidade" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Cidade</FormLabel>
@@ -147,7 +147,7 @@ const AddressForm = <
         
         <FormField
           control={control}
-          name="cep" as={FieldPath<TFieldValues>}
+          name={"cep" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>CEP</FormLabel>

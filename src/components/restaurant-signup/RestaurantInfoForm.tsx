@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import {
   FormField,
   FormItem,
@@ -30,7 +30,7 @@ const RestaurantInfoForm = <
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={control}
-          name="nome" as={FieldPath<TFieldValues>}
+          name={"nome" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nome do Restaurante</FormLabel>
@@ -44,7 +44,7 @@ const RestaurantInfoForm = <
         
         <FormField
           control={control}
-          name="tipo_cozinha" as={FieldPath<TFieldValues>}
+          name={"tipo_cozinha" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo de Cozinha</FormLabel>
@@ -59,7 +59,7 @@ const RestaurantInfoForm = <
 
       <FormField
         control={control}
-        name="descricao" as={FieldPath<TFieldValues>}
+        name={"descricao" as any}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Descrição</FormLabel>
@@ -78,7 +78,7 @@ const RestaurantInfoForm = <
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={control}
-          name="telefone" as={FieldPath<TFieldValues>}
+          name={"telefone" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Telefone</FormLabel>
@@ -92,7 +92,7 @@ const RestaurantInfoForm = <
         
         <FormField
           control={control}
-          name="faixa_preco" as={FieldPath<TFieldValues>}
+          name={"faixa_preco" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Faixa de Preço (1-5)</FormLabel>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import {
   FormField,
   FormItem,
@@ -29,7 +29,7 @@ const UserAccountForm = <
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={control}
-          name="email" as={FieldPath<TFieldValues>}
+          name={"email" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
@@ -43,7 +43,7 @@ const UserAccountForm = <
         
         <FormField
           control={control}
-          name="password" as={FieldPath<TFieldValues>}
+          name={"password" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Senha</FormLabel>
@@ -59,7 +59,7 @@ const UserAccountForm = <
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={control}
-          name="nome_usuario" as={FieldPath<TFieldValues>}
+          name={"nome_usuario" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nome</FormLabel>
@@ -73,7 +73,7 @@ const UserAccountForm = <
         
         <FormField
           control={control}
-          name="sobrenome_usuario" as={FieldPath<TFieldValues>}
+          name={"sobrenome_usuario" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Sobrenome</FormLabel>
