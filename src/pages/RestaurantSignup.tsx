@@ -1,27 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeftIcon, CheckCircle, Loader2 } from 'lucide-react';
-import { createRestaurant, fetchEstados, fetchCidadesByEstado } from '@/services/restaurantService';
+import { ArrowLeftIcon, Loader2 } from 'lucide-react';
+import { createRestaurant } from '@/services/restaurantService';
 import { toast } from '@/components/ui/use-toast';
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Import our new components
+import RestaurantInfoForm from '@/components/restaurant-signup/RestaurantInfoForm';
+import AddressForm from '@/components/restaurant-signup/AddressForm';
+import UserAccountForm from '@/components/restaurant-signup/UserAccountForm';
+import CompletedSignup from '@/components/restaurant-signup/CompletedSignup';
 
 // Form schema with validation
 const restaurantSchema = z.object({
@@ -45,26 +41,11 @@ const restaurantSchema = z.object({
   sobrenome_usuario: z.string().min(2, { message: 'Sobrenome é obrigatório' }),
 });
 
-type RestaurantFormValues = z.infer<typeof restaurantSchema>;
-
-// Define types for states and cities
-type Estado = {
-  uf: string;
-  nome: string;
-};
-
-type Cidade = {
-  id: number;
-  nome: string;
-};
+export type RestaurantFormValues = z.infer<typeof restaurantSchema>;
 
 const RestaurantSignup = () => {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const [estados, setEstados] = useState<Estado[]>([]);
-  const [cidades, setCidades] = useState<Cidade[]>([]);
-  const [selectedEstado, setSelectedEstado] = useState<string>('');
   
   // Initialize form with validation
   const form = useForm<RestaurantFormValues>({
@@ -85,37 +66,6 @@ const RestaurantSignup = () => {
       sobrenome_usuario: '',
     },
   });
-
-  // Fetch states on component mount
-  useEffect(() => {
-    const loadEstados = async () => {
-      const data = await fetchEstados();
-      setEstados(data);
-    };
-    
-    loadEstados();
-  }, []);
-
-  // Fetch cities when state changes
-  useEffect(() => {
-    const loadCidades = async () => {
-      if (selectedEstado) {
-        const data = await fetchCidadesByEstado(selectedEstado);
-        setCidades(data);
-      } else {
-        setCidades([]);
-      }
-    };
-    
-    loadCidades();
-  }, [selectedEstado]);
-
-  // Handle state selection
-  const handleEstadoChange = (value: string) => {
-    setSelectedEstado(value);
-    form.setValue('estado', value);
-    form.setValue('cidade', ''); // Reset city when state changes
-  };
 
   // Handle form submission
   const onSubmit = async (data: RestaurantFormValues) => {
@@ -170,22 +120,7 @@ const RestaurantSignup = () => {
   };
 
   if (isComplete) {
-    return (
-      <div className="container flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="flex flex-col items-center text-center py-12">
-            <CheckCircle className="h-16 w-16 text-primary mb-4" />
-            <h3 className="text-2xl font-semibold mb-2">Cadastro realizado com sucesso!</h3>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Seu restaurante foi cadastrado com sucesso. Faça login para começar a gerenciar seu cardápio.
-            </p>
-            <Button asChild>
-              <Link to="/login">Fazer Login</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <CompletedSignup />;
   }
 
   return (
@@ -209,254 +144,17 @@ const RestaurantSignup = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {/* Restaurant Info Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informações do Restaurante</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="nome"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Restaurante</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Sabor Brasileiro" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="tipo_cozinha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Cozinha</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Italiana, Brasileira" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="descricao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Descreva seu restaurante em poucas palavras"
-                          className="resize-none"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="telefone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="faixa_preco"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Faixa de Preço (1-5)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min={1} 
-                            max={5}
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+              <RestaurantInfoForm control={form.control} />
 
               <Separator />
               
               {/* Address Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Endereço</h3>
-                
-                <FormField
-                  control={form.control}
-                  name="endereco"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Endereço</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Rua, número, bairro" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="estado"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <Select 
-                          onValueChange={handleEstadoChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um estado" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {estados.map(estado => (
-                              <SelectItem key={estado.uf} value={estado.uf}>
-                                {estado.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="cidade"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cidade</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={!selectedEstado}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={selectedEstado ? "Selecione uma cidade" : "Selecione um estado primeiro"} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cidades.map(cidade => (
-                              <SelectItem key={cidade.id} value={cidade.nome}>
-                                {cidade.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="cep"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CEP</FormLabel>
-                        <FormControl>
-                          <Input placeholder="00000-000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+              <AddressForm control={form.control} />
 
               <Separator />
 
               {/* Account Info Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informações de Acesso</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="seu@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="nome_usuario"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="sobrenome_usuario"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sobrenome</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu sobrenome" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+              <UserAccountForm control={form.control} />
 
               <CardFooter className="px-0 flex justify-between">
                 <Button variant="outline" asChild>
