@@ -10,13 +10,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchEstados, fetchCidadesByEstado } from '@/services/restaurantService';
 import { RestaurantFormValues } from '@/pages/RestaurantSignup';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 // Define types for states and cities
 type Estado = {
-  uf: string;
+  id: number;
+  sigla: string;
   nome: string;
 };
 
@@ -39,30 +40,60 @@ const AddressForm = <
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [selectedEstado, setSelectedEstado] = useState<string>('');
+  const [isLoadingEstados, setIsLoadingEstados] = useState<boolean>(true);
   const [isLoadingCidades, setIsLoadingCidades] = useState<boolean>(false);
+  const [errorEstados, setErrorEstados] = useState<string | null>(null);
+  const [errorCidades, setErrorCidades] = useState<string | null>(null);
   
-  // Fetch states on component mount
+  // Fetch states directly from IBGE API
   useEffect(() => {
-    const loadEstados = async () => {
-      const data = await fetchEstados();
-      setEstados(data);
+    const fetchEstados = async () => {
+      setIsLoadingEstados(true);
+      setErrorEstados(null);
+      
+      try {
+        const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
+        
+        if (!response.ok) {
+          throw new Error(`Erro ao carregar estados: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setEstados(data);
+      } catch (error) {
+        console.error("Erro ao buscar estados:", error);
+        setErrorEstados("Não foi possível carregar a lista de estados. Tente novamente mais tarde.");
+      } finally {
+        setIsLoadingEstados(false);
+      }
     };
     
-    loadEstados();
+    fetchEstados();
   }, []);
 
-  // Fetch cities when state changes
+  // Fetch cities when state changes - direct from IBGE API
   useEffect(() => {
-    const loadCidades = async () => {
+    const fetchCidades = async () => {
       if (selectedEstado) {
         setIsLoadingCidades(true);
+        setCidades([]);
+        setErrorCidades(null);
+        
         try {
           console.log(`Carregando cidades para: ${selectedEstado}`);
-          const data = await fetchCidadesByEstado(selectedEstado);
+          
+          const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedEstado}/municipios?orderBy=nome`);
+          
+          if (!response.ok) {
+            throw new Error(`Erro ao carregar cidades: ${response.status}`);
+          }
+          
+          const data = await response.json();
           console.log(`Cidades carregadas: ${data.length}`);
           setCidades(data);
         } catch (error) {
-          console.error("Erro ao carregar cidades:", error);
+          console.error("Erro ao buscar cidades:", error);
+          setErrorCidades("Não foi possível carregar a lista de cidades. Tente novamente mais tarde.");
         } finally {
           setIsLoadingCidades(false);
         }
@@ -71,7 +102,7 @@ const AddressForm = <
       }
     };
     
-    loadCidades();
+    fetchCidades();
   }, [selectedEstado]);
 
   // Handle state selection
@@ -79,7 +110,8 @@ const AddressForm = <
     console.log(`Estado selecionado: ${value}`);
     setSelectedEstado(value);
     onChange(value);
-    // Limpar a cidade selecionada quando mudar o estado
+    
+    // Clear the selected city when changing state
     const cityField = control._fields?.cidade;
     if (cityField) {
       control._formValues.cidade = "";
@@ -89,6 +121,16 @@ const AddressForm = <
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Endereço</h3>
+
+      {(errorEstados || errorCidades) && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>
+            {errorEstados || errorCidades}
+          </AlertDescription>
+        </Alert>
+      )}
       
       <FormField
         control={control}
@@ -114,15 +156,23 @@ const AddressForm = <
               <Select 
                 onValueChange={(value) => handleEstadoChange(value, field.onChange)}
                 defaultValue={field.value}
+                disabled={isLoadingEstados}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um estado" />
+                    {isLoadingEstados ? (
+                      <div className="flex items-center">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span>Carregando...</span>
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Selecione um estado" />
+                    )}
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {estados.map(estado => (
-                    <SelectItem key={estado.uf} value={estado.uf}>
+                    <SelectItem key={estado.id} value={estado.sigla}>
                       {estado.nome}
                     </SelectItem>
                   ))}
