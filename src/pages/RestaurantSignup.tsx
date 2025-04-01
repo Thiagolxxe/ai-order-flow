@@ -1,19 +1,21 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeftIcon, Loader2 } from 'lucide-react';
 import { createRestaurant } from '@/services/restaurantService';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-// Import our new components
+// Import our components
 import RestaurantInfoForm from '@/components/restaurant-signup/RestaurantInfoForm';
 import AddressForm from '@/components/restaurant-signup/AddressForm';
 import UserAccountForm from '@/components/restaurant-signup/UserAccountForm';
@@ -46,7 +48,22 @@ export type RestaurantFormValues = z.infer<typeof restaurantSchema>;
 const RestaurantSignup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
+  // Check for existing session
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log("User already logged in:", data.session.user.id);
+        // User is already logged in, we'll use this session when creating the restaurant
+      }
+    };
+    
+    checkSession();
+  }, []);
+
   // Initialize form with validation
   const form = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantSchema),
@@ -70,6 +87,7 @@ const RestaurantSignup = () => {
   // Handle form submission
   const onSubmit = async (data: RestaurantFormValues) => {
     setIsSubmitting(true);
+    setAuthError(null);
     
     try {
       // Prepare data for API
@@ -109,6 +127,7 @@ const RestaurantSignup = () => {
       
     } catch (error: any) {
       console.error('Erro ao cadastrar restaurante:', error);
+      setAuthError(error.message || 'Erro ao cadastrar restaurante');
       toast({
         title: "Erro",
         description: error.message || 'Erro ao cadastrar restaurante',
@@ -141,6 +160,13 @@ const RestaurantSignup = () => {
         </CardHeader>
 
         <CardContent>
+          {authError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Erro de autenticação</AlertTitle>
+              <AlertDescription>{authError}</AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {/* Restaurant Info Section */}

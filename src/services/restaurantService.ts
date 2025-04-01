@@ -104,27 +104,43 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
  */
 export const createRestaurant = async (restaurantData: any, userData: any) => {
   try {
-    // 1. Create user account first
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        data: {
-          nome: userData.nome,
-          sobrenome: userData.sobrenome,
+    // Check if we already have an authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let userId;
+    
+    if (!user) {
+      // 1. Create user account if not already authenticated
+      console.log("Creating new user account");
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            nome: userData.nome,
+            sobrenome: userData.sobrenome,
+          }
         }
+      });
+
+      if (signUpError) {
+        console.error("Sign up error:", signUpError);
+        throw signUpError;
       }
-    });
 
-    if (signUpError) throw signUpError;
+      if (!authData.user) {
+        throw new Error('Falha ao criar conta de usuário');
+      }
 
-    if (!authData.user) {
-      throw new Error('Falha ao criar conta de usuário');
+      userId = authData.user.id;
+    } else {
+      // Use existing authenticated user
+      userId = user.id;
+      console.log("Using existing authenticated user:", userId);
     }
 
-    const userId = authData.user.id;
-
-    // 2. Register the restaurant
+    // 2. Register the restaurant with the proprietario_id set to the user ID
+    console.log("Creating restaurant with owner ID:", userId);
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurantes')
       .insert({
@@ -142,19 +158,26 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       .select()
       .single();
 
-    if (restaurantError) throw restaurantError;
+    if (restaurantError) {
+      console.error("Restaurant creation error:", restaurantError);
+      throw restaurantError;
+    }
 
-    // 3. Add restaurant owner role - Fixed: Use new column name
+    // 3. Add restaurant owner role
     const { error: roleError } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'  // Updated field name
+        role_name: 'restaurante'
       });
 
-    if (roleError) throw roleError;
+    if (roleError) {
+      console.error("Role assignment error:", roleError);
+      throw roleError;
+    }
 
-    return { success: true, restaurantId: restaurant.id, userId };
+    console.log("Restaurant created successfully:", restaurant?.id);
+    return { success: true, restaurantId: restaurant?.id, userId };
   } catch (error: any) {
     console.error('Error creating restaurant:', error);
     return { success: false, error: error.message || 'Erro ao cadastrar restaurante' };
@@ -166,12 +189,11 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
-    // Updated field name to avoid ambiguity
     const { error } = await supabase
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'  // Updated field name
+        role_name: 'restaurante'
       });
 
     if (error) {
