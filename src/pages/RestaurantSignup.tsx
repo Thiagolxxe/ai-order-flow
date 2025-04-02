@@ -49,6 +49,8 @@ const RestaurantSignup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
   const navigate = useNavigate();
   
   // Check for existing session
@@ -63,6 +65,27 @@ const RestaurantSignup = () => {
     
     checkSession();
   }, []);
+
+  // Rate limit countdown effect
+  useEffect(() => {
+    let interval: number | undefined;
+    
+    if (isRateLimited && rateLimitCountdown > 0) {
+      interval = window.setInterval(() => {
+        setRateLimitCountdown((prev) => {
+          if (prev <= 1) {
+            setIsRateLimited(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRateLimited, rateLimitCountdown]);
 
   // Initialize form with validation
   const form = useForm<RestaurantFormValues>({
@@ -114,6 +137,18 @@ const RestaurantSignup = () => {
       const result = await createRestaurant(restaurantData, userData);
       
       if (!result.success) {
+        // Handle rate limiting
+        if (result.isRateLimited) {
+          setIsRateLimited(true);
+          setRateLimitCountdown(60);
+          setAuthError(result.error);
+          toast({
+            title: "Limite de tentativas excedido",
+            description: result.error,
+            variant: "destructive"
+          });
+          return;
+        }
         throw new Error(result.error);
       }
       
@@ -163,7 +198,12 @@ const RestaurantSignup = () => {
           {authError && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Erro de autenticação</AlertTitle>
-              <AlertDescription>{authError}</AlertDescription>
+              <AlertDescription>
+                {isRateLimited 
+                  ? `${authError} (${rateLimitCountdown}s restantes)` 
+                  : authError
+                }
+              </AlertDescription>
             </Alert>
           )}
           
@@ -186,12 +226,14 @@ const RestaurantSignup = () => {
                 <Button variant="outline" asChild>
                   <Link to="/">Cancelar</Link>
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || isRateLimited}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processando...
                     </>
+                  ) : isRateLimited ? (
+                    `Aguarde ${rateLimitCountdown}s`
                   ) : (
                     'Finalizar Cadastro'
                   )}

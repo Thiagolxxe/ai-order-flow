@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -5,14 +6,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const SuperUserCreator = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  const startCountdown = (seconds: number) => {
+    setIsRateLimited(true);
+    setCountdown(seconds);
+    
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsRateLimited(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleCreateUser = async () => {
+    if (!email || !password) {
+      setError("Por favor, preencha o email e senha.");
+      return;
+    }
+
     setCreating(true);
+    setError(null);
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email: email,
@@ -20,7 +49,24 @@ const SuperUserCreator = () => {
       });
 
       if (error) {
+        // Handle rate limiting
+        if (error.message.includes("security purposes") || error.status === 429) {
+          const waitTime = 60; // Default wait time in seconds
+          const timeMatch = error.message.match(/after (\d+) seconds/);
+          const seconds = timeMatch ? parseInt(timeMatch[1]) : waitTime;
+          
+          setError(`Muitas tentativas recentes. Por favor, aguarde.`);
+          startCountdown(seconds);
+          toast({
+            title: "Limite de tentativas excedido",
+            description: `Tente novamente em ${seconds} segundos.`,
+            variant: "destructive"
+          });
+          return;
+        }
+
         console.error('Error creating user:', error);
+        setError(error.message);
         toast({
           title: "Erro ao criar usuário",
           description: error.message,
@@ -36,12 +82,13 @@ const SuperUserCreator = () => {
         const { error: roleError } = await supabase
           .from('funcoes_usuario')
           .insert({
-            usuario_id: newUser.id, // Use the correct user ID
-            role_name: 'admin' // Changed from 'funcao' to 'role_name'
+            usuario_id: newUser.id,
+            role_name: 'admin'
           });
 
         if (roleError) {
           console.error('Error assigning admin role:', roleError);
+          setError(roleError.message);
           toast({
             title: "Erro ao atribuir role de administrador",
             description: roleError.message,
@@ -51,14 +98,17 @@ const SuperUserCreator = () => {
         }
 
         console.log('Super user created successfully:', newUser.id);
+        setEmail('');
+        setPassword('');
         toast({
           title: "Usuário criado",
           description: "Usuário administrador criado com sucesso!",
           variant: "default"
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Unexpected error:', err);
+      setError(err.message || "Ocorreu um erro inesperado ao criar o usuário.");
       toast({
         title: "Erro inesperado",
         description: "Ocorreu um erro inesperado ao criar o usuário.",
@@ -79,6 +129,15 @@ const SuperUserCreator = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Erro</AlertTitle>
+              <AlertDescription>
+                {isRateLimited ? `${error} (${countdown}s restantes)` : error}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -98,8 +157,17 @@ const SuperUserCreator = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <Button onClick={handleCreateUser} disabled={creating}>
-            {creating ? 'Criando...' : 'Criar Usuário'}
+          <Button onClick={handleCreateUser} disabled={creating || isRateLimited}>
+            {creating ? (
+              <div className="flex items-center">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Criando...
+              </div>
+            ) : isRateLimited ? (
+              `Aguarde ${countdown}s`
+            ) : (
+              'Criar Usuário'
+            )}
           </Button>
         </CardContent>
       </Card>

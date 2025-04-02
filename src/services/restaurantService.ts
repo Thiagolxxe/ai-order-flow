@@ -110,29 +110,52 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
     let userId;
     
     if (!user) {
-      // 1. Create user account if not already authenticated
-      console.log("Creating new user account");
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            nome: userData.nome,
-            sobrenome: userData.sobrenome,
+      try {
+        // 1. Create user account if not already authenticated
+        console.log("Creating new user account");
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: {
+            data: {
+              nome: userData.nome,
+              sobrenome: userData.sobrenome,
+            }
           }
+        });
+
+        if (signUpError) {
+          // Handle rate limiting errors specifically
+          if (signUpError.message.includes("security purposes") || signUpError.status === 429) {
+            console.error("Rate limit reached:", signUpError);
+            return {
+              success: false, 
+              error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
+              isRateLimited: true
+            };
+          }
+          
+          console.error("Sign up error:", signUpError);
+          throw signUpError;
         }
-      });
 
-      if (signUpError) {
-        console.error("Sign up error:", signUpError);
-        throw signUpError;
+        if (!authData.user) {
+          throw new Error('Falha ao criar conta de usuário');
+        }
+
+        userId = authData.user.id;
+      } catch (authError: any) {
+        // Check for rate limit error in the catch block as well
+        if (authError.message.includes("security purposes") || authError.status === 429) {
+          console.error("Rate limit caught in catch:", authError);
+          return {
+            success: false, 
+            error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
+            isRateLimited: true
+          };
+        }
+        throw authError;
       }
-
-      if (!authData.user) {
-        throw new Error('Falha ao criar conta de usuário');
-      }
-
-      userId = authData.user.id;
     } else {
       // Use existing authenticated user
       userId = user.id;
@@ -168,7 +191,7 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'  // Updated from 'funcao' to 'role_name' to match the database schema
+        role_name: 'restaurante'
       });
 
     if (roleError) {
@@ -193,7 +216,7 @@ export const registerRestaurantOwner = async (userId: string) => {
       .from('funcoes_usuario')
       .insert({
         usuario_id: userId,
-        role_name: 'restaurante'  // Updated from 'funcao' to 'role_name'
+        role_name: 'restaurante'
       });
 
     if (error) {
