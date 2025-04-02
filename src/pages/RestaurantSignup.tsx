@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeftIcon, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, Loader2, AlertCircle } from 'lucide-react';
 import { createRestaurant } from '@/services/restaurantService';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +51,7 @@ const RestaurantSignup = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const [isRlsError, setIsRlsError] = useState(false);
   const navigate = useNavigate();
   
   // Check for existing session
@@ -115,6 +116,7 @@ const RestaurantSignup = () => {
     
     setIsSubmitting(true);
     setAuthError(null);
+    setIsRlsError(false);
     
     try {
       // Prepare data for API
@@ -141,6 +143,17 @@ const RestaurantSignup = () => {
       const result = await createRestaurant(restaurantData, userData);
       
       if (!result.success) {
+        // Handle RLS policy errors
+        if (result.isRlsError) {
+          setIsRlsError(true);
+          toast({
+            title: "Erro de permissão",
+            description: result.error,
+            variant: "destructive"
+          });
+          throw new Error(result.error);
+        }
+        
         // Handle rate limiting
         if (result.isRateLimited) {
           const waitTime = result.timeToWait || 60;
@@ -208,6 +221,16 @@ const RestaurantSignup = () => {
                   ? `${authError} (${rateLimitCountdown}s restantes)` 
                   : authError
                 }
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {isRlsError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertTitle>Erro de permissão</AlertTitle>
+              <AlertDescription>
+                Não foi possível criar o restaurante devido a restrições de segurança. Por favor, entre em contato com o suporte.
               </AlertDescription>
             </Alert>
           )}

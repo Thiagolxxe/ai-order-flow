@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   validateImageUrl, 
@@ -104,12 +103,12 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
  */
 export const createRestaurant = async (restaurantData: any, userData: any) => {
   try {
-    // Check if we already have an authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    // First, check if we already have an authenticated user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    let session = sessionData.session;
     let userId;
     
-    if (!user) {
+    if (!session) {
       // Only attempt to create a user if not already authenticated
       console.log("Creating new user account");
       
@@ -147,6 +146,13 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
         }
 
         userId = authData.user.id;
+        
+        // Store the session after signup
+        session = authData.session;
+
+        // Important: wait briefly to ensure auth is fully processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
       } catch (authError: any) {
         // Check for rate limit error in the catch block as well
         if (authError.message && (authError.message.includes("security purposes") || authError.status === 429)) {
@@ -162,10 +168,16 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       }
     } else {
       // Use existing authenticated user
-      userId = user.id;
+      userId = session.user.id;
       console.log("Using existing authenticated user:", userId);
     }
 
+    // Create a single auth client instance with the JWT from the session
+    const authClient = supabase.auth.setSession({
+      access_token: session!.access_token,
+      refresh_token: session!.refresh_token
+    });
+    
     // 2. Register the restaurant with the proprietario_id set to the user ID
     console.log("Creating restaurant with owner ID:", userId);
     const { data: restaurant, error: restaurantError } = await supabase
@@ -187,6 +199,16 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
 
     if (restaurantError) {
       console.error("Restaurant creation error:", restaurantError);
+      
+      if (restaurantError.code === '42501') {
+        // This is a Row Level Security violation
+        return { 
+          success: false, 
+          error: 'Permissão negada. Verifique se você está autenticado corretamente.',
+          isRlsError: true
+        };
+      }
+      
       throw restaurantError;
     }
 

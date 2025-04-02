@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 const SuperUserCreator = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +15,7 @@ const SuperUserCreator = () => {
   const [error, setError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isRlsError, setIsRlsError] = useState(false);
 
   // Function to extract wait time from error message
   const extractWaitTime = (errorMessage: string): number => {
@@ -58,8 +58,21 @@ const SuperUserCreator = () => {
     
     setCreating(true);
     setError(null);
+    setIsRlsError(false);
 
     try {
+      // Get existing session if any
+      const { data: sessionData } = await supabase.auth.getSession();
+      const existingSession = sessionData.session;
+      
+      // If we have a session, use it for creating the admin user
+      if (existingSession) {
+        await supabase.auth.setSession({
+          access_token: existingSession.access_token,
+          refresh_token: existingSession.refresh_token
+        });
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
@@ -94,6 +107,9 @@ const SuperUserCreator = () => {
       const newUser = data.user;
 
       if (newUser) {
+        // Briefly wait for auth to complete processing
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // Assign admin role to the new user
         const { error: roleError } = await supabase
           .from('funcoes_usuario')
@@ -104,6 +120,19 @@ const SuperUserCreator = () => {
 
         if (roleError) {
           console.error('Error assigning admin role:', roleError);
+          
+          if (roleError.code === '42501') {
+            // This is a Row Level Security violation
+            setIsRlsError(true);
+            setError('Permissão negada. Verifique se você está autenticado corretamente.');
+            toast({
+              title: "Erro de permissão",
+              description: "Não foi possível atribuir função de administrador devido a restrições de segurança.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
           setError(roleError.message);
           toast({
             title: "Erro ao atribuir role de administrador",
@@ -150,6 +179,17 @@ const SuperUserCreator = () => {
               <AlertTitle>Erro</AlertTitle>
               <AlertDescription>
                 {isRateLimited ? `${error} (${countdown}s restantes)` : error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isRlsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertTitle>Erro de permissão</AlertTitle>
+              <AlertDescription>
+                Não foi possível atribuir privilégios de administrador devido a restrições de segurança. 
+                Por favor, entre em contato com o suporte.
               </AlertDescription>
             </Alert>
           )}
