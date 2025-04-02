@@ -75,6 +75,7 @@ const RestaurantSignup = () => {
         setRateLimitCountdown((prev) => {
           if (prev <= 1) {
             setIsRateLimited(false);
+            setAuthError(null);
             return 0;
           }
           return prev - 1;
@@ -109,6 +110,9 @@ const RestaurantSignup = () => {
 
   // Handle form submission
   const onSubmit = async (data: RestaurantFormValues) => {
+    // Don't proceed if already submitting or rate limited
+    if (isSubmitting || isRateLimited) return;
+    
     setIsSubmitting(true);
     setAuthError(null);
     
@@ -139,12 +143,13 @@ const RestaurantSignup = () => {
       if (!result.success) {
         // Handle rate limiting
         if (result.isRateLimited) {
+          const waitTime = result.timeToWait || 60;
           setIsRateLimited(true);
-          setRateLimitCountdown(60);
-          setAuthError(result.error);
+          setRateLimitCountdown(waitTime);
+          setAuthError(`Muitas tentativas recentes. Por favor, aguarde.`);
           toast({
             title: "Limite de tentativas excedido",
-            description: result.error,
+            description: `Tente novamente em ${waitTime} segundos.`,
             variant: "destructive"
           });
           return;

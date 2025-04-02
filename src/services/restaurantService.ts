@@ -100,7 +100,7 @@ export const getRestaurantData = async (restaurantId: string): Promise<Restauran
 };
 
 /**
- * Creates a new restaurant owner and restaurant
+ * Creates a new restaurant owner and restaurant with enhanced error handling
  */
 export const createRestaurant = async (restaurantData: any, userData: any) => {
   try {
@@ -110,9 +110,11 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
     let userId;
     
     if (!user) {
+      // Only attempt to create a user if not already authenticated
+      console.log("Creating new user account");
+      
       try {
-        // 1. Create user account if not already authenticated
-        console.log("Creating new user account");
+        // 1. Create user account
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: userData.email,
           password: userData.password,
@@ -131,7 +133,8 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
             return {
               success: false, 
               error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
-              isRateLimited: true
+              isRateLimited: true,
+              timeToWait: extractWaitTime(signUpError.message)
             };
           }
           
@@ -146,12 +149,13 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
         userId = authData.user.id;
       } catch (authError: any) {
         // Check for rate limit error in the catch block as well
-        if (authError.message.includes("security purposes") || authError.status === 429) {
+        if (authError.message && (authError.message.includes("security purposes") || authError.status === 429)) {
           console.error("Rate limit caught in catch:", authError);
           return {
             success: false, 
             error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
-            isRateLimited: true
+            isRateLimited: true,
+            timeToWait: extractWaitTime(authError.message)
           };
         }
         throw authError;
@@ -206,6 +210,23 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
     return { success: false, error: error.message || 'Erro ao cadastrar restaurante' };
   }
 };
+
+/**
+ * Extract wait time from Supabase rate limiting error message
+ */
+function extractWaitTime(errorMessage: string): number {
+  // Default wait time in seconds if we can't extract it
+  const defaultWaitTime = 60;
+  
+  // Try to extract the wait time from the error message
+  // Example message: "For security purposes, you can only request this after 46 seconds"
+  const match = errorMessage.match(/after (\d+) seconds/);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  
+  return defaultWaitTime;
+}
 
 /**
  * Registers a new user as a restaurant owner

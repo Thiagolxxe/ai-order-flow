@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,21 +17,35 @@ const SuperUserCreator = () => {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  const startCountdown = (seconds: number) => {
-    setIsRateLimited(true);
-    setCountdown(seconds);
-    
-    const interval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsRateLimited(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // Function to extract wait time from error message
+  const extractWaitTime = (errorMessage: string): number => {
+    const defaultWaitTime = 60;
+    const timeMatch = errorMessage.match(/after (\d+) seconds/);
+    return timeMatch ? parseInt(timeMatch[1]) : defaultWaitTime;
   };
+
+  // Rate limit countdown effect
+  useEffect(() => {
+    let interval: number | undefined;
+    
+    if (isRateLimited && countdown > 0) {
+      interval = window.setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setIsRateLimited(false);
+            setError(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRateLimited, countdown]);
 
   const handleCreateUser = async () => {
     if (!email || !password) {
@@ -39,6 +53,9 @@ const SuperUserCreator = () => {
       return;
     }
 
+    // Don't proceed if already in progress or rate limited
+    if (creating || isRateLimited) return;
+    
     setCreating(true);
     setError(null);
 
@@ -51,15 +68,14 @@ const SuperUserCreator = () => {
       if (error) {
         // Handle rate limiting
         if (error.message.includes("security purposes") || error.status === 429) {
-          const waitTime = 60; // Default wait time in seconds
-          const timeMatch = error.message.match(/after (\d+) seconds/);
-          const seconds = timeMatch ? parseInt(timeMatch[1]) : waitTime;
+          const waitTime = extractWaitTime(error.message);
           
           setError(`Muitas tentativas recentes. Por favor, aguarde.`);
-          startCountdown(seconds);
+          setIsRateLimited(true);
+          setCountdown(waitTime);
           toast({
             title: "Limite de tentativas excedido",
-            description: `Tente novamente em ${seconds} segundos.`,
+            description: `Tente novamente em ${waitTime} segundos.`,
             variant: "destructive"
           });
           return;
@@ -146,6 +162,7 @@ const SuperUserCreator = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={creating || isRateLimited}
             />
           </div>
           <div className="grid gap-2">
@@ -155,6 +172,7 @@ const SuperUserCreator = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={creating || isRateLimited}
             />
           </div>
           <Button onClick={handleCreateUser} disabled={creating || isRateLimited}>
