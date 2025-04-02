@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -93,28 +94,36 @@ const DeliveryRegistration = () => {
 
       const userId = authData.user.id;
 
-      // 2. Create delivery person profile
-      const { error: profileError } = await supabase
-        .from('entregadores')
-        .insert({
-          usuario_id: userId,
+      // 2. Create delivery person profile in perfis table
+      const { error: perfilError } = await supabase
+        .from('perfis')
+        .upsert({
+          id: userId,
           nome: data.nome,
           sobrenome: data.sobrenome,
           telefone: data.telefone,
-          cpf: data.cpf,
-          cnh: data.cnh,
-          endereco: data.endereco,
-          cidade: data.cidade,
-          estado: data.estado,
-          cep: data.cep,
-          status: 'pendente', // Initial status is pending approval
+          endereco: data.endereco
         });
 
-      if (profileError) {
-        throw profileError;
+      if (perfilError) {
+        throw perfilError;
       }
 
-      // 3. Add delivery person role
+      // 3. Create delivery person in entregadores table
+      // The entregadores table uses the user's ID as its primary key
+      const { error: entregadorError } = await supabase
+        .from('entregadores')
+        .insert({
+          id: userId, // Using the ID as both primary key and user reference
+          tipo_veiculo: 'moto', // Default value, can be updated later
+          ativo: false // Initial status is inactive until approved
+        });
+
+      if (entregadorError) {
+        throw entregadorError;
+      }
+
+      // 4. Add delivery person role
       const { error: roleError } = await supabase
         .from('funcoes_usuario')
         .insert({
@@ -124,6 +133,24 @@ const DeliveryRegistration = () => {
 
       if (roleError) {
         throw roleError;
+      }
+
+      // 5. Add address to enderecos table
+      const { error: addressError } = await supabase
+        .from('enderecos')
+        .insert({
+          usuario_id: userId,
+          label: 'Principal',
+          endereco: data.endereco,
+          cidade: data.cidade,
+          estado: data.estado,
+          cep: data.cep,
+          bairro: 'Centro', // Default value, can be updated later
+          isdefault: true
+        });
+
+      if (addressError) {
+        throw addressError;
       }
 
       // Show success state
