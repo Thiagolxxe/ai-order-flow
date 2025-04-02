@@ -1,7 +1,7 @@
 
 import { connectToDatabase } from "@/integrations/mongodb/client";
-import { ObjectId } from "mongodb";
-import bcrypt from "crypto-browserify";
+import { ObjectId } from "@/integrations/mongodb/client";
+import crypto from "crypto-browserify";
 
 export interface UserAuth {
   id: string;
@@ -27,7 +27,7 @@ const activeSessions: Record<string, Session> = {};
 
 // Hash password
 const hashPassword = (password: string): string => {
-  return bcrypt.createHash('sha256').update(password).digest('hex');
+  return crypto.createHash('sha256').update(password).digest('hex');
 };
 
 // Compare password with hash
@@ -50,7 +50,10 @@ export const authService = {
       
       // Create new user
       const hashedPassword = hashPassword(password);
+      const userId = new ObjectId().toString();
+      
       const user = {
+        _id: userId,
         email,
         password: hashedPassword,
         user_metadata: userData || {},
@@ -58,7 +61,6 @@ export const authService = {
       };
       
       const result = await collection.insertOne(user);
-      const userId = result.insertedId.toString();
       
       // Create user profile
       await db.collection("profiles").insertOne({
@@ -186,7 +188,7 @@ export const authService = {
       const collection = db.collection("users");
       
       await collection.updateOne(
-        { _id: new ObjectId(userId) },
+        { _id: userId },
         { $set: { user_metadata: data } }
       );
       

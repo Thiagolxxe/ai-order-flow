@@ -12,23 +12,37 @@ interface AddressFormProps {
 const AddressForm = ({ control }: AddressFormProps) => {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Seu endereço</h3>
+      <h3 className="text-lg font-medium">Endereço</h3>
       
       <FormField
         control={control}
         name="endereco"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Endereço completo</FormLabel>
+            <FormLabel>Endereço</FormLabel>
             <FormControl>
-              <Input placeholder="Rua, número, etc." {...field} />
+              <Input placeholder="Rua, número" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <FormField
+        control={control}
+        name="complemento"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Complemento</FormLabel>
+            <FormControl>
+              <Input placeholder="Apartamento, bloco, etc." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={control}
           name="cidade"
@@ -36,7 +50,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
             <FormItem>
               <FormLabel>Cidade</FormLabel>
               <FormControl>
-                <Input placeholder="Sua cidade" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -48,7 +62,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
           name="estado"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Estado (UF)</FormLabel>
+              <FormLabel>Estado</FormLabel>
               <FormControl>
                 <Input placeholder="SP" maxLength={2} {...field} />
               </FormControl>
@@ -57,7 +71,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
           )}
         />
       </div>
-
+      
       <FormField
         control={control}
         name="cep"
@@ -65,7 +79,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
           <FormItem>
             <FormLabel>CEP</FormLabel>
             <FormControl>
-              <Input placeholder="XXXXX-XXX" {...field} />
+              <Input placeholder="00000-000" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

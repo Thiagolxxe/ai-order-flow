@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { ArrowLeftIcon, Loader2, AlertCircle } from 'lucide-react';
 import { createRestaurant } from '@/services/restaurantService';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { authService } from '@/services/authService';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -51,13 +51,12 @@ const RestaurantSignup = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
-  const [isRlsError, setIsRlsError] = useState(false);
   const navigate = useNavigate();
   
   // Check for existing session
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await authService.getSession();
       if (data.session) {
         console.log("User already logged in:", data.session.user.id);
         // User is already logged in, we'll use this session when creating the restaurant
@@ -116,7 +115,6 @@ const RestaurantSignup = () => {
     
     setIsSubmitting(true);
     setAuthError(null);
-    setIsRlsError(false);
     
     try {
       // Prepare data for API
@@ -143,30 +141,6 @@ const RestaurantSignup = () => {
       const result = await createRestaurant(restaurantData, userData);
       
       if (!result.success) {
-        // Handle RLS policy errors
-        if (result.isRlsError) {
-          setIsRlsError(true);
-          toast({
-            title: "Erro de permissão",
-            description: result.error,
-            variant: "destructive"
-          });
-          throw new Error(result.error);
-        }
-        
-        // Handle rate limiting
-        if (result.isRateLimited) {
-          const waitTime = result.timeToWait || 60;
-          setIsRateLimited(true);
-          setRateLimitCountdown(waitTime);
-          setAuthError(`Muitas tentativas recentes. Por favor, aguarde.`);
-          toast({
-            title: "Limite de tentativas excedido",
-            description: `Tente novamente em ${waitTime} segundos.`,
-            variant: "destructive"
-          });
-          return;
-        }
         throw new Error(result.error);
       }
       
@@ -221,16 +195,6 @@ const RestaurantSignup = () => {
                   ? `${authError} (${rateLimitCountdown}s restantes)` 
                   : authError
                 }
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {isRlsError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <AlertTitle>Erro de permissão</AlertTitle>
-              <AlertDescription>
-                Não foi possível criar o restaurante devido a restrições de segurança. Por favor, entre em contato com o suporte.
               </AlertDescription>
             </Alert>
           )}

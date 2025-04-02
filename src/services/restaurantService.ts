@@ -1,6 +1,6 @@
 
 import { connectToDatabase } from "@/integrations/mongodb/client";
-import { ObjectId } from "mongodb";
+import { ObjectId } from "@/integrations/mongodb/client";
 import { authService } from "./authService";
 
 /**
@@ -18,7 +18,7 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
     
     // Fetch restaurant data
     const restaurant = await db.collection("restaurants").findOne({
-      _id: new ObjectId(restaurantId)
+      _id: restaurantId
     });
 
     if (!restaurant) {
@@ -28,7 +28,7 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
 
     // Get average rating
     const ratings = await db.collection("ratings")
-      .find({ restaurantId: new ObjectId(restaurantId) })
+      .find({ restaurantId: restaurantId })
       .toArray();
     
     const avgRating = calculateAverageRating(ratings);
@@ -116,7 +116,7 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       estado: restaurantData.estado,
       cep: restaurantData.cep,
       faixa_preco: restaurantData.faixa_preco,
-      proprietario_id: new ObjectId(userId),
+      proprietario_id: userId,
       created_at: new Date()
     };
     
@@ -128,12 +128,12 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
 
     // Add restaurant owner role
     await db.collection("user_roles").insertOne({
-      userId: new ObjectId(userId),
+      userId: userId,
       role: "restaurante",
       created_at: new Date()
     });
 
-    console.log("Restaurant created successfully:", result.insertedId);
+    console.log("Restaurant created successfully:", result.insertedId.toString());
     return { success: true, restaurantId: result.insertedId.toString(), userId };
   } catch (error: any) {
     console.error('Error creating restaurant:', error);
@@ -187,7 +187,7 @@ export const registerRestaurantOwner = async (userId: string) => {
     const { db } = await connectToDatabase();
     
     await db.collection("user_roles").insertOne({
-      userId: new ObjectId(userId),
+      userId: userId,
       role: "restaurante",
       created_at: new Date()
     });
