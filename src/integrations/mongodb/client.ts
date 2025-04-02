@@ -2,16 +2,18 @@
 // This file provides a browser-safe MongoDB client interface
 // For browser environments, we'll use REST API endpoints instead of direct MongoDB driver
 
-// MongoDB Atlas connection string - Replace this with your own
-const ATLAS_APP_ID = "<your-atlas-app-id>"; // Replace with your MongoDB Atlas App ID
+import { ServerApiVersion } from "mongodb";
+
+// MongoDB Atlas connection string
+const MONGODB_URI = "mongodb+srv://Deliverai:b0C2Qg6LblURU1LK@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Browser-compatible MongoDB client
 class BrowserMongoClient {
   private baseUrl: string;
   private dbName: string;
   
-  constructor(appId: string, dbName: string = "delivery_app") {
-    this.baseUrl = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
+  constructor(uri: string, dbName: string = "delivery_app") {
+    this.baseUrl = uri;
     this.dbName = dbName;
   }
   
@@ -218,7 +220,7 @@ export class ObjectId {
 }
 
 // Create a client instance
-const client = new BrowserMongoClient(ATLAS_APP_ID);
+const client = new BrowserMongoClient(MONGODB_URI);
 
 // Cached connection
 let cached = {
@@ -243,3 +245,6 @@ export async function connectToDatabase() {
   cached.conn = await cached.promise;
   return cached.conn;
 }
+
+// Export ServerApiVersion for compatibility
+export { ServerApiVersion };

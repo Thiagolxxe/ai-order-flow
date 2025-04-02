@@ -21,7 +21,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
           <FormItem>
             <FormLabel>Endereço</FormLabel>
             <FormControl>
-              <Input placeholder="Rua, número" {...field} />
+              <Input placeholder="Rua e número" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -35,7 +35,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
           <FormItem>
             <FormLabel>Complemento</FormLabel>
             <FormControl>
-              <Input placeholder="Apartamento, bloco, etc." {...field} />
+              <Input placeholder="Apartamento, bloco, etc (opcional)" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -50,7 +50,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
             <FormItem>
               <FormLabel>Cidade</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input placeholder="Cidade" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -64,7 +64,7 @@ const AddressForm = ({ control }: AddressFormProps) => {
             <FormItem>
               <FormLabel>Estado</FormLabel>
               <FormControl>
-                <Input placeholder="SP" maxLength={2} {...field} />
+                <Input placeholder="UF" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

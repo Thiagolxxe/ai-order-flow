@@ -1,55 +1,34 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const CompletedSignup = () => {
   return (
-    <div className="container flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
-      <Card className="w-full max-w-md text-center">
+    <div className="container py-8 px-4 max-w-md mx-auto">
+      <Card>
         <CardHeader>
-          <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-green-100">
+            <CheckIcon className="h-8 w-8 text-green-600" />
           </div>
-          <CardTitle className="text-2xl">Cadastro Concluído</CardTitle>
-          <CardDescription>
-            Seu cadastro como entregador foi realizado com sucesso!
-          </CardDescription>
+          <CardTitle className="text-center">Cadastro realizado com sucesso!</CardTitle>
         </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <p>
-            Agora você já pode começar a receber solicitações de entrega e 
-            acompanhar seu desempenho no painel de entregador.
+        <CardContent className="text-center">
+          <p className="text-muted-foreground mb-6">
+            Seu cadastro foi realizado com sucesso. Nossa equipe irá analisar suas informações
+            e entraremos em contato em breve.
           </p>
-          
-          <p>
-            Dicas importantes:
-          </p>
-          
-          <ul className="text-left space-y-2 text-sm">
-            <li className="flex items-start">
-              <span className="mr-2">•</span>
-              <span>Mantenha seu GPS ativado durante as entregas para melhor rastreamento.</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2">•</span>
-              <span>Verifique suas notificações regularmente para aceitar novos pedidos.</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2">•</span>
-              <span>Entre em contato com o suporte caso precise de ajuda durante as entregas.</span>
-            </li>
-          </ul>
+          <div className="space-y-4">
+            <Button asChild className="w-full">
+              <Link to="/delivery/dashboard">Ir para o Dashboard</Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link to="/">Voltar para Home</Link>
+            </Button>
+          </div>
         </CardContent>
-        
-        <CardFooter className="flex justify-center">
-          <Button asChild>
-            <Link to="/delivery/dashboard">Ir para o Painel</Link>
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

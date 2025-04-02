@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useUser } from '@/context/UserContext';
-import type NotificationType from "@/components/notifications/NotificationType";
+import { NotificationType } from "@/components/notifications/NotificationType";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BellIcon, CheckCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
