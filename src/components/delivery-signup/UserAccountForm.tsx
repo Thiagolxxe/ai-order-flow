@@ -41,6 +41,36 @@ const UserAccountForm = ({ control }: UserAccountFormProps) => {
           </FormItem>
         )}
       />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={control}
+          name="nome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input placeholder="Seu nome" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name="sobrenome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sobrenome</FormLabel>
+              <FormControl>
+                <Input placeholder="Seu sobrenome" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 };

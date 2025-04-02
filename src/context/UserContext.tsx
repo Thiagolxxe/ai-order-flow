@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -5,14 +6,37 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
-import { Session } from "@supabase/supabase-js";
-import {
-  AddressType,
-  NotificationType,
-  UserRole,
-} from "@/integrations/supabase/custom-types";
+import { authService, Session } from "@/services/authService";
+import { connectToDatabase } from "@/integrations/mongodb/client";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { ObjectId } from "mongodb";
+
+interface AddressType {
+  id: string;
+  userId: string;
+  label: string;
+  endereco: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  isDefault: boolean;
+  createdAt: Date;
+}
+
+interface NotificationType {
+  id: string;
+  userId: string;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  idRelacionado: string;
+  lida: boolean;
+  createdAt: Date;
+}
+
+type UserRole = 'cliente' | 'restaurante' | 'entregador' | 'admin' | 'guest';
 
 interface UserContextType {
   isAuthenticated: boolean;
@@ -29,7 +53,7 @@ interface UserContextType {
   fetchAddresses: () => Promise<void>;
   setDefaultAddress: (addressId: string) => Promise<void>;
   addAddress: (
-    address: Omit<AddressType, "id" | "usuario_id" | "criado_em">
+    address: Omit<AddressType, "id" | "userId" | "createdAt" | "isDefault"> & { isDefault?: boolean }
   ) => Promise<{ data: any; error: any }>;
   updateAddress: (address: AddressType) => Promise<{ data: any; error: any }>;
   deleteAddress: (addressId: string) => Promise<void>;
@@ -48,9 +72,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [addresses, setAddresses] = useState<AddressType[] | null>(null);
-  const [notifications, setNotifications] = useState<NotificationType[] | null>(
-    null
-  );
+  const [notifications, setNotifications] = useState<NotificationType[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -60,7 +82,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       
       try {
         // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        const { data: { session: initialSession } } = await authService.getSession();
         console.log("Initial session:", initialSession ? "Found" : "Not found");
         setSession(initialSession);
         
@@ -75,53 +97,53 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
           console.log("No active session found");
         }
         
-        setIsLoading(false);
-        
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            console.log("Auth state changed:", event);
-            setSession(newSession);
-            
-            if (newSession?.user) {
-              console.log("User authenticated:", newSession.user.id);
-              setUser(newSession.user);
-              setIsAuthenticated(true);
-              await fetchUserProfile(newSession.user.id);
-              await fetchAddresses();
-              await fetchNotifications();
-            } else {
-              console.log("User signed out or session expired");
-              setUser(null);
-              setIsAuthenticated(false);
-              setRole(null);
-              setAddresses(null);
-              setNotifications(null);
-            }
-          }
-        );
-        
-        return () => {
-          subscription.unsubscribe();
-        };
       } catch (error) {
         console.error("Error in session setup:", error);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchSession();
+    
+    // Setup a storage event listener to handle changes in other tabs
+    const handleStorageChange = async () => {
+      const { data } = await authService.getSession();
+      const newSession = data.session;
+      
+      if (newSession && (!session || newSession.access_token !== session.access_token)) {
+        setSession(newSession);
+        setUser(newSession.user);
+        setIsAuthenticated(true);
+        await fetchUserProfile(newSession.user.id);
+        await fetchAddresses();
+        await fetchNotifications();
+      } else if (!newSession && session) {
+        setSession(null);
+        setUser(null);
+        setIsAuthenticated(false);
+        setRole(null);
+        setAddresses(null);
+        setNotifications(null);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const signIn = async (provider: "google" | "github") => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}`,
-        },
+      // In this basic implementation, we don't support OAuth providers
+      // This would require additional setup with a service like Firebase Auth or Auth0
+      toast({
+        title: "Não implementado",
+        description: "O login com provedores sociais não está disponível nesta versão",
+        variant: "destructive",
       });
-      if (error) throw error;
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",
@@ -135,10 +157,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       console.log("Attempting login with:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await authService.signInWithPassword(email, password);
       
       if (error) {
         console.error("Login error:", error);
@@ -151,6 +170,17 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       }
       
       console.log("Login successful:", data?.user?.id);
+      
+      // Update state
+      if (data?.session) {
+        setSession(data.session);
+        setUser(data.user);
+        setIsAuthenticated(true);
+        await fetchUserProfile(data.user.id);
+        await fetchAddresses();
+        await fetchNotifications();
+      }
+      
       return { error: null };
     } catch (error: any) {
       console.error("Login exception:", error);
@@ -166,13 +196,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const signup = async (email: string, password: string, userData?: any) => {
     try {
       console.log("Attempting signup with:", email);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData,
-        },
-      });
+      const { data, error } = await authService.signUp(email, password, userData);
       
       if (error) {
         console.error("Signup error:", error);
@@ -185,6 +209,17 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       }
       
       console.log("Signup successful:", data?.user?.id);
+      
+      // Update state
+      if (data?.session) {
+        setSession(data.session);
+        setUser(data.user);
+        setIsAuthenticated(true);
+        await fetchUserProfile(data.user.id);
+        await fetchAddresses();
+        await fetchNotifications();
+      }
+      
       return { data, error: null };
     } catch (error: any) {
       console.error("Signup exception:", error);
@@ -200,13 +235,16 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const signOut = async (): Promise<boolean> => {
     try {
       console.log("Attempting signout");
-      const { error } = await supabase.auth.signOut();
+      const { error } = await authService.signOut();
       if (error) throw error;
+      
       setUser(null);
       setIsAuthenticated(false);
+      setSession(null);
       setRole(null);
       setAddresses(null);
       setNotifications(null);
+      
       console.log("Signout successful");
       return true;
     } catch (error: any) {
@@ -223,37 +261,37 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log("Fetching user profile for:", userId);
-      const { data: profile, error: profileError } = await supabase
-        .from("perfis")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      
+      const { db } = await connectToDatabase();
+      
+      // Get user profile
+      const profile = await db.collection("profiles").findOne({
+        userId: new ObjectId(userId)
+      });
 
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
+      if (!profile) {
+        console.log("Profile not found, creating a default one");
         setRole("guest");
         return;
       }
 
       console.log("Profile data:", profile);
 
-      // Look up the user role from funcoes_usuario table
-      const { data: userRoles, error: rolesError } = await supabase
-        .from("funcoes_usuario")
-        .select("role_name") // Updated from "funcao" to "role_name"
-        .eq("usuario_id", userId);
+      // Look up the user role
+      const userRole = await db.collection("user_roles").findOne({
+        userId: new ObjectId(userId)
+      });
         
-      if (rolesError) {
-        console.error("Error fetching user roles:", rolesError);
+      if (!userRole) {
+        console.log("Role not found, setting as guest");
         setRole("guest");
         return;
       }
       
-      console.log("User roles:", userRoles);
+      console.log("User role:", userRole);
       
-      // Use the first role or default to guest if none found
-      const userRole = userRoles?.length > 0 ? userRoles[0].role_name : "guest"; // Updated from "funcao" to "role_name"
-      setRole(userRole);
+      // Set the role
+      setRole(userRole.role as UserRole || "guest");
     } catch (error) {
       console.error("Exception fetching profile:", error);
       setRole("guest");
@@ -269,21 +307,18 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       }
       
       console.log("Fetching addresses for user:", user.id);
-      const { data, error } = await supabase
-        .from("enderecos")
-        .select("*")
-        .eq("usuario_id", user.id);
+      
+      const { db } = await connectToDatabase();
+      
+      const addressesData = await db.collection("addresses")
+        .find({ userId: new ObjectId(user.id) })
+        .toArray();
 
-      if (error) {
-        console.error("Error fetching addresses:", error);
-        setAddresses([]);
-        return;
-      }
-
-      console.log("Addresses data:", data);
-      const formattedAddresses = data.map((address: any) => ({
-        id: address.id,
-        usuario_id: address.usuario_id,
+      console.log("Addresses data:", addressesData);
+      
+      const formattedAddresses = addressesData.map((address: any) => ({
+        id: address._id.toString(),
+        userId: address.userId.toString(),
         label: address.label,
         endereco: address.endereco,
         complemento: address.complemento,
@@ -291,8 +326,8 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
         cidade: address.cidade,
         estado: address.estado,
         cep: address.cep,
-        isdefault: address.isdefault,
-        criado_em: address.criado_em
+        isDefault: address.isDefault,
+        createdAt: address.createdAt
       }));
 
       setAddresses(formattedAddresses);
@@ -302,43 +337,27 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchAddresses().catch((error) => {
-        console.error("Erro ao buscar endereços:", error);
-      });
-    }
-  }, [user?.id]);
-
   const setDefaultAddressInternal = async (addressId: string) => {
     try {
-      // First, update all user addresses to set isdefault to false
-      const { error: updateError } = await supabase
-        .from("enderecos")
-        .update({ isdefault: false })  // Changed to lowercase
-        .eq("usuario_id", user?.id);
-
-      if (updateError) {
-        console.error("Erro ao atualizar endereços:", updateError);
-        return { error: updateError };
-      }
+      const { db } = await connectToDatabase();
+      
+      // First, update all user addresses to set isDefault to false
+      await db.collection("addresses").updateMany(
+        { userId: new ObjectId(user?.id) },
+        { $set: { isDefault: false } }
+      );
 
       // Then, set the selected address as default
-      const { error: setDefaultError } = await supabase
-        .from("enderecos")
-        .update({ isdefault: true })  // Changed to lowercase
-        .eq("id", addressId);
-
-      if (setDefaultError) {
-        console.error("Erro ao definir endereço padrão:", setDefaultError);
-        return { error: setDefaultError };
-      }
+      await db.collection("addresses").updateOne(
+        { _id: new ObjectId(addressId) },
+        { $set: { isDefault: true } }
+      );
 
       // Update addresses in state
       await fetchAddresses();
       return { error: null };
     } catch (error) {
-      console.error("Erro ao definir endereço padrão:", error);
+      console.error("Error setting default address:", error);
       return { error };
     }
   };
@@ -359,100 +378,120 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
     }
   };
 
-  const addAddress = async (address: Omit<AddressType, "id" | "usuario_id" | "criado_em">) => {
+  const addAddress = async (address: Omit<AddressType, "id" | "userId" | "createdAt" | "isDefault"> & { isDefault?: boolean }) => {
     try {
+      const { db } = await connectToDatabase();
+      
       // Check if this is the first address
-      const { data: existingAddresses } = await supabase
-        .from("enderecos")
-        .select("id")
-        .eq("usuario_id", user?.id);
+      const existingAddresses = await db.collection("addresses")
+        .find({ userId: new ObjectId(user?.id) })
+        .toArray();
 
       // If no addresses exist, set this one as default
-      const isFirst = !existingAddresses || existingAddresses.length === 0;
+      const isFirst = existingAddresses.length === 0;
 
-      const { data, error } = await supabase
-        .from("enderecos")
-        .insert({
-          ...address,
-          usuario_id: user?.id,
-          isdefault: isFirst || address.isdefault  // Changed to lowercase
-        })
-        .select()
-        .single();
+      const newAddress = {
+        userId: new ObjectId(user?.id),
+        ...address,
+        isDefault: isFirst || address.isDefault || false,
+        createdAt: new Date()
+      };
 
-      if (error) {
-        console.error("Erro ao adicionar endereço:", error);
-        return { data: null, error };
-      }
+      const result = await db.collection("addresses").insertOne(newAddress);
 
       // If this address is set as default, update other addresses
-      if (address.isdefault && !isFirst) {
-        await supabase
-          .from("enderecos")
-          .update({ isdefault: false })  // Changed to lowercase
-          .neq("id", data.id)
-          .eq("usuario_id", user?.id);
+      if ((address.isDefault || isFirst) && !isFirst) {
+        await db.collection("addresses").updateMany(
+          { 
+            userId: new ObjectId(user?.id),
+            _id: { $ne: result.insertedId }
+          },
+          { $set: { isDefault: false } }
+        );
       }
 
       // Update addresses in state
       await fetchAddresses();
-      return { data, error: null };
+      
+      return { 
+        data: {
+          id: result.insertedId.toString(),
+          ...newAddress,
+          userId: user?.id
+        }, 
+        error: null 
+      };
     } catch (error) {
-      console.error("Erro ao adicionar endereço:", error);
+      console.error("Error adding address:", error);
       return { data: null, error };
     }
   };
 
   const updateAddress = async (address: AddressType) => {
     try {
-      const { data, error } = await supabase
-        .from("enderecos")
-        .update({
-          ...address,
-        })
-        .eq("id", address.id)
-        .select()
-        .single();
+      const { db } = await connectToDatabase();
+      
+      const { id, userId, createdAt, ...updateData } = address;
+      
+      await db.collection("addresses").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateData }
+      );
 
-      if (error) {
-        console.error("Erro ao atualizar endereço:", error);
-        return { data: null, error };
+      // If setting this address as default, update other addresses
+      if (updateData.isDefault) {
+        await db.collection("addresses").updateMany(
+          { 
+            userId: new ObjectId(user?.id),
+            _id: { $ne: new ObjectId(id) }
+          },
+          { $set: { isDefault: false } }
+        );
       }
 
       // Update addresses in state
       await fetchAddresses();
-      return { data, error: null };
+      
+      return { data: address, error: null };
     } catch (error) {
-      console.error("Erro ao atualizar endereço:", error);
+      console.error("Error updating address:", error);
       return { data: null, error };
     }
   };
 
   const deleteAddress = async (addressId: string): Promise<void> => {
     try {
-      const { error } = await supabase
-        .from("enderecos")
-        .delete()
-        .eq("id", addressId);
+      const { db } = await connectToDatabase();
+      
+      // Check if the address is the default one
+      const address = addresses?.find(addr => addr.id === addressId);
+      const wasDefault = address?.isDefault;
+      
+      // Delete the address
+      await db.collection("addresses").deleteOne({
+        _id: new ObjectId(addressId)
+      });
 
-      if (error) {
-        console.error("Erro ao remover endereço:", error);
-        toast({
-          title: "Erro ao remover endereço",
-          description: "Não foi possível remover o endereço.",
-          variant: "destructive",
-        });
-        return;
+      // If the deleted address was the default, set another address as default
+      if (wasDefault && addresses && addresses.length > 1) {
+        const nextAddress = addresses.find(addr => addr.id !== addressId);
+        if (nextAddress) {
+          await db.collection("addresses").updateOne(
+            { _id: new ObjectId(nextAddress.id) },
+            { $set: { isDefault: true } }
+          );
+        }
       }
 
       // Update addresses in state
       await fetchAddresses();
+      
       toast({
         title: "Endereço removido",
         description: "O endereço foi removido com sucesso.",
       });
     } catch (error) {
-      console.error("Erro ao remover endereço:", error);
+      console.error("Error deleting address:", error);
       toast({
         title: "Erro ao remover endereço",
         description: "Não foi possível remover o endereço.",
@@ -470,48 +509,47 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
       }
       
       console.log("Fetching notifications for user:", user.id);
-      const { data, error } = await supabase
-        .from("notificacoes")
-        .select("*")
-        .eq("usuario_id", user.id)
-        .order("criado_em", { ascending: false });
+      
+      const { db } = await connectToDatabase();
+      
+      const notificationsData = await db.collection("notifications")
+        .find({ userId: new ObjectId(user.id) })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-      if (error) {
-        console.error("Error fetching notifications:", error);
-        setNotifications([]);
-        return;
-      }
+      console.log("Notifications data:", notificationsData);
+      
+      const formattedNotifications = notificationsData.map((notification: any) => ({
+        id: notification._id.toString(),
+        userId: notification.userId.toString(),
+        tipo: notification.tipo,
+        titulo: notification.titulo,
+        mensagem: notification.mensagem,
+        idRelacionado: notification.idRelacionado,
+        lida: notification.lida,
+        createdAt: notification.createdAt
+      }));
 
-      console.log("Notifications data:", data);
-      // Ensure the data structure matches NotificationType
-      setNotifications(data || []);
+      setNotifications(formattedNotifications);
     } catch (error) {
       console.error("Exception fetching notifications:", error);
       setNotifications([]);
     }
   };
 
-  const markNotificationAsRead = async (
-    notificationId: string
-  ): Promise<void> => {
+  const markNotificationAsRead = async (notificationId: string): Promise<void> => {
     try {
       console.log("Marking notification as read:", notificationId);
-      const { error } = await supabase
-        .from("notificacoes")
-        .update({ lida: true })
-        .eq("id", notificationId);
-
-      if (error) {
-        console.error("Error marking notification as read:", error);
-        toast({
-          title: "Erro ao marcar notificação como lida",
-          description: "Não foi possível marcar a notificação como lida.",
-          variant: "destructive",
-        });
-        return;
-      }
+      
+      const { db } = await connectToDatabase();
+      
+      await db.collection("notifications").updateOne(
+        { _id: new ObjectId(notificationId) },
+        { $set: { lida: true } }
+      );
 
       console.log("Notification marked as read successfully");
+      
       // Update notifications in state
       setNotifications(
         notifications?.map((notification) =>

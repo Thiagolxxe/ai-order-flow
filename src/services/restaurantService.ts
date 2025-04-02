@@ -1,63 +1,37 @@
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  validateImageUrl, 
-  calculateAverageRating, 
-  getMockRestaurantData 
-} from '@/utils/restaurant-helpers';
-import { RestaurantDetailsData } from '@/hooks/useRestaurantDetails';
-import { isValidUUID } from '@/utils/id-helpers';
-import { toast } from '@/components/ui/use-toast';
+
+import { connectToDatabase } from "@/integrations/mongodb/client";
+import { ObjectId } from "mongodb";
+import { authService } from "./authService";
 
 /**
- * Fetches restaurant data from Supabase
+ * Fetches restaurant data from MongoDB
  */
-export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise<RestaurantDetailsData | null> => {
+export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise<any | null> => {
   try {
-    // Check if the ID is a valid UUID format first
-    if (!isValidUUID(restaurantId)) {
-      console.warn(`Invalid UUID format for restaurant ID: ${restaurantId}`);
+    // Check if the ID is valid
+    if (!ObjectId.isValid(restaurantId)) {
+      console.warn(`Invalid ID format for restaurant ID: ${restaurantId}`);
       return null;
     }
 
+    const { db } = await connectToDatabase();
+    
     // Fetch restaurant data
-    const { data, error: queryError } = await supabase
-      .from('restaurantes')
-      .select(`
-        id, 
-        nome, 
-        descricao, 
-        endereco, 
-        cidade,
-        estado,
-        tipo_cozinha,
-        logo_url,
-        banner_url,
-        faixa_preco
-      `)
-      .eq('id', restaurantId)
-      .maybeSingle();
+    const restaurant = await db.collection("restaurants").findOne({
+      _id: new ObjectId(restaurantId)
+    });
 
-    if (queryError) {
-      console.error("Error fetching restaurant:", queryError);
-      throw new Error(queryError.message);
-    }
-
-    // If no data found, return null
-    if (!data) {
+    if (!restaurant) {
       console.log("Restaurant not found in database");
       return null;
     }
 
-    // Get average rating - Use explicit table reference to avoid ambiguity
-    const { data: ratings, error: ratingsError } = await supabase
-      .from('avaliacoes')
-      .select('nota')
-      .eq('restaurante_id', restaurantId);
+    // Get average rating
+    const ratings = await db.collection("ratings")
+      .find({ restaurantId: new ObjectId(restaurantId) })
+      .toArray();
     
-    const avgRating = ratingsError ? 4.5 : calculateAverageRating(ratings);
-
-    // Use banner_url if available, otherwise use logo_url or a default image
-    const imageUrl = validateImageUrl(data.banner_url || data.logo_url);
+    const avgRating = calculateAverageRating(ratings);
     
     // Define default coordinates
     const defaultLat = -23.5643;
@@ -65,12 +39,12 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
     
     // Format and return restaurant data
     return {
-      id: data.id,
-      name: data.nome,
-      address: `${data.endereco}, ${data.cidade} - ${data.estado}`,
-      cuisine: data.tipo_cozinha,
+      id: restaurant._id.toString(),
+      name: restaurant.nome,
+      address: `${restaurant.endereco}, ${restaurant.cidade} - ${restaurant.estado}`,
+      cuisine: restaurant.tipo_cozinha,
       rating: avgRating,
-      imageUrl: imageUrl,
+      imageUrl: restaurant.banner_url || restaurant.logo_url,
       deliveryPosition: {
         lat: defaultLat,
         lng: defaultLng
@@ -83,28 +57,12 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
 };
 
 /**
- * Gets restaurant data, either from the database or fallback mock data
- */
-export const getRestaurantData = async (restaurantId: string): Promise<RestaurantDetailsData> => {
-  // Try to fetch from database first
-  const dbRestaurant = await fetchRestaurantFromDatabase(restaurantId);
-  
-  if (dbRestaurant) {
-    return dbRestaurant;
-  }
-  
-  // Fallback to mock data if not found in database
-  console.log("Using mock restaurant data");
-  return getMockRestaurantData(restaurantId);
-};
-
-/**
- * Creates a new restaurant owner and restaurant with enhanced error handling
+ * Creates a new restaurant owner and restaurant
  */
 export const createRestaurant = async (restaurantData: any, userData: any) => {
   try {
-    // First, check if we already have an authenticated user session
-    const { data: sessionData } = await supabase.auth.getSession();
+    // First, check if we already have an authenticated session
+    const { data: sessionData } = await authService.getSession();
     let session = sessionData.session;
     let userId;
     
@@ -113,57 +71,29 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       console.log("Creating new user account");
       
       try {
-        // 1. Create user account
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
-          email: userData.email,
-          password: userData.password,
-          options: {
-            data: {
-              nome: userData.nome,
-              sobrenome: userData.sobrenome,
-            }
+        // Create user account
+        const { data: authData, error: signUpError } = await authService.signUp(
+          userData.email,
+          userData.password,
+          {
+            nome: userData.nome,
+            sobrenome: userData.sobrenome,
           }
-        });
+        );
 
         if (signUpError) {
-          // Handle rate limiting errors specifically
-          if (signUpError.message.includes("security purposes") || signUpError.status === 429) {
-            console.error("Rate limit reached:", signUpError);
-            return {
-              success: false, 
-              error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
-              isRateLimited: true,
-              timeToWait: extractWaitTime(signUpError.message)
-            };
-          }
-          
           console.error("Sign up error:", signUpError);
           throw signUpError;
         }
 
-        if (!authData.user) {
-          throw new Error('Falha ao criar conta de usuário');
+        if (!authData?.user) {
+          throw new Error('Failed to create user account');
         }
 
         userId = authData.user.id;
-        
-        // Store the session after signup
         session = authData.session;
-
-        // Important: wait briefly to ensure auth is fully processed
-        await new Promise(resolve => setTimeout(resolve, 500));
         
       } catch (authError: any) {
-        // Check for rate limit error in the catch block as well
-        if (authError.message && (authError.message.includes("security purposes") || authError.status === 429)) {
-          console.error("Rate limit caught in catch:", authError);
-          return {
-            success: false, 
-            error: "Muitas tentativas recentes. Por favor, aguarde um minuto e tente novamente.",
-            isRateLimited: true,
-            timeToWait: extractWaitTime(authError.message)
-          };
-        }
         throw authError;
       }
     } else {
@@ -172,100 +102,95 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       console.log("Using existing authenticated user:", userId);
     }
 
-    // Create a single auth client instance with the JWT from the session
-    const authClient = supabase.auth.setSession({
-      access_token: session!.access_token,
-      refresh_token: session!.refresh_token
-    });
+    const { db } = await connectToDatabase();
     
-    // 2. Register the restaurant with the proprietario_id set to the user ID
+    // Register the restaurant
     console.log("Creating restaurant with owner ID:", userId);
-    const { data: restaurant, error: restaurantError } = await supabase
-      .from('restaurantes')
-      .insert({
-        nome: restaurantData.nome,
-        tipo_cozinha: restaurantData.tipo_cozinha,
-        descricao: restaurantData.descricao || null,
-        telefone: restaurantData.telefone,
-        endereco: restaurantData.endereco,
-        cidade: restaurantData.cidade,
-        estado: restaurantData.estado,
-        cep: restaurantData.cep,
-        faixa_preco: restaurantData.faixa_preco,
-        proprietario_id: userId,
-      })
-      .select()
-      .single();
-
-    if (restaurantError) {
-      console.error("Restaurant creation error:", restaurantError);
-      
-      if (restaurantError.code === '42501') {
-        // This is a Row Level Security violation
-        return { 
-          success: false, 
-          error: 'Permissão negada. Verifique se você está autenticado corretamente.',
-          isRlsError: true
-        };
-      }
-      
-      throw restaurantError;
+    const restaurant = {
+      nome: restaurantData.nome,
+      tipo_cozinha: restaurantData.tipo_cozinha,
+      descricao: restaurantData.descricao || null,
+      telefone: restaurantData.telefone,
+      endereco: restaurantData.endereco,
+      cidade: restaurantData.cidade,
+      estado: restaurantData.estado,
+      cep: restaurantData.cep,
+      faixa_preco: restaurantData.faixa_preco,
+      proprietario_id: new ObjectId(userId),
+      created_at: new Date()
+    };
+    
+    const result = await db.collection("restaurants").insertOne(restaurant);
+    
+    if (!result.insertedId) {
+      throw new Error("Failed to create restaurant");
     }
 
-    // 3. Add restaurant owner role
-    const { error: roleError } = await supabase
-      .from('funcoes_usuario')
-      .insert({
-        usuario_id: userId,
-        role_name: 'restaurante'
-      });
+    // Add restaurant owner role
+    await db.collection("user_roles").insertOne({
+      userId: new ObjectId(userId),
+      role: "restaurante",
+      created_at: new Date()
+    });
 
-    if (roleError) {
-      console.error("Role assignment error:", roleError);
-      throw roleError;
-    }
-
-    console.log("Restaurant created successfully:", restaurant?.id);
-    return { success: true, restaurantId: restaurant?.id, userId };
+    console.log("Restaurant created successfully:", result.insertedId);
+    return { success: true, restaurantId: result.insertedId.toString(), userId };
   } catch (error: any) {
     console.error('Error creating restaurant:', error);
-    return { success: false, error: error.message || 'Erro ao cadastrar restaurante' };
+    return { success: false, error: error.message || 'Error registering restaurant' };
   }
 };
 
 /**
- * Extract wait time from Supabase rate limiting error message
+ * Calculate average rating helper function
  */
-function extractWaitTime(errorMessage: string): number {
-  // Default wait time in seconds if we can't extract it
-  const defaultWaitTime = 60;
-  
-  // Try to extract the wait time from the error message
-  // Example message: "For security purposes, you can only request this after 46 seconds"
-  const match = errorMessage.match(/after (\d+) seconds/);
-  if (match && match[1]) {
-    return parseInt(match[1], 10);
+function calculateAverageRating(ratings: any[]): number {
+  if (!ratings || ratings.length === 0) {
+    return 0;
   }
   
-  return defaultWaitTime;
+  const sum = ratings.reduce((acc, rating) => acc + rating.rating, 0);
+  return sum / ratings.length;
 }
+
+/**
+ * Gets restaurant data from the database
+ */
+export const getRestaurantData = async (restaurantId: string): Promise<any> => {
+  // Try to fetch from database
+  const dbRestaurant = await fetchRestaurantFromDatabase(restaurantId);
+  
+  if (dbRestaurant) {
+    return dbRestaurant;
+  }
+  
+  // Return a mock restaurant if not found
+  return {
+    id: restaurantId,
+    name: "Restaurante Exemplo",
+    address: "Rua Exemplo, 123 - São Paulo - SP",
+    cuisine: "Brasileira",
+    rating: 4.5,
+    imageUrl: "https://via.placeholder.com/400x200",
+    deliveryPosition: {
+      lat: -23.5643,
+      lng: -46.6527
+    }
+  };
+};
 
 /**
  * Registers a new user as a restaurant owner
  */
 export const registerRestaurantOwner = async (userId: string) => {
   try {
-    const { error } = await supabase
-      .from('funcoes_usuario')
-      .insert({
-        usuario_id: userId,
-        role_name: 'restaurante'
-      });
-
-    if (error) {
-      console.error("Error in registerRestaurantOwner:", error);
-      throw error;
-    }
+    const { db } = await connectToDatabase();
+    
+    await db.collection("user_roles").insertOne({
+      userId: new ObjectId(userId),
+      role: "restaurante",
+      created_at: new Date()
+    });
     
     return true;
   } catch (error) {
