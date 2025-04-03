@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { connectToDatabase } from '@/integrations/mongodb/client';
+
+const API_URL = 'http://localhost:5000/api';
 
 const MongoDBConnectionStatus = () => {
   const [connectionError, setConnectionError] = useState(false);
@@ -11,7 +12,13 @@ const MongoDBConnectionStatus = () => {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        await connectToDatabase();
+        const response = await fetch(`${API_URL}/check-connection`);
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Falha na conexão com o MongoDB');
+        }
+        
         setConnectionError(false);
       } catch (error) {
         console.error('MongoDB connection error:', error);
@@ -32,7 +39,7 @@ const MongoDBConnectionStatus = () => {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Problema de conexão</AlertTitle>
         <AlertDescription>
-          Não foi possível conectar ao MongoDB. Verifique se você adicionou seu IP à lista de IPs permitidos no MongoDB Atlas.
+          Não foi possível conectar ao MongoDB. Verifique se o servidor backend está rodando e se as credenciais do MongoDB estão corretas.
         </AlertDescription>
       </Alert>
     </div>
