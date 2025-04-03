@@ -4,6 +4,7 @@
  * Camada de abstração para API do MongoDB na aplicação cliente
  */
 import { httpClient } from '@/utils/httpClient';
+import { apiConfig } from '@/config/apiConfig';
 
 // MongoDB ObjectId helper para uso no cliente
 export class ObjectId {
@@ -27,64 +28,85 @@ export class ObjectId {
     return this.id;
   }
   
-  equals(other: ObjectId) {
-    return this.id === other.toString();
+  equals(other: ObjectId | string) {
+    const otherId = typeof other === 'string' ? other : other.toString();
+    return this.id === otherId;
   }
   
   static isValid(id: string): boolean {
-    // Simple validation - in real implementation would be more thorough
+    // MongoDB ObjectId validation - either 12 bytes (24 hex chars) or string that can be converted to ObjectId
     return typeof id === 'string' && /^[0-9a-f]{24}$/.test(id);
   }
 }
 
-// Connect to database through the API
-export async function connectToDatabase() {
-  try {
-    // Check connection to backend
-    const response = await httpClient.get('check-connection');
-    
-    if (response.error || !response.data?.success) {
-      throw new Error('Failed to connect to MongoDB');
+// Interface do database client para operações MongoDB
+export interface MongoDBClient {
+  db: (dbName: string) => {
+    collection: (collectionName: string) => {
+      findOne: (query: any) => Promise<any>;
+      find: (query: any) => {
+        toArray: () => Promise<any[]>;
+      };
+      insertOne: (document: any) => Promise<any>;
+      updateOne: (filter: any, update: any) => Promise<any>;
+      deleteOne: (filter: any) => Promise<any>;
     }
-    
-    // Return a simplified client object for browser usage
-    return {
-      db: (dbName: string) => ({
-        collection: (collectionName: string) => ({
-          findOne: async (query: any) => {
-            const response = await httpClient.post(`${collectionName}/find-one`, { query });
-            return response.data;
-          },
-          find: (query: any) => ({
-            toArray: async () => {
-              const response = await httpClient.post(`${collectionName}/find`, { query });
-              return response.data;
-            }
-          }),
-          insertOne: async (document: any) => {
-            const response = await httpClient.post(`${collectionName}`, document);
-            return response.data;
-          },
-          updateOne: async (filter: any, update: any) => {
-            const response = await httpClient.patch(`${collectionName}/update`, { filter, update });
-            return response.data;
-          },
-          deleteOne: async (filter: any) => {
-            const response = await httpClient.delete(`${collectionName}`, { 
-              body: JSON.stringify({ filter }) 
-            });
-            return response.data;
-          }
-        })
-      })
-    };
-  } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    throw error;
   }
 }
 
-// Export ServerApiVersion for compatibility
+// Verifica a conexão com o MongoDB através da API
+export async function checkMongoDBConnection(): Promise<boolean> {
+  try {
+    const response = await httpClient.get(apiConfig.endpoints.connection);
+    return response.error === null && response.data?.success === true;
+  } catch (error) {
+    console.error('Error checking MongoDB connection:', error);
+    return false;
+  }
+}
+
+// Connect to database through the API
+export async function connectToDatabase(): Promise<MongoDBClient> {
+  const isConnected = await checkMongoDBConnection();
+  
+  if (!isConnected) {
+    throw new Error('Failed to connect to MongoDB');
+  }
+  
+  // Return a client interface for browser usage
+  return {
+    db: (dbName: string) => ({
+      collection: (collectionName: string) => ({
+        findOne: async (query: any) => {
+          const response = await httpClient.post(`${collectionName}/find-one`, { query });
+          return response.data;
+        },
+        find: (query: any) => ({
+          toArray: async () => {
+            const response = await httpClient.post(`${collectionName}/find`, { query });
+            return response.data || [];
+          }
+        }),
+        insertOne: async (document: any) => {
+          const response = await httpClient.post(`${collectionName}`, document);
+          return response.data;
+        },
+        updateOne: async (filter: any, update: any) => {
+          const response = await httpClient.patch(`${collectionName}/update`, { filter, update });
+          return response.data;
+        },
+        deleteOne: async (filter: any) => {
+          const response = await httpClient.delete(`${collectionName}`, { 
+            body: JSON.stringify({ filter }) 
+          });
+          return response.data;
+        }
+      })
+    })
+  };
+}
+
+// Export ServerApiVersion for compatibility with backend
 export const ServerApiVersion = {
   v1: '1'
 };

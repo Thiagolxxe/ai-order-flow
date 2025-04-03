@@ -61,28 +61,29 @@ export const useCheckoutData = (id?: string) => {
         // Buscar endereços do usuário se autenticado
         if (isAuthenticated && user) {
           try {
-            const { data, error } = await httpClient.get(
-              apiConfig.endpoints.addresses.getByUser(user.id)
-            );
+            // Usar o endpoint correto para buscar endereços
+            const { data, error } = await httpClient.get(apiConfig.endpoints.addresses.getByUser);
             
             if (error) {
-              throw new Error(error.message || 'Falha ao buscar endereços');
-            }
-            
-            if (data && data.length > 0) {
+              console.error('Erro ao buscar endereços:', error);
+            } else if (data && Array.isArray(data)) {
               const formattedAddresses = data.map((addr: any) => ({
                 id: addr._id,
                 label: addr.label || 'Endereço',
-                street: addr.endereco,
-                complement: addr.complemento,
-                neighborhood: addr.bairro,
-                city: addr.cidade,
-                state: addr.estado,
-                zipcode: addr.cep
+                street: addr.street || addr.endereco,
+                complement: addr.complement || addr.complemento,
+                neighborhood: addr.neighborhood || addr.bairro,
+                city: addr.city || addr.cidade,
+                state: addr.state || addr.estado,
+                zipcode: addr.zipcode || addr.cep
               }));
               
               setAddresses(formattedAddresses);
-              setSelectedAddress(formattedAddresses[0].id);
+              
+              // Selecionar o primeiro endereço se houver algum
+              if (formattedAddresses.length > 0) {
+                setSelectedAddress(formattedAddresses[0].id);
+              }
             }
           } catch (error) {
             console.error('Erro ao carregar endereços:', error);

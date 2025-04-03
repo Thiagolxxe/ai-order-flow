@@ -1,146 +1,168 @@
 
 /**
- * Cliente HTTP centralizado para chamadas à API
+ * Cliente HTTP centralizado para requisições à API
  */
-import { API_BASE_URL } from '@/config/apiConfig';
+import { API_TIMEOUT, API_BASE_URL } from '@/config/apiConfig';
 import { getAuthHeader } from '@/utils/authUtils';
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string>;
-  timeout?: number;
-}
-
-interface HttpResponse<T> {
-  data?: T;
-  error?: {
-    message: string;
-    code?: number;
-    details?: any;
-  };
+/**
+ * Tipos para responses da API
+ */
+export interface ApiResponse<T = any> {
+  data: T | null;
+  error: ApiError | null;
   status: number;
 }
 
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: any;
+}
+
 /**
- * Cliente HTTP para fazer requisições à API
+ * Opções para requisições
+ */
+export interface RequestOptions {
+  headers?: Record<string, string>;
+  timeout?: number;
+  body?: any;
+}
+
+/**
+ * Cliente HTTP com métodos para interagir com a API
  */
 export const httpClient = {
   /**
-   * Realiza uma requisição HTTP genérica
+   * Função auxiliar para fazer requisições
    */
-  async request<T = any>(
+  async request<T>(
     endpoint: string,
+    method: string,
     options: RequestOptions = {}
-  ): Promise<HttpResponse<T>> {
-    const { params, timeout = 30000, ...fetchOptions } = options;
+  ): Promise<ApiResponse<T>> {
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${API_BASE_URL}/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`;
+
+    const authHeaders = getAuthHeader();
     
-    // Construir URL com parâmetros de consulta se fornecidos
-    let url = `${API_BASE_URL}/${endpoint}`;
-    if (params) {
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        searchParams.append(key, value);
-      });
-      url += `?${searchParams.toString()}`;
-    }
-    
-    // Adicionar headers padrão e de autenticação
     const headers = {
       'Content-Type': 'application/json',
-      ...getAuthHeader(),
-      ...(fetchOptions.headers || {})
+      ...authHeaders,
+      ...options.headers,
     };
-    
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    // Configura timeout
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, options.timeout || API_TIMEOUT);
+
     try {
-      // Implementar timeout personalizado
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
       const response = await fetch(url, {
-        ...fetchOptions,
+        method,
         headers,
-        signal: controller.signal
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
-      // Tentar parsear o corpo da resposta como JSON
-      let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        data = await response.text();
+
+      let data = null;
+      let error = null;
+
+      // Tenta parsear o response como JSON
+      try {
+        if (response.status !== 204) { // No Content
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+          } else {
+            data = await response.text();
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing response:', e);
       }
-      
+
+      // Se não for sucesso, prepara o objeto de erro
       if (!response.ok) {
-        return {
-          error: {
-            message: data.error || `Erro ${response.status}`,
-            code: response.status,
-            details: data
-          },
-          status: response.status
+        error = {
+          message: data?.message || data?.error || 'Ocorreu um erro na requisição',
+          code: data?.code,
+          details: data?.details,
         };
+        data = null;
       }
-      
+
       return {
         data,
-        status: response.status
+        error,
+        status: response.status,
       };
-    } catch (error) {
-      console.error(`Error requesting ${endpoint}:`, error);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError') {
-        return {
-          error: {
-            message: 'A requisição excedeu o tempo limite',
-            code: 408
-          },
-          status: 408
-        };
-      }
-      
+      // Trata erros de rede ou timeout
       return {
+        data: null,
         error: {
-          message: error.message || 'Erro na requisição',
-          details: error
+          message: err.name === 'AbortError'
+            ? 'A requisição excedeu o tempo limite'
+            : err.message || 'Falha de conexão com o servidor',
         },
-        status: 500
+        status: err.name === 'AbortError' ? 408 : 0, // 408 Request Timeout
       };
     }
   },
-  
-  // Métodos de conveniência para os verbos HTTP comuns
-  
-  get<T = any>(endpoint: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.request<T>(endpoint, { ...options, method: 'GET' });
+
+  /**
+   * GET request
+   */
+  async get<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, 'GET', options);
   },
-  
-  post<T = any>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.request<T>(endpoint, {
+
+  /**
+   * POST request
+   */
+  async post<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, 'POST', {
       ...options,
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined
+      body: data,
     });
   },
-  
-  put<T = any>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.request<T>(endpoint, {
+
+  /**
+   * PUT request
+   */
+  async put<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, 'PUT', {
       ...options,
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined
+      body: data,
     });
   },
-  
-  patch<T = any>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.request<T>(endpoint, {
+
+  /**
+   * PATCH request
+   */
+  async patch<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, 'PATCH', {
       ...options,
-      method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined
+      body: data,
     });
   },
-  
-  delete<T = any>(endpoint: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
-  }
+
+  /**
+   * DELETE request
+   */
+  async delete<T>(
+    endpoint: string,
+    options: RequestOptions = {}
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, 'DELETE', options);
+  },
 };

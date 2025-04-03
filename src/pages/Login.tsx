@@ -1,152 +1,122 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useUser } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUser } from '@/context/UserContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useUser();
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error('Por favor, preencha todos os campos');
-      return;
+  const { signIn, isAuthenticated } = useUser();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+
+  // Se já estiver autenticado, redireciona
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectTo);
     }
-    
-    setIsLoading(true);
-    
+  }, [isAuthenticated, navigate, redirectTo]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
     try {
-      const { error } = await login(email, password);
+      if (!email || !password) {
+        throw new Error('E-mail e senha são obrigatórios');
+      }
+
+      const { error } = await signIn(email, password);
       
       if (error) {
-        throw error;
+        throw new Error(error.message || 'Falha ao fazer login');
       }
       
-      toast.success('Login realizado com sucesso!');
-      navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao fazer login. Por favor, tente novamente.');
+      toast.success('Login realizado com sucesso');
+      navigate(redirectTo);
+    } catch (err: any) {
+      setError(err.message || 'Falha na autenticação');
+      toast.error(err.message || 'Falha na autenticação');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
+    <div className="container flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center mb-2">
-            <Button variant="ghost" size="icon" asChild className="mr-2">
-              <Link to="/">
-                <ArrowLeftIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-            <CardTitle className="text-2xl">Login</CardTitle>
-          </div>
+          <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Entre com seu e-mail e senha para acessar sua conta
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                {error}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input 
+              <Input
                 id="email"
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                autoComplete="email"
                 required
               />
             </div>
+            
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password">Senha</Label>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="px-0 h-auto font-normal text-xs"
-                  asChild
-                >
-                  <Link to="/esqueci-senha">Esqueceu a senha?</Link>
-                </Button>
-              </div>
-              <div className="relative">
-                <Input 
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="current-password"
+                required
+              />
             </div>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full"
-              disabled={isLoading}
+              className="w-full" 
+              disabled={loading}
             >
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
             </Button>
-          </form>
-          
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Ou continue com
-                </span>
-              </div>
-            </div>
             
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <Button variant="outline" type="button" className="w-full">
-                Google
-              </Button>
-              <Button variant="outline" type="button" className="w-full">
-                Facebook
-              </Button>
+            <div className="text-center text-sm">
+              Não tem uma conta?{" "}
+              <Link to="/register" className="text-primary font-medium hover:underline">
+                Registre-se
+              </Link>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Não tem uma conta?{' '}
-            <Button variant="link" className="p-0 h-auto" asChild>
-              <Link to="/cadastro">Cadastre-se</Link>
-            </Button>
-          </p>
-        </CardFooter>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

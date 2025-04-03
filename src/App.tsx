@@ -39,7 +39,14 @@ import DeliveryProfile from '@/pages/delivery/DeliveryProfile';
 import './App.css';
 
 // Initialize React Query client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (

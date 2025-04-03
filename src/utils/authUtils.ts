@@ -5,19 +5,39 @@
 import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
 
 /**
- * Obtém o token de autenticação do localStorage
+ * Interface para a sessão do usuário
  */
-export function getAuthToken(): string | null {
+export interface UserSession {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  access_token: string;
+  refresh_token?: string;
+  expires_at?: string;
+}
+
+/**
+ * Obtém toda a sessão do localStorage
+ */
+export function getSession(): { session: UserSession | null, expires_at: string | null } | null {
   const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
   if (!sessionStr) return null;
   
   try {
-    const { session } = JSON.parse(sessionStr);
-    return session?.access_token || null;
+    return JSON.parse(sessionStr);
   } catch (e) {
     console.error('Error parsing session:', e);
     return null;
   }
+}
+
+/**
+ * Obtém o token de autenticação do localStorage
+ */
+export function getAuthToken(): string | null {
+  const sessionData = getSession();
+  return sessionData?.session?.access_token || null;
 }
 
 /**
@@ -31,15 +51,23 @@ export function getAuthHeader(): Record<string, string> {
 }
 
 /**
+ * Obtém o usuário atual da sessão
+ */
+export function getCurrentUser(): UserSession | null {
+  const sessionData = getSession();
+  return sessionData?.session || null;
+}
+
+/**
  * Verifica se a sessão atual é válida
  */
 export function isSessionValid(): boolean {
-  const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
-  if (!sessionStr) return false;
+  const sessionData = getSession();
+  if (!sessionData) return false;
   
   try {
-    const { expires_at } = JSON.parse(sessionStr);
-    return new Date(expires_at) > new Date();
+    const { expires_at } = sessionData;
+    return expires_at && new Date(expires_at) > new Date();
   } catch (e) {
     return false;
   }
@@ -48,7 +76,7 @@ export function isSessionValid(): boolean {
 /**
  * Salva a sessão no localStorage
  */
-export function saveSession(session: any, expireInHours = 24): void {
+export function saveSession(session: UserSession, expireInHours = 24): void {
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
     session,
     expires_at: new Date(Date.now() + expireInHours * 60 * 60 * 1000).toISOString()
@@ -60,4 +88,14 @@ export function saveSession(session: any, expireInHours = 24): void {
  */
 export function removeSession(): void {
   localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+/**
+ * Verifica se o usuário tem uma determinada permissão/role
+ */
+export function hasRole(role: string): boolean {
+  const user = getCurrentUser();
+  if (!user || !user.role) return false;
+  
+  return user.role.includes(role);
 }
