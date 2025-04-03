@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import { apiService } from '@/services/apiService';
+import { httpClient } from '@/utils/httpClient';
+import { apiConfig } from '@/config/apiConfig';
 import { CheckoutData, Address } from '@/components/checkout/types';
 
 export const useCheckoutData = (id?: string) => {
@@ -60,11 +61,12 @@ export const useCheckoutData = (id?: string) => {
         // Buscar endereços do usuário se autenticado
         if (isAuthenticated && user) {
           try {
-            const response = await fetch(`http://localhost:5000/api/addresses/${user.id}`);
-            const data = await response.json();
+            const { data, error } = await httpClient.get(
+              apiConfig.endpoints.addresses.getByUser(user.id)
+            );
             
-            if (!response.ok) {
-              throw new Error(data.error || 'Falha ao buscar endereços');
+            if (error) {
+              throw new Error(error.message || 'Falha ao buscar endereços');
             }
             
             if (data && data.length > 0) {

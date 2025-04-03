@@ -1,34 +1,28 @@
 
-const API_URL = 'http://localhost:5000/api';
+/**
+ * Serviço centralizado para comunicação com a API
+ */
+import { httpClient } from '@/utils/httpClient';
+import { apiConfig } from '@/config/apiConfig';
+import { saveSession, removeSession } from '@/utils/authUtils';
 
 export const apiService = {
   // Auth operations
   auth: {
     signUp: async (email: string, password: string, userData: any) => {
       try {
-        const response = await fetch(`${API_URL}/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-            ...userData
-          }),
+        const { data, error } = await httpClient.post(apiConfig.endpoints.auth.register, {
+          email,
+          password,
+          ...userData
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { error: { message: data.error || 'Falha no registro' } };
+        if (error) {
+          return { error: { message: error.message || 'Falha no registro' } };
         }
         
-        // Armazenar sessão no localStorage
-        localStorage.setItem('deliveryapp_session', JSON.stringify({
-          session: data.session,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
-        }));
+        // Armazenar sessão
+        saveSession(data.session);
         
         return { data };
       } catch (error) {
@@ -39,25 +33,17 @@ export const apiService = {
     
     signIn: async (email: string, password: string) => {
       try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
+        const { data, error } = await httpClient.post(apiConfig.endpoints.auth.login, {
+          email, 
+          password
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { error: { message: data.error || 'Falha na autenticação' } };
+        if (error) {
+          return { error: { message: error.message || 'Falha na autenticação' } };
         }
         
-        // Armazenar sessão no localStorage
-        localStorage.setItem('deliveryapp_session', JSON.stringify({
-          session: data.session,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
-        }));
+        // Armazenar sessão
+        saveSession(data.session);
         
         return { data };
       } catch (error) {
@@ -68,8 +54,8 @@ export const apiService = {
     
     signOut: async () => {
       try {
-        // Remover sessão do localStorage
-        localStorage.removeItem('deliveryapp_session');
+        // Remover sessão
+        removeSession();
         
         return { error: null };
       } catch (error) {
@@ -81,7 +67,7 @@ export const apiService = {
     getSession: async () => {
       try {
         // Obter sessão do localStorage
-        const sessionStr = localStorage.getItem('deliveryapp_session');
+        const sessionStr = localStorage.getItem(apiConfig.SESSION_STORAGE_KEY);
         
         if (!sessionStr) {
           return { data: { session: null } };
@@ -91,7 +77,7 @@ export const apiService = {
         
         // Verificar se a sessão expirou
         if (new Date(expires_at) < new Date()) {
-          localStorage.removeItem('deliveryapp_session');
+          removeSession();
           return { data: { session: null } };
         }
         
@@ -107,26 +93,16 @@ export const apiService = {
   restaurants: {
     create: async (restaurantData: any) => {
       try {
-        const sessionStr = localStorage.getItem('deliveryapp_session');
-        if (!sessionStr) {
-          return { success: false, error: 'Usuário não autenticado' };
-        }
+        const { data, error } = await httpClient.post(
+          apiConfig.endpoints.restaurants.base, 
+          restaurantData
+        );
         
-        const { session } = JSON.parse(sessionStr);
-        
-        const response = await fetch(`${API_URL}/restaurants`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify(restaurantData),
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { success: false, error: data.error || 'Falha ao criar restaurante' };
+        if (error) {
+          return { 
+            success: false, 
+            error: error.message || 'Falha ao criar restaurante' 
+          };
         }
         
         return data;
@@ -141,11 +117,12 @@ export const apiService = {
     
     getById: async (id: string) => {
       try {
-        const response = await fetch(`${API_URL}/restaurants/${id}`);
-        const data = await response.json();
+        const { data, error } = await httpClient.get(
+          apiConfig.endpoints.restaurants.getById(id)
+        );
         
-        if (!response.ok) {
-          return { error: { message: data.error || 'Falha ao buscar restaurante' } };
+        if (error) {
+          return { error: { message: error.message || 'Falha ao buscar restaurante' } };
         }
         
         return { data };
@@ -160,26 +137,16 @@ export const apiService = {
   delivery: {
     register: async (deliveryData: any) => {
       try {
-        const sessionStr = localStorage.getItem('deliveryapp_session');
-        if (!sessionStr) {
-          return { success: false, error: 'Usuário não autenticado' };
-        }
+        const { data, error } = await httpClient.post(
+          apiConfig.endpoints.delivery.register,
+          deliveryData
+        );
         
-        const { session } = JSON.parse(sessionStr);
-        
-        const response = await fetch(`${API_URL}/delivery/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify(deliveryData),
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { success: false, error: data.error || 'Falha ao registrar entregador' };
+        if (error) {
+          return { 
+            success: false, 
+            error: error.message || 'Falha ao registrar entregador' 
+          };
         }
         
         return data;
@@ -194,23 +161,12 @@ export const apiService = {
     
     getProfile: async () => {
       try {
-        const sessionStr = localStorage.getItem('deliveryapp_session');
-        if (!sessionStr) {
-          return { error: { message: 'Usuário não autenticado' } };
-        }
+        const { data, error } = await httpClient.get(
+          apiConfig.endpoints.delivery.profile
+        );
         
-        const { session } = JSON.parse(sessionStr);
-        
-        const response = await fetch(`${API_URL}/delivery/profile`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { error: { message: data.error || 'Falha ao buscar perfil' } };
+        if (error) {
+          return { error: { message: error.message || 'Falha ao buscar perfil' } };
         }
         
         return { data };
@@ -225,23 +181,12 @@ export const apiService = {
   notifications: {
     getByUserId: async () => {
       try {
-        const sessionStr = localStorage.getItem('deliveryapp_session');
-        if (!sessionStr) {
-          return { error: { message: 'Usuário não autenticado' } };
-        }
+        const { data, error } = await httpClient.get(
+          apiConfig.endpoints.notifications.base
+        );
         
-        const { session } = JSON.parse(sessionStr);
-        
-        const response = await fetch(`${API_URL}/notifications`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { error: { message: data.error || 'Falha ao buscar notificações' } };
+        if (error) {
+          return { error: { message: error.message || 'Falha ao buscar notificações' } };
         }
         
         return { data };
@@ -253,24 +198,15 @@ export const apiService = {
     
     markAsRead: async (id: string) => {
       try {
-        const sessionStr = localStorage.getItem('deliveryapp_session');
-        if (!sessionStr) {
-          return { success: false, error: 'Usuário não autenticado' };
-        }
+        const { data, error } = await httpClient.patch(
+          apiConfig.endpoints.notifications.markAsRead(id)
+        );
         
-        const { session } = JSON.parse(sessionStr);
-        
-        const response = await fetch(`${API_URL}/notifications/${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          return { success: false, error: data.error || 'Falha ao marcar notificação como lida' };
+        if (error) {
+          return { 
+            success: false, 
+            error: error.message || 'Falha ao marcar notificação como lida' 
+          };
         }
         
         return { success: true };

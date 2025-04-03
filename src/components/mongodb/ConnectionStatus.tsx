@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-
-const API_URL = 'http://localhost:5000/api';
+import { httpClient } from '@/utils/httpClient';
+import { apiConfig } from '@/config/apiConfig';
 
 const MongoDBConnectionStatus = () => {
   const [connectionError, setConnectionError] = useState(false);
@@ -13,11 +13,10 @@ const MongoDBConnectionStatus = () => {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const response = await fetch(`${API_URL}/check-connection`);
-        const data = await response.json();
+        const { data, error } = await httpClient.get(apiConfig.endpoints.connection);
         
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Falha na conexão com o MongoDB');
+        if (error || !data?.success) {
+          throw new Error(error?.message || data?.error || 'Falha na conexão com o MongoDB');
         }
         
         console.log('MongoDB connection successful');

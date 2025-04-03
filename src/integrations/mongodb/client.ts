@@ -1,51 +1,11 @@
 
-// MongoDB utilities for the browser
-// This is a thin wrapper around the API calls to the MongoDB backend
+/**
+ * Utilitários do MongoDB para o frontend
+ * Camada de abstração para API do MongoDB na aplicação cliente
+ */
+import { httpClient } from '@/utils/httpClient';
 
-// Helper function to handle fetch requests
-async function fetchApi(endpoint: string, options?: RequestInit) {
-  const baseUrl = 'http://localhost:5000/api';
-  
-  try {
-    const response = await fetch(`${baseUrl}/${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-        ...(options?.headers || {})
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Erro na requisição');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error(`Error fetching ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-// Get authentication header if user is logged in
-function getAuthHeader() {
-  const sessionStr = localStorage.getItem('deliveryapp_session');
-  if (!sessionStr) return {};
-  
-  try {
-    const { session } = JSON.parse(sessionStr);
-    if (!session?.access_token) return {};
-    
-    return { 'Authorization': `Bearer ${session.access_token}` };
-  } catch (e) {
-    console.error('Error parsing session:', e);
-    return {};
-  }
-}
-
-// MongoDB ObjectId helper
+// MongoDB ObjectId helper para uso no cliente
 export class ObjectId {
   private id: string;
   
@@ -77,13 +37,13 @@ export class ObjectId {
   }
 }
 
-// Connect to database
+// Connect to database through the API
 export async function connectToDatabase() {
   try {
     // Check connection to backend
-    const data = await fetchApi('check-connection');
+    const response = await httpClient.get('check-connection');
     
-    if (!data.success) {
+    if (response.error || !response.data?.success) {
       throw new Error('Failed to connect to MongoDB');
     }
     
@@ -92,36 +52,28 @@ export async function connectToDatabase() {
       db: (dbName: string) => ({
         collection: (collectionName: string) => ({
           findOne: async (query: any) => {
-            return fetchApi(`${collectionName}/find-one`, {
-              method: 'POST',
-              body: JSON.stringify({ query })
-            });
+            const response = await httpClient.post(`${collectionName}/find-one`, { query });
+            return response.data;
           },
           find: (query: any) => ({
             toArray: async () => {
-              return fetchApi(`${collectionName}/find`, {
-                method: 'POST',
-                body: JSON.stringify({ query })
-              });
+              const response = await httpClient.post(`${collectionName}/find`, { query });
+              return response.data;
             }
           }),
           insertOne: async (document: any) => {
-            return fetchApi(`${collectionName}`, {
-              method: 'POST',
-              body: JSON.stringify(document)
-            });
+            const response = await httpClient.post(`${collectionName}`, document);
+            return response.data;
           },
           updateOne: async (filter: any, update: any) => {
-            return fetchApi(`${collectionName}/update`, {
-              method: 'PATCH',
-              body: JSON.stringify({ filter, update })
-            });
+            const response = await httpClient.patch(`${collectionName}/update`, { filter, update });
+            return response.data;
           },
           deleteOne: async (filter: any) => {
-            return fetchApi(`${collectionName}`, {
-              method: 'DELETE',
-              body: JSON.stringify({ filter })
+            const response = await httpClient.delete(`${collectionName}`, { 
+              body: JSON.stringify({ filter }) 
             });
+            return response.data;
           }
         })
       })
