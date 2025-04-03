@@ -1,113 +1,91 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { UserProvider } from "@/context/UserContext";
-import { useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import GeminiChatAssistant from "@/components/gemini-chat/GeminiChatAssistant";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/ui/theme-provider';
+import { UserProvider } from '@/context/UserContext';
 
-// Páginas existentes
-import RestaurantDetails from "./pages/RestaurantDetails";
-import Menu from "./pages/Menu";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import UserProfile from "./pages/UserProfile";
-import OrderHistory from "./pages/OrderHistory";
-import OrderDetails from "./pages/OrderDetails";
+// Layout Components
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
+import MongoDBConnectionStatus from '@/components/mongodb/ConnectionStatus';
 
-// Nova página de cadastro de restaurante
-import RestaurantSignup from "./pages/RestaurantSignup";
+// Pages
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Notifications from '@/pages/Notifications';
+import Favorites from '@/pages/Favorites';
+import Cart from '@/pages/Cart';
+import RestaurantsExplore from '@/pages/RestaurantsExplore';
+import RestaurantDetails from '@/pages/RestaurantDetails';
+import Menu from '@/pages/Menu';
+import Checkout from '@/pages/Checkout';
+import OrderDetails from '@/pages/OrderDetails';
+import OrderHistory from '@/pages/OrderHistory';
+import UserProfile from '@/pages/UserProfile';
+import Reviews from '@/pages/Reviews';
+import Chat from '@/pages/Chat';
+import Promotions from '@/pages/Promotions';
+import LiveTrackingMap from '@/pages/LiveTrackingMap';
+import RestaurantSignup from '@/pages/RestaurantSignup';
+import RestaurantAdmin from '@/pages/admin/RestaurantAdmin';
+import NotFound from '@/pages/NotFound';
+import VideoFeed from '@/pages/VideoFeed';
+import DeliveryRegistration from '@/pages/delivery/DeliveryRegistration';
+import DeliveryDashboard from '@/pages/delivery/DeliveryDashboard';
+import DeliveryProfile from '@/pages/delivery/DeliveryProfile';
 
-// Páginas administrativas
-import RestaurantAdmin from "./pages/admin/RestaurantAdmin";
+import './App.css';
 
-// Outras páginas
-import Reviews from "./pages/Reviews";
-import Favorites from "./pages/Favorites";
-import Notifications from "./pages/Notifications";
-import Promotions from "./pages/Promotions";
-import LiveTrackingMap from "./pages/LiveTrackingMap";
-import RestaurantsExplore from "./pages/RestaurantsExplore";
-import Chat from "./pages/Chat";
-import VideoFeed from "./pages/VideoFeed";
+// Initialize React Query client
+const queryClient = new QueryClient();
 
-const App = () => {
-  // Move QueryClient instantiation inside the component
-  const [queryClient] = useState(() => new QueryClient());
-
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TooltipProvider>
-          <BrowserRouter>
+      <ThemeProvider defaultTheme="light">
+        <UserProvider>
+          <Router>
             <div className="flex flex-col min-h-screen">
               <Navbar />
-              <main className="flex-1 pt-16">
+              <main className="flex-grow">
                 <Routes>
-                  {/* Redirecionando a página inicial para o feed de vídeos */}
-                  <Route path="/" element={<Navigate to="/videos" replace />} />
-                  <Route path="/restaurante/:id" element={<RestaurantDetails />} />
-                  <Route path="/restaurante/:id/menu" element={<Menu />} />
-                  <Route path="/carrinho" element={<Cart />} />
-                  <Route path="/finalizar" element={<Checkout />} />
-                  <Route path="/finalizar/:id" element={<Checkout />} />
+                  <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/cadastro" element={<Register />} />
-                  <Route path="/signup" element={<Register />} />
-                  <Route path="/perfil" element={<UserProfile />} />
-                  <Route path="/pedidos" element={<OrderHistory />} />
-                  <Route path="/pedido/:id" element={<OrderDetails />} />
-                  
-                  {/* Nova rota para cadastro de restaurantes */}
-                  <Route path="/restaurante/cadastro" element={<RestaurantSignup />} />
-                  
-                  {/* Mantendo a rota original do Index para acesso via /home */}
-                  <Route path="/home" element={<Index />} />
-                  
-                  {/* Rota de restaurante */}
-                  <Route path="/admin/restaurante" element={<RestaurantAdmin />} />
-                  
-                  {/* Outras rotas */}
-                  <Route path="/avaliacoes/:id?" element={<Reviews />} />
-                  <Route path="/favoritos" element={<Favorites />} />
-                  <Route path="/notificacoes" element={<Notifications />} />
-                  <Route path="/promocoes" element={<Promotions />} />
-                  
-                  {/* Rota do feed de vídeos */}
-                  <Route path="/videos" element={<VideoFeed />} />
-                  
-                  {/* Adicionando redirecionamentos para rotas em inglês */}
-                  <Route path="/restaurants" element={<Navigate to="/restaurantes" replace />} />
-                  <Route 
-                    path="/checkout/:id" 
-                    element={<Navigate to={`/finalizar/${window.location.pathname.split('/').pop()}`} replace />} 
-                  />
-                  <Route path="/checkout" element={<Navigate to="/finalizar" replace />} />
-                  <Route path="/restaurantes" element={<RestaurantsExplore />} />
-                  <Route path="/chat/:id?" element={<Chat />} />
-                  <Route path="/rastreamento/:id" element={<LiveTrackingMap />} />
-                  
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/restaurants" element={<RestaurantsExplore />} />
+                  <Route path="/restaurant/:id" element={<RestaurantDetails />} />
+                  <Route path="/menu/:id" element={<Menu />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/order/:id" element={<OrderDetails />} />
+                  <Route path="/orders" element={<OrderHistory />} />
+                  <Route path="/profile" element={<UserProfile />} />
+                  <Route path="/reviews" element={<Reviews />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/promotions" element={<Promotions />} />
+                  <Route path="/tracking/:id" element={<LiveTrackingMap />} />
+                  <Route path="/restaurant-signup" element={<RestaurantSignup />} />
+                  <Route path="/admin/restaurant" element={<RestaurantAdmin />} />
+                  <Route path="/video-feed" element={<VideoFeed />} />
+                  <Route path="/delivery/signup" element={<DeliveryRegistration />} />
+                  <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
+                  <Route path="/delivery/profile" element={<DeliveryProfile />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />
+              <MongoDBConnectionStatus />
             </div>
-            <GeminiChatAssistant />
-            <Toaster />
-            <Sonner position="top-right" richColors />
-          </BrowserRouter>
-        </TooltipProvider>
-      </UserProvider>
+          </Router>
+          <Toaster />
+        </UserProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
