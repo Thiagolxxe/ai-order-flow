@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import NotificationItem, { NotificationType } from '@/components/notifications/NotificationType';
-import { connectToDatabase } from '@/integrations/mongodb/client';
+import { apiService } from '@/services/apiService';
 import { useUser } from '@/context/UserContext';
+import { toast } from 'sonner';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
@@ -17,21 +18,22 @@ const Notifications = () => {
       
       try {
         setLoading(true);
-        const { db } = await connectToDatabase();
+        const { data, error } = await apiService.notifications.getByUserId();
         
-        const notificationsList = await db.collection('notifications')
-          .find({ usuario_id: user.id })
-          .toArray();
-          
+        if (error) {
+          throw new Error(error.message);
+        }
+        
         // Sort notifications by date (newest first)
-        const sortedNotifications = notificationsList.sort((a, b) => {
+        const sortedNotifications = data.sort((a: any, b: any) => {
           return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
         });
         
         setNotifications(sortedNotifications);
       } catch (error) {
         console.error('Error fetching notifications:', error);
-        // If we can't fetch from the database, use mock data
+        toast.error('Erro ao buscar notificações');
+        // If we can't fetch from the API, use mock data
         setNotifications(getMockNotifications(user.id));
       } finally {
         setLoading(false);
@@ -43,12 +45,11 @@ const Notifications = () => {
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      const { db } = await connectToDatabase();
+      const { success, error } = await apiService.notifications.markAsRead(notificationId);
       
-      await db.collection('notifications').updateOne(
-        { _id: notificationId },
-        { $set: { lida: true } }
-      );
+      if (!success) {
+        throw new Error(error);
+      }
       
       // Update local state
       setNotifications(prev => 
@@ -58,12 +59,15 @@ const Notifications = () => {
             : notif
         )
       );
+      
+      toast.success('Notificação marcada como lida');
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      toast.error('Erro ao marcar notificação como lida');
     }
   };
 
-  // For demo purposes when database isn't available
+  // For demo purposes when API isn't available
   const getMockNotifications = (userId: string): NotificationType[] => {
     return [
       {

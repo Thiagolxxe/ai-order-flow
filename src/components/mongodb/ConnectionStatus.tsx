@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -19,16 +20,23 @@ const MongoDBConnectionStatus = () => {
           throw new Error(data.error || 'Falha na conexão com o MongoDB');
         }
         
+        console.log('MongoDB connection successful');
         setConnectionError(false);
       } catch (error) {
         console.error('MongoDB connection error:', error);
         setConnectionError(true);
+        toast.error('Erro de conexão com o MongoDB');
       } finally {
         setChecking(false);
       }
     };
 
     checkConnection();
+    
+    // Verificar conexão a cada 30 segundos
+    const intervalId = setInterval(checkConnection, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   if (checking || !connectionError) return null;

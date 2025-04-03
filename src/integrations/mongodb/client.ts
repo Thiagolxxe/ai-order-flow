@@ -1,193 +1,51 @@
 
-// This file provides a browser-safe MongoDB client interface
-// For browser environments, we'll use REST API endpoints instead of direct MongoDB driver
+// MongoDB utilities for the browser
+// This is a thin wrapper around the API calls to the MongoDB backend
 
-import { ServerApiVersion } from "mongodb";
-
-// MongoDB Atlas connection string
-const MONGODB_URI = "mongodb+srv://Deliverai:b0C2Qg6LblURU1LK@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// Browser-compatible MongoDB client
-class BrowserMongoClient {
-  private baseUrl: string;
-  private dbName: string;
+// Helper function to handle fetch requests
+async function fetchApi(endpoint: string, options?: RequestInit) {
+  const baseUrl = 'http://localhost:5000/api';
   
-  constructor(uri: string, dbName: string = "delivery_app") {
-    this.baseUrl = uri;
-    this.dbName = dbName;
-  }
-  
-  async connect() {
-    console.log("Browser MongoDB client initialized");
-    return {
-      db: (dbName: string = this.dbName) => this.getDatabase(dbName)
-    };
-  }
-  
-  getDatabase(dbName: string) {
-    return {
-      collection: (collectionName: string) => this.getCollection(dbName, collectionName)
-    };
-  }
-  
-  getCollection(dbName: string, collectionName: string) {
-    return {
-      findOne: async (query: any) => this.findOne(dbName, collectionName, query),
-      find: (query: any) => this.find(dbName, collectionName, query),
-      insertOne: async (document: any) => this.insertOne(dbName, collectionName, document),
-      updateOne: async (filter: any, update: any) => this.updateOne(dbName, collectionName, filter, update),
-      deleteOne: async (filter: any) => this.deleteOne(dbName, collectionName, filter)
-    };
-  }
-  
-  // Collection operations - in a real app, these would make API calls to your backend
-  // For now, we'll use localStorage as a simple data store for demonstration
-  private getStorageKey(dbName: string, collectionName: string) {
-    return `mongodb_${dbName}_${collectionName}`;
-  }
-  
-  private getCollectionData(dbName: string, collectionName: string): any[] {
-    const key = this.getStorageKey(dbName, collectionName);
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
-  }
-  
-  private saveCollectionData(dbName: string, collectionName: string, data: any[]) {
-    const key = this.getStorageKey(dbName, collectionName);
-    localStorage.setItem(key, JSON.stringify(data));
-  }
-  
-  async findOne(dbName: string, collectionName: string, query: any) {
-    console.log(`Finding document in ${collectionName} with query:`, query);
-    const collection = this.getCollectionData(dbName, collectionName);
-    
-    // Simple query matcher
-    return collection.find(item => {
-      for (const key in query) {
-        // Handle ObjectId comparisons
-        if (key === "_id") {
-          if (query[key].toString() !== item[key].toString()) {
-            return false;
-          }
-        } else if (item[key] !== query[key]) {
-          return false;
-        }
+  try {
+    const response = await fetch(`${baseUrl}/${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+        ...(options?.headers || {})
       }
-      return true;
-    }) || null;
-  }
-  
-  find(dbName: string, collectionName: string, query: any) {
-    console.log(`Finding documents in ${collectionName} with query:`, query);
-    const collection = this.getCollectionData(dbName, collectionName);
-    
-    // Filter collection based on query
-    const results = collection.filter(item => {
-      for (const key in query) {
-        if (item[key] !== query[key]) {
-          return false;
-        }
-      }
-      return true;
     });
     
-    // Return object with toArray method to mimic MongoDB cursor
-    return {
-      toArray: async () => results
-    };
-  }
-  
-  async insertOne(dbName: string, collectionName: string, document: any) {
-    console.log(`Inserting document into ${collectionName}:`, document);
+    const data = await response.json();
     
-    // Generate an ID if not provided
-    if (!document._id) {
-      document._id = this.generateObjectId();
+    if (!response.ok) {
+      throw new Error(data.error || 'Erro na requisição');
     }
     
-    const collection = this.getCollectionData(dbName, collectionName);
-    collection.push(document);
-    this.saveCollectionData(dbName, collectionName, collection);
-    
-    return {
-      insertedId: document._id,
-      acknowledged: true
-    };
-  }
-  
-  async updateOne(dbName: string, collectionName: string, filter: any, update: any) {
-    console.log(`Updating document in ${collectionName} with filter:`, filter);
-    const collection = this.getCollectionData(dbName, collectionName);
-    let modifiedCount = 0;
-    
-    const updatedCollection = collection.map(item => {
-      let matches = true;
-      for (const key in filter) {
-        if (item[key] !== filter[key]) {
-          matches = false;
-          break;
-        }
-      }
-      
-      if (matches) {
-        modifiedCount++;
-        if (update.$set) {
-          return { ...item, ...update.$set };
-        }
-        return { ...item, ...update };
-      }
-      
-      return item;
-    });
-    
-    this.saveCollectionData(dbName, collectionName, updatedCollection);
-    
-    return {
-      matchedCount: modifiedCount,
-      modifiedCount,
-      acknowledged: true
-    };
-  }
-  
-  async deleteOne(dbName: string, collectionName: string, filter: any) {
-    console.log(`Deleting document from ${collectionName} with filter:`, filter);
-    const collection = this.getCollectionData(dbName, collectionName);
-    let deletedCount = 0;
-    
-    const index = collection.findIndex(item => {
-      for (const key in filter) {
-        if (item[key] !== filter[key]) {
-          return false;
-        }
-      }
-      return true;
-    });
-    
-    if (index !== -1) {
-      collection.splice(index, 1);
-      deletedCount = 1;
-    }
-    
-    this.saveCollectionData(dbName, collectionName, collection);
-    
-    return {
-      deletedCount,
-      acknowledged: true
-    };
-  }
-  
-  // Helper functions
-  generateObjectId() {
-    const timestamp = Math.floor(Date.now() / 1000).toString(16);
-    const machineId = Math.floor(Math.random() * 16777216).toString(16).padStart(6, '0');
-    const processId = Math.floor(Math.random() * 65536).toString(16).padStart(4, '0');
-    const counter = Math.floor(Math.random() * 16777216).toString(16).padStart(6, '0');
-    
-    return timestamp + machineId + processId + counter;
+    return data;
+  } catch (error) {
+    console.error(`Error fetching ${endpoint}:`, error);
+    throw error;
   }
 }
 
-// For browser compatibility, we'll implement a simplified version of ObjectId
+// Get authentication header if user is logged in
+function getAuthHeader() {
+  const sessionStr = localStorage.getItem('deliveryapp_session');
+  if (!sessionStr) return {};
+  
+  try {
+    const { session } = JSON.parse(sessionStr);
+    if (!session?.access_token) return {};
+    
+    return { 'Authorization': `Bearer ${session.access_token}` };
+  } catch (e) {
+    console.error('Error parsing session:', e);
+    return {};
+  }
+}
+
+// MongoDB ObjectId helper
 export class ObjectId {
   private id: string;
   
@@ -195,13 +53,13 @@ export class ObjectId {
     if (id) {
       this.id = id;
     } else {
-      // Generate a new ID
+      // Generate a new ID (simple implementation for browser)
       const timestamp = Math.floor(Date.now() / 1000).toString(16);
-      const machineId = Math.floor(Math.random() * 16777216).toString(16).padStart(6, '0');
-      const processId = Math.floor(Math.random() * 65536).toString(16).padStart(4, '0');
-      const counter = Math.floor(Math.random() * 16777216).toString(16).padStart(6, '0');
+      const randomPart = Array.from({ length: 16 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
       
-      this.id = timestamp + machineId + processId + counter;
+      this.id = timestamp + randomPart;
     }
   }
   
@@ -219,32 +77,62 @@ export class ObjectId {
   }
 }
 
-// Create a client instance
-const client = new BrowserMongoClient(MONGODB_URI);
-
-// Cached connection
-let cached = {
-  conn: null,
-  promise: null
-};
-
+// Connect to database
 export async function connectToDatabase() {
-  if (cached.conn) {
-    return cached.conn;
+  try {
+    // Check connection to backend
+    const data = await fetchApi('check-connection');
+    
+    if (!data.success) {
+      throw new Error('Failed to connect to MongoDB');
+    }
+    
+    // Return a simplified client object for browser usage
+    return {
+      db: (dbName: string) => ({
+        collection: (collectionName: string) => ({
+          findOne: async (query: any) => {
+            return fetchApi(`${collectionName}/find-one`, {
+              method: 'POST',
+              body: JSON.stringify({ query })
+            });
+          },
+          find: (query: any) => ({
+            toArray: async () => {
+              return fetchApi(`${collectionName}/find`, {
+                method: 'POST',
+                body: JSON.stringify({ query })
+              });
+            }
+          }),
+          insertOne: async (document: any) => {
+            return fetchApi(`${collectionName}`, {
+              method: 'POST',
+              body: JSON.stringify(document)
+            });
+          },
+          updateOne: async (filter: any, update: any) => {
+            return fetchApi(`${collectionName}/update`, {
+              method: 'PATCH',
+              body: JSON.stringify({ filter, update })
+            });
+          },
+          deleteOne: async (filter: any) => {
+            return fetchApi(`${collectionName}`, {
+              method: 'DELETE',
+              body: JSON.stringify({ filter })
+            });
+          }
+        })
+      })
+    };
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    throw error;
   }
-
-  if (!cached.promise) {
-    cached.promise = client.connect().then((client) => {
-      return {
-        client,
-        db: client.db("delivery_app"),
-      };
-    });
-  }
-  
-  cached.conn = await cached.promise;
-  return cached.conn;
 }
 
 // Export ServerApiVersion for compatibility
-export { ServerApiVersion };
+export const ServerApiVersion = {
+  v1: '1'
+};

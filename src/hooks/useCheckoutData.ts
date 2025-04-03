@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/apiService';
 import { CheckoutData, Address } from '@/components/checkout/types';
 
 export const useCheckoutData = (id?: string) => {
@@ -59,28 +59,31 @@ export const useCheckoutData = (id?: string) => {
         
         // Buscar endereços do usuário se autenticado
         if (isAuthenticated && user) {
-          const { data, error } = await supabase
-            .from('enderecos')
-            .select('*')
-            .eq('usuario_id', user.id)
-            .order('criado_em', { ascending: false });
-          
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            const formattedAddresses = data.map(addr => ({
-              id: addr.id,
-              label: addr.label || 'Endereço',
-              street: addr.endereco,
-              complement: addr.complemento,
-              neighborhood: addr.bairro,
-              city: addr.cidade,
-              state: addr.estado,
-              zipcode: addr.cep
-            }));
+          try {
+            const response = await fetch(`http://localhost:5000/api/addresses/${user.id}`);
+            const data = await response.json();
             
-            setAddresses(formattedAddresses);
-            setSelectedAddress(formattedAddresses[0].id);
+            if (!response.ok) {
+              throw new Error(data.error || 'Falha ao buscar endereços');
+            }
+            
+            if (data && data.length > 0) {
+              const formattedAddresses = data.map((addr: any) => ({
+                id: addr._id,
+                label: addr.label || 'Endereço',
+                street: addr.endereco,
+                complement: addr.complemento,
+                neighborhood: addr.bairro,
+                city: addr.cidade,
+                state: addr.estado,
+                zipcode: addr.cep
+              }));
+              
+              setAddresses(formattedAddresses);
+              setSelectedAddress(formattedAddresses[0].id);
+            }
+          } catch (error) {
+            console.error('Erro ao carregar endereços:', error);
           }
         }
       } catch (error) {

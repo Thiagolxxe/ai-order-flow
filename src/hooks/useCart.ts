@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { CartItem, Restaurant, CartData } from '@/components/cart/types';
 import { isValidUUID } from '@/utils/id-helpers';
 
@@ -23,28 +23,10 @@ export const useCart = () => {
         return;
       }
       
-      // Validate if restaurant ID is valid
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      
-      // Handle numeric IDs (1-5) by converting them to UUIDs
+      // Validate restaurant ID
       let validRestaurantId = restaurantId;
-      if (/^\d+$/.test(restaurantId)) {
-        const numericId = parseInt(restaurantId);
-        if (numericId > 0 && numericId <= 5) {
-          validRestaurantId = `00000000-0000-0000-0000-00000000000${numericId}`;
-          console.log(`Converting numeric ID ${restaurantId} to test UUID: ${validRestaurantId}`);
-        }
-      }
       
-      // Usar a função isValidUUID para verificar a validade do ID
-      if (!isValidUUID(validRestaurantId)) {
-        console.error('ID do restaurante inválido:', validRestaurantId);
-        setCartItems([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Get cart items using validated ID
+      // Get cart items
       const savedCart = localStorage.getItem(`cart_${validRestaurantId}`);
       if (!savedCart) {
         setCartItems([]);
@@ -59,28 +41,32 @@ export const useCart = () => {
         return;
       }
       
-      // Ensure we're using the valid restaurant ID for all operations
-      localStorage.setItem('currentRestaurant', validRestaurantId);
-      
-      // Fetch restaurant details
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurantes')
-        .select('id, nome, taxa_entrega')
-        .eq('id', validRestaurantId)
-        .maybeSingle();
-      
-      if (restaurantError) {
-        console.error('Erro ao buscar dados do restaurante:', restaurantError);
-        toast.error('Não foi possível carregar os dados do restaurante');
-        setLoading(false);
-        return;
+      try {
+        // Fetch restaurant details from API
+        const response = await fetch(`http://localhost:5000/api/restaurants/${validRestaurantId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch restaurant data');
+        }
+        
+        const restaurantData = await response.json();
+        
+        setRestaurant(restaurantData || {
+          id: validRestaurantId,
+          nome: 'Restaurante',
+          taxa_entrega: parsedCart.deliveryFee || 0
+        });
+      } catch (error) {
+        console.error('Erro ao buscar dados do restaurante:', error);
+        
+        // Fallback to data from localStorage
+        setRestaurant({
+          id: validRestaurantId,
+          nome: 'Restaurante',
+          taxa_entrega: parsedCart.deliveryFee || 0
+        });
       }
       
-      setRestaurant(restaurantData || {
-        id: validRestaurantId,
-        nome: 'Restaurante',
-        taxa_entrega: parsedCart.deliveryFee || 0
-      });
       setCartItems(parsedCart.items || []);
       setDiscount(parsedCart.discount || 0);
       
