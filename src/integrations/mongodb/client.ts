@@ -117,3 +117,23 @@ export function getConnectionStatus() {
 export function isConnected() {
   return connectionStatus === CONNECTION_STATUS.CONNECTED;
 }
+
+/**
+ * Check MongoDB connection status
+ * @returns Promise<boolean> True if connection is successful
+ */
+export async function checkMongoDBConnection(): Promise<boolean> {
+  try {
+    // If already connected, return true
+    if (connectionStatus === CONNECTION_STATUS.CONNECTED) {
+      return true;
+    }
+    
+    // Try to connect
+    await connectToDatabase();
+    return true;
+  } catch (error) {
+    console.error('MongoDB connection check failed:', error);
+    return false;
+  }
+}
