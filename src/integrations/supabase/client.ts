@@ -4,69 +4,9 @@
  * We're migrating to MongoDB but still have some references to Supabase.
  * This provides a compatible interface to avoid breaking changes.
  */
+import { connectToDatabase } from '../mongodb/client';
 
-// Define some common mock data for consistent responses
-const mockRestaurant = {
-  id: 'mock-id',
-  nome: 'Mock Restaurant',
-  logo_url: 'https://example.com/logo.png',
-  banner_url: 'https://example.com/banner.png',
-  tipo_cozinha: 'Italian',
-  taxa_entrega: 5.0,
-  valor_pedido_minimo: 20.0,
-  tempo_entrega_estimado: 30,
-  faixa_preco: 2
-};
-
-const mockOrder = {
-  id: 'mock-id',
-  numero_pedido: 'ORD-123456',
-  status: 'pendente',
-  restaurante_id: 'mock-restaurant-id',
-  endereco_entrega: '123 Main St',
-  cidade_entrega: 'Example City',
-  estado_entrega: 'EX',
-  criado_em: new Date().toISOString(),
-  subtotal: 50.0,
-  taxa_entrega: 5.0,
-  total: 55.0,
-  entregador_id: 'mock-driver-id',
-  status_pagamento: 'pendente',
-  restaurantes: { 
-    nome: 'Mock Restaurant',
-    id: 'mock-restaurant-id'
-  }
-};
-
-const mockProfile = {
-  id: 'mock-id',
-  nome: 'John',
-  sobrenome: 'Doe',
-  telefone: '555-123-4567'
-};
-
-const mockMenuItem = {
-  id: 'mock-id',
-  nome: 'Mock Item',
-  preco: 15.0,
-  restaurante_id: 'mock-restaurant-id',
-  restaurantes: {
-    nome: 'Mock Restaurant'
-  }
-};
-
-const mockCoupon = {
-  id: 'mock-id',
-  codigo: 'DISCOUNT10',
-  valor: 10,
-  tipo: 'percentual',
-  restaurante_id: 'mock-restaurant-id',
-  valor_pedido_minimo: 20.0,
-  data_inicio: new Date(Date.now() - 86400000).toISOString(),
-  data_fim: new Date(Date.now() + 86400000).toISOString(),
-  ativo: true
-};
-
+// Supabase client mock that forwards to MongoDB
 export const supabase = {
   auth: {
     getSession: async () => ({ 
@@ -101,80 +41,197 @@ export const supabase = {
   },
   from: (table: string) => ({
     select: (columns?: string) => ({
-      eq: (column: string, value: any) => ({
-        lte: (column: string, value: any) => ({
-          gte: (column: string, value: any) => ({
-            maybeSingle: async () => mockResponseForTable(table),
-            single: async () => mockResponseForTable(table),
-            toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-          }),
-          maybeSingle: async () => mockResponseForTable(table),
-          single: async () => mockResponseForTable(table),
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        in: (column: string, values: any[]) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        order: (column: string, { ascending }: { ascending: boolean }) => ({
-          limit: (limit: number) => ({
-            toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-          }),
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        limit: (limit: number) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        ilike: (column: string, value: any) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        or: (orConditions: string) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        in: (column: string, values: any[]) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
-        }),
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null }),
-        maybeSingle: async () => mockResponseForTable(table),
-        single: async () => mockResponseForTable(table)
+      eq: async (column: string, value: any) => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.findOne({ [column]: value });
+          return result;
+        } catch (error) {
+          console.error(`Error in select eq operation for ${table}:`, error);
+          return { data: null, error };
+        }
+      },
+      lte: (column: string, value: any) => ({
+        gte: (column: string, value: any) => ({
+          toArray: async () => {
+            try {
+              const { db } = await connectToDatabase();
+              const collection = db.collection(mapTableToCollection(table));
+              const result = await collection.find({}).toArray();
+              return result;
+            } catch (error) {
+              console.error(`Error in select lte gte toArray operation for ${table}:`, error);
+              return { data: [], error };
+            }
+          }
+        })
       }),
       in: (column: string, values: any[]) => ({
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+        toArray: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.find({}).toArray();
+            return result;
+          } catch (error) {
+            console.error(`Error in select in toArray operation for ${table}:`, error);
+            return { data: [], error };
+          }
+        }
       }),
       order: (column: string, { ascending }: { ascending: boolean }) => ({
         limit: (limit: number) => ({
-          toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+          toArray: async () => {
+            try {
+              const { db } = await connectToDatabase();
+              const collection = db.collection(mapTableToCollection(table));
+              const result = await collection.find({}).toArray();
+              return result;
+            } catch (error) {
+              console.error(`Error in select order limit toArray operation for ${table}:`, error);
+              return { data: [], error };
+            }
+          }
         }),
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+        toArray: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.find({}).toArray();
+            return result;
+          } catch (error) {
+            console.error(`Error in select order toArray operation for ${table}:`, error);
+            return { data: [], error };
+          }
+        }
       }),
       limit: (limit: number) => ({
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+        toArray: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.find({}).toArray();
+            return result;
+          } catch (error) {
+            console.error(`Error in select limit toArray operation for ${table}:`, error);
+            return { data: [], error };
+          }
+        }
       }),
       ilike: (column: string, value: any) => ({
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+        toArray: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            // Simulate ilike with regex in MongoDB
+            const result = await collection.find({}).toArray();
+            return result;
+          } catch (error) {
+            console.error(`Error in select ilike toArray operation for ${table}:`, error);
+            return { data: [], error };
+          }
+        }
       }),
       or: (orConditions: string) => ({
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null })
+        toArray: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.find({}).toArray();
+            return result;
+          } catch (error) {
+            console.error(`Error in select or toArray operation for ${table}:`, error);
+            return { data: [], error };
+          }
+        }
       }),
-      eq: (column: string, value: any) => ({
-        toArray: async () => ({ data: [mockDataForTable(table)], error: null }),
-        single: async () => mockResponseForTable(table),
-        maybeSingle: async () => mockResponseForTable(table)
-      }),
-      toArray: async () => ({ data: [mockDataForTable(table)], error: null }),
-      single: async () => mockResponseForTable(table),
-      maybeSingle: async () => mockResponseForTable(table)
+      toArray: async () => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.find({}).toArray();
+          return result;
+        } catch (error) {
+          console.error(`Error in select toArray operation for ${table}:`, error);
+          return { data: [], error };
+        }
+      },
+      single: async () => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.findOne({});
+          return result;
+        } catch (error) {
+          console.error(`Error in select single operation for ${table}:`, error);
+          return { data: null, error };
+        }
+      },
+      maybeSingle: async () => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.findOne({});
+          return result;
+        } catch (error) {
+          console.error(`Error in select maybeSingle operation for ${table}:`, error);
+          return { data: null, error };
+        }
+      }
     }),
     insert: (data: any) => ({
       select: (columns?: string) => ({
-        single: async () => mockResponseForTable(table)
+        single: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.insertOne(data);
+            return { data: { ...data, id: result.data.insertedId }, error: null };
+          } catch (error) {
+            console.error(`Error in insert operation for ${table}:`, error);
+            return { data: null, error };
+          }
+        }
       }),
-      single: async () => mockResponseForTable(table)
+      single: async () => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.insertOne(data);
+          return { data: { ...data, id: result.data.insertedId }, error: null };
+        } catch (error) {
+          console.error(`Error in insert operation for ${table}:`, error);
+          return { data: null, error };
+        }
+      }
     }),
     upsert: (data: any) => ({
       select: (columns?: string) => ({
-        single: async () => mockResponseForTable(table)
+        single: async () => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            // For upsert, we'll just insert in this mock
+            const result = await collection.insertOne(data);
+            return { data: { ...data, id: result.data.insertedId }, error: null };
+          } catch (error) {
+            console.error(`Error in upsert operation for ${table}:`, error);
+            return { data: null, error };
+          }
+        }
       }),
-      single: async () => mockResponseForTable(table)
+      single: async () => {
+        try {
+          const { db } = await connectToDatabase();
+          const collection = db.collection(mapTableToCollection(table));
+          const result = await collection.insertOne(data);
+          return { data: { ...data, id: result.data.insertedId }, error: null };
+        } catch (error) {
+          console.error(`Error in upsert operation for ${table}:`, error);
+          return { data: null, error };
+        }
+      }
     })
   }),
   channel: (channelName: string) => ({
@@ -185,38 +242,27 @@ export const supabase = {
   removeChannel: (channel: any) => {}
 };
 
-// Helper function to get appropriate mock data based on table name
-function mockDataForTable(table: string): any {
-  switch (table) {
-    case 'restaurantes':
-      return mockRestaurant;
-    case 'pedidos':
-      return mockOrder;
-    case 'perfis':
-      return mockProfile;
-    case 'itens_cardapio':
-      return mockMenuItem;
-    case 'promocoes':
-      return mockCoupon;
-    case 'entregadores':
-      return { id: 'mock-id', tipo_veiculo: 'Moto', latitude_atual: -23.5505, longitude_atual: -46.6333 };
-    case 'enderecos':
-      return { 
-        id: 'mock-id', 
-        endereco: '123 Main St', 
-        complemento: 'Apt 4B', 
-        bairro: 'Centro', 
-        cidade: 'São Paulo', 
-        estado: 'SP', 
-        cep: '01234-567',
-        isdefault: true
-      };
-    default:
-      return { id: 'mock-id' };
-  }
-}
-
-// Helper function to format response object consistently
-function mockResponseForTable(table: string): { data: any, error: null } {
-  return { data: mockDataForTable(table), error: null };
+// Function to map Supabase table names to MongoDB collections
+function mapTableToCollection(table: string): string {
+  const mapping: Record<string, string> = {
+    'restaurantes': 'restaurants',
+    'pedidos': 'orders',
+    'perfis': 'profiles',
+    'itens_cardapio': 'menu_items',
+    'promocoes': 'coupons',
+    'entregadores': 'drivers',
+    'enderecos': 'addresses',
+    'categorias': 'categories',
+    'avaliacoes': 'ratings',
+    'itens_pedido': 'order_items',
+    'notificacoes': 'notifications',
+    'funcoes_usuario': 'user_roles',
+    'historico_status_pedido': 'order_status_history',
+    'videos': 'videos',
+    'curtidas_video': 'video_likes',
+    'comentarios_video': 'video_comments',
+    'videos_salvos': 'saved_videos',
+  };
+  
+  return mapping[table] || table;
 }

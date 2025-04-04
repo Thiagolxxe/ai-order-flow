@@ -9,6 +9,7 @@ import { UserProvider } from '@/context/UserContext';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import MongoDBConnectionStatus from '@/components/mongodb/ConnectionStatus';
+import MongoDBConnectionChecker from '@/components/mongodb/ConnectionChecker';
 
 // Pages
 import Index from '@/pages/Index';
@@ -94,6 +95,7 @@ function App() {
               </main>
               <Footer />
               <MongoDBConnectionStatus />
+              <MongoDBConnectionChecker />
             </div>
           </Router>
           <Toaster />

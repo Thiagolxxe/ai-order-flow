@@ -26,12 +26,17 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       `)
       .eq('cliente_id', userId)
       .order('criado_em', { ascending: false })
-      .limit(5);
+      .limit(5)
+      .toArray();
     
-    if (!orderError && orderData) {
+    if (!orderError && orderData && Array.isArray(orderData)) {
       context.previousOrders = orderData.map(order => ({
-        ...order,
-        restaurante_nome: order.restaurantes?.nome || 'Restaurante'
+        id: order.id || '',
+        numero_pedido: order.numero_pedido || '',
+        restaurante_id: order.restaurante_id || '',
+        restaurante_nome: order.restaurantes?.nome || 'Restaurante',
+        total: order.total || 0,
+        criado_em: order.criado_em || new Date().toISOString()
       }));
     }
     
@@ -70,7 +75,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       };
     }
     
-    // Fetch user's most frequently ordered items - Fixed query to use aggregation properly
+    // Fetch user's most frequently ordered items
     if (context.previousOrders && context.previousOrders.length > 0) {
       const orderIds = context.previousOrders.map(order => order.id);
       
@@ -79,9 +84,10 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
         .select('nome_item_cardapio, count')
         .in('pedido_id', orderIds)
         .order('count', { ascending: false })
-        .limit(3);
+        .limit(3)
+        .toArray();
       
-      if (!itemsError && frequentItems) {
+      if (!itemsError && frequentItems && Array.isArray(frequentItems)) {
         context.frequentItems = frequentItems.map(item => item.nome_item_cardapio);
       }
     }

@@ -5,6 +5,7 @@ const mongoose = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createCollectionsAndIndexes } = require('./db/init');
 require('dotenv').config();
 
 // Inicializar Express
@@ -38,12 +39,18 @@ const client = new MongoClient(uri, {
   }
 });
 
-// Conectar ao MongoDB
+// Conectar ao MongoDB e inicializar o banco de dados
 async function connectToMongoDB() {
   try {
     await client.connect();
     console.log("Conectado com sucesso ao MongoDB Atlas!");
-    return client.db("delivery_app");
+    
+    const db = client.db("delivery_app");
+    
+    // Inicializar o banco de dados com collections e indexes
+    await createCollectionsAndIndexes(db);
+    
+    return db;
   } catch (err) {
     console.error("Erro ao conectar ao MongoDB:", err);
     process.exit(1);
@@ -344,10 +351,23 @@ app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
 app.get('/api/check-connection', async (req, res) => {
   try {
     await client.db("admin").command({ ping: 1 });
-    res.status(200).json({ success: true, message: 'Conectado ao MongoDB' });
+    const status = {
+      success: true,
+      message: 'Conectado ao MongoDB',
+      timestamp: new Date(),
+      server: 'MongoDB Atlas',
+      database: 'delivery_app'
+    };
+    console.log('Ping ao MongoDB bem-sucedido:', status);
+    res.status(200).json(status);
   } catch (error) {
     console.error('Erro na conexão com o MongoDB:', error);
-    res.status(500).json({ success: false, error: 'Falha na conexão com o MongoDB' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Falha na conexão com o MongoDB',
+      details: error.message,
+      timestamp: new Date()
+    });
   }
 });
 
@@ -360,6 +380,8 @@ const startServer = async () => {
   
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`MongoDB conectado na base de dados: delivery_app`);
+    console.log(`Verifique a conexão em: http://localhost:${PORT}/api/check-connection`);
   });
 };
 
