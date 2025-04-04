@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -34,7 +33,7 @@ const RestaurantList = ({ restaurants }: { restaurants: Restaurant[] }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {restaurants.map((restaurant) => (
         <Card key={restaurant.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <Link to={`/restaurante/${restaurant.id}`}>
+          <Link to={`/restaurant/${restaurant.id}`}>
             <div className="h-48 overflow-hidden">
               <img 
                 src={restaurant.banner_url || '/placeholder.svg'} 
@@ -46,7 +45,7 @@ const RestaurantList = ({ restaurants }: { restaurants: Restaurant[] }) => {
           
           <CardContent className="pt-4">
             <div className="flex justify-between items-start mb-2">
-              <Link to={`/restaurante/${restaurant.id}`} className="hover:underline">
+              <Link to={`/restaurant/${restaurant.id}`} className="hover:underline">
                 <h3 className="font-bold text-lg line-clamp-1">{restaurant.nome}</h3>
               </Link>
               <Button variant="ghost" size="icon" className="h-8 w-8">

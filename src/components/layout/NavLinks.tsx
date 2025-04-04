@@ -24,25 +24,25 @@ const NavLinks = () => {
       <Link to="/" className={linkClasses('/')}>
         Início
       </Link>
-      <Link to="/restaurantes" className={linkClasses('/restaurantes')}>
+      <Link to="/restaurants" className={linkClasses('/restaurants')}>
         Restaurantes
       </Link>
-      <Link to="/videos" className={cn(
-        linkClasses('/videos'),
+      <Link to="/video-feed" className={cn(
+        linkClasses('/video-feed'),
         "flex items-center gap-1",
-        isActive('/videos') ? "text-primary" : "text-muted-foreground hover:text-primary"
+        isActive('/video-feed') ? "text-primary" : "text-muted-foreground hover:text-primary"
       )}>
-        <Flame size={18} className={isActive('/videos') ? "text-primary animate-pulse" : ""} />
+        <Flame size={18} className={isActive('/video-feed') ? "text-primary animate-pulse" : ""} />
         Vídeos
       </Link>
-      <Link to="/promocoes" className={linkClasses('/promocoes')}>
+      <Link to="/promotions" className={linkClasses('/promotions')}>
         Promoções
       </Link>
-      <Link to="/pedidos" className={linkClasses('/pedidos')}>
+      <Link to="/orders" className={linkClasses('/orders')}>
         Meus Pedidos
       </Link>
-      <Link to="/restaurante/cadastro" className={cn(
-        linkClasses('/restaurante/cadastro'),
+      <Link to="/restaurant-signup" className={cn(
+        linkClasses('/restaurant-signup'),
         "flex items-center gap-1 text-primary font-medium hover:text-primary/80"
       )}>
         <Store size={18} />

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -52,7 +51,7 @@ const RestaurantCard = ({
 
   return (
     <Link 
-      to={`/restaurante/${id}`}
+      to={`/restaurant/${id}`}
       className={cn(
         'block group overflow-hidden rounded-xl card-hover',
         featured ? 'shadow-elevation-2' : 'shadow-elevation-1',

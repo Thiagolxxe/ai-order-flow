@@ -18,21 +18,23 @@ const NotFound = () => {
 
   // Função para sugerir uma rota baseado na rota atual
   const getSuggestion = (path: string) => {
-    // Mapeamento de rotas em inglês para português
+    // Mapeamento de rotas em português para as rotas corretas
     const routeMap: Record<string, string> = {
-      '/restaurants': '/restaurantes',
-      '/orders': '/pedidos',
-      '/profile': '/perfil',
-      '/cart': '/carrinho',
-      '/checkout': '/finalizar',
-      '/register': '/cadastro',
-      '/restaurant': '/restaurante'
+      '/restaurantes': '/restaurants',
+      '/videos': '/video-feed',
+      '/promocoes': '/promotions',
+      '/pedidos': '/orders',
+      '/perfil': '/profile',
+      '/carrinho': '/cart',
+      '/finalizar': '/checkout',
+      '/cadastro': '/register',
+      '/restaurante/cadastro': '/restaurant-signup'
     };
 
     // Verifica se alguma das chaves é um prefixo da rota atual
-    for (const [engRoute, ptRoute] of Object.entries(routeMap)) {
-      if (path.startsWith(engRoute)) {
-        return path.replace(engRoute, ptRoute);
+    for (const [ptRoute, engRoute] of Object.entries(routeMap)) {
+      if (path.startsWith(ptRoute)) {
+        return path.replace(ptRoute, engRoute);
       }
     }
 

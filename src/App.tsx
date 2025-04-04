@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ui/theme-provider';
@@ -81,6 +81,14 @@ function App() {
                   <Route path="/delivery/signup" element={<DeliveryRegistration />} />
                   <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
                   <Route path="/delivery/profile" element={<DeliveryProfile />} />
+                  
+                  {/* Add redirects for common Portuguese routes */}
+                  <Route path="/restaurantes" element={<Navigate to="/restaurants" replace />} />
+                  <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
+                  <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
+                  <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
+                  <Route path="/restaurante/cadastro" element={<Navigate to="/restaurant-signup" replace />} />
+                  
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
