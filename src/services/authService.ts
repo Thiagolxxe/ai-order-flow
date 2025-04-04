@@ -20,7 +20,7 @@ export const authService = {
       const { session, expires_at } = JSON.parse(sessionStr);
       
       // Check if the session expired
-      if (new Date(expires_at) < new Date()) {
+      if (expires_at && new Date(expires_at) < new Date()) {
         localStorage.removeItem('deliveryapp_session');
         return { data: { session: null } };
       }
@@ -41,13 +41,17 @@ export const authService = {
       // This is a stub implementation for now
       console.log('Sign up called with:', { email, userData });
       
+      const mockUser = { id: 'mock-user-id', email };
+      const mockSession = { 
+        user: { ...mockUser, ...userData },
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token'
+      };
+      
       return {
         data: {
-          user: { id: 'mock-user-id', email },
-          session: { 
-            user: { id: 'mock-user-id', email, ...userData },
-            access_token: 'mock-token' 
-          }
+          user: mockUser,
+          session: mockSession
         },
         error: null
       };
@@ -68,13 +72,17 @@ export const authService = {
       // This is a stub implementation for now
       console.log('Sign in called with:', { email });
       
+      const mockUser = { id: 'mock-user-id', email };
+      const mockSession = {
+        user: mockUser,
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token'
+      };
+      
       return {
         data: {
-          user: { id: 'mock-user-id', email },
-          session: {
-            user: { id: 'mock-user-id', email },
-            access_token: 'mock-token'
-          }
+          user: mockUser,
+          session: mockSession
         },
         error: null
       };

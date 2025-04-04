@@ -1,173 +1,143 @@
 
-import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
-import { apiService } from '@/services/apiService';
-import { getCurrentUser, isSessionValid, removeSession } from '@/utils/authUtils';
-import { toast } from 'sonner';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { saveSession, removeSession, UserSession } from '@/utils/authUtils';
 
-// Interface for user data
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role?: string;
-  [key: string]: any;
-}
-
-// Interface for context data
-interface UserContextData {
-  user: User | null;
+// Define the context data structure
+export interface UserContextData {
+  user: UserSession | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: { message: string } }>;
-  signUp: (email: string, password: string, userData?: any) => Promise<{ error?: { message: string } }>;
+  role: string | null;
+  signIn: (email: string, password: string) => Promise<{
+    error?: { message: string };
+  }>;
   signOut: () => Promise<void>;
-  updateUserData: (data: Partial<User>) => void;
+  signup: (email: string, password: string, userData?: any) => Promise<{
+    error?: { message: string };
+  }>;
 }
 
-// Create context
-const UserContext = createContext<UserContextData>({} as UserContextData);
+// Create the context with a default value
+const UserContext = createContext<UserContextData>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  role: null,
+  signIn: async () => ({ error: undefined }),
+  signOut: async () => {},
+  signup: async () => ({ error: undefined }),
+});
 
-// Provider component
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Export the hook for using the context
+export const useUser = () => useContext(UserContext);
 
-  // Initialize user data
-  const initializeUser = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Check if session is valid
-      if (isSessionValid()) {
-        const userData = getCurrentUser();
-        
-        // If we have a user in the session, update state
-        if (userData) {
-          setUser({
-            id: userData.id,
-            email: userData.email,
-            name: userData.name,
-            role: userData.role
-          });
-        } else {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-        removeSession();
-      }
-    } catch (error) {
-      console.error('Error initializing user', error);
-      setUser(null);
-      removeSession();
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+// Provider component that wraps your app and makes auth object available
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [role, setRole] = useState<string | null>(null);
 
-  // Load user on mount
-  useEffect(() => {
-    initializeUser();
-  }, [initializeUser]);
-
-  // Sign in function
+  // Method to sign in a user
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await apiService.auth.signIn({ email, password });
-
-      if (error) {
-        return { error };
-      }
-
-      // Type safe check for session in data
-      if (data && typeof data === 'object' && 'session' in data && data.session) {
-        const sessionData = data.session;
-        
-        // Check if user exists in session data
-        if ('user' in sessionData) {
-          setUser(sessionData.user as User);
-        }
-      }
-
-      return {};
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      return { error: { message: error.message || 'Falha no login' } };
-    }
-  };
-
-  // Sign up function
-  const signUp = async (email: string, password: string, userData?: any) => {
-    try {
-      const { data, error } = await apiService.auth.signUp({
+      const { data, error } = await supabase.auth.signIn({
         email,
         password,
-        ...userData
       });
 
-      if (error) {
-        return { error };
-      }
+      if (error) throw error;
 
-      // Type safe check for session in data
-      if (data && typeof data === 'object' && 'session' in data && data.session) {
-        const sessionData = data.session;
+      if (data?.session) {
+        setUser(data.session);
+        saveSession(data.session);
         
-        // Check if user exists in session data
-        if ('user' in sessionData) {
-          setUser(sessionData.user as User);
-        }
+        // Fetch user role
+        setRole('user'); // Default role - would come from backend in real app
       }
 
-      return {};
+      return { error: undefined };
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      return { error: { message: error.message || 'Falha no registro' } };
+      console.error('Error signing in:', error.message);
+      return { error };
     }
   };
 
-  // Sign out function
+  // Method to sign up a user
+  const signup = async (email: string, password: string, userData: any = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data?.session) {
+        setUser(data.session);
+        saveSession(data.session);
+        
+        // Set default role for new users
+        setRole('user');
+      }
+
+      return { error: undefined };
+    } catch (error: any) {
+      console.error('Error signing up:', error.message);
+      return { error };
+    }
+  };
+
+  // Method to sign out
   const signOut = async () => {
     try {
-      await apiService.auth.signOut();
+      removeSession();
       setUser(null);
-      toast.info('Você foi desconectado');
+      setRole(null);
     } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('Erro ao desconectar');
+      console.error('Error signing out:', error);
     }
   };
 
-  // Update user data
-  const updateUserData = (data: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...data });
-    }
-  };
+  // Check for existing session on load
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        setIsLoading(true);
+        const { data } = await supabase.auth.getSession();
 
+        if (data.session) {
+          setUser(data.session);
+          
+          // Set role - would come from backend in real app
+          setRole('user');
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadUser();
+  }, []);
+
+  // Return the provider with the context value
   return (
     <UserContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
         isLoading,
+        role,
         signIn,
-        signUp,
         signOut,
-        updateUserData
+        signup,
       }}
     >
       {children}
     </UserContext.Provider>
   );
-};
-
-// Hook for using the user context
-export const useUser = (): UserContextData => {
-  const context = useContext(UserContext);
-  
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  
-  return context;
 };

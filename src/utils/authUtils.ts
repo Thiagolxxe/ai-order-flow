@@ -12,6 +12,11 @@ export interface UserSession {
   email: string;
   name?: string;
   role?: string;
+  user?: {
+    id: string;
+    email: string;
+    [key: string]: any;
+  };
   access_token: string;
   refresh_token?: string;
   expires_at?: string;
