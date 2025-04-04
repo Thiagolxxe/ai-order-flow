@@ -31,7 +31,7 @@ let connectionStatus = CONNECTION_STATUS.DISCONNECTED;
 let connectionError: Error | null = null;
 
 // Define response type for MongoDB operations
-interface MongoResponse<T> {
+export interface MongoResponse<T> {
   data: T;
   error: null | Error;
 }
@@ -148,7 +148,9 @@ function getMockDataByCollection(collectionName: string, query: any): any {
         estado: 'SP',
         deliveryFee: 5.0,
         valor_pedido_minimo: 20.0,
-        tempo_entrega_estimado: 30
+        tempo_entrega_estimado: 30,
+        logo_url: '/images/restaurants/logo-default.png',
+        banner_url: '/images/restaurants/banner-default.jpg'
       };
     case 'orders':
       return {

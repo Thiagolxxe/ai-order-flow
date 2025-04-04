@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { UserProvider } from '@/context/UserContext';
+import { useEffect } from 'react';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import { initializeDatabase } from '@/services/mongodb/initDatabase';
+import { toast } from 'sonner';
 
 // Layout Components
 import Navbar from '@/components/layout/Navbar';
@@ -50,6 +54,26 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Initialize MongoDB connection
+  useEffect(() => {
+    const initMongoDB = async () => {
+      try {
+        // Connect to MongoDB
+        await connectToDatabase();
+        
+        // Initialize database
+        await initializeDatabase();
+        
+        console.log('MongoDB initialization complete');
+      } catch (error) {
+        console.error('Failed to initialize MongoDB:', error);
+        toast.error('Falha ao conectar ao banco de dados');
+      }
+    };
+    
+    initMongoDB();
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
@@ -74,6 +98,7 @@ function App() {
                   <Route path="/profile" element={<UserProfile />} />
                   <Route path="/reviews" element={<Reviews />} />
                   <Route path="/chat" element={<Chat />} />
+                  <Route path="/chat/:id" element={<Chat />} />
                   <Route path="/promotions" element={<Promotions />} />
                   <Route path="/tracking/:id" element={<LiveTrackingMap />} />
                   <Route path="/restaurant-signup" element={<RestaurantSignup />} />
@@ -88,6 +113,7 @@ function App() {
                   <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
                   <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
                   <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
+                  <Route path="/restaurante/:id" element={<Navigate to={({ params }) => `/restaurant/${params.id}`} replace />} />
                   <Route path="/restaurante/cadastro" element={<Navigate to="/restaurant-signup" replace />} />
                   
                   <Route path="*" element={<NotFound />} />

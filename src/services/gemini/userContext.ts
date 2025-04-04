@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 import { OrderContext } from './types';
 
 /**
@@ -10,28 +10,17 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
   
   try {
     const context: OrderContext = {};
+    const { db } = await connectToDatabase();
     
     // Fetch user's previous orders
-    const { data: orderData, error: orderError } = await supabase
-      .from('pedidos')
-      .select(`
-        id,
-        numero_pedido,
-        restaurante_id,
-        restaurantes (
-          nome
-        ),
-        total,
-        criado_em
-      `)
-      .eq('cliente_id', userId)
-      .order('criado_em', { ascending: false })
-      .limit(5)
-      .toArray();
+    const orderCollection = db.collection('orders');
+    const orderResult = await orderCollection.find({
+      cliente_id: userId
+    }).toArray();
     
-    if (!orderError && orderData && Array.isArray(orderData)) {
-      context.previousOrders = orderData.map(order => ({
-        id: order.id || '',
+    if (orderResult.error === null && orderResult.data && Array.isArray(orderResult.data)) {
+      context.previousOrders = orderResult.data.map(order => ({
+        id: order._id || '',
         numero_pedido: order.numero_pedido || '',
         restaurante_id: order.restaurante_id || '',
         restaurante_nome: order.restaurantes?.nome || 'Restaurante',
@@ -41,37 +30,35 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
     }
     
     // Fetch user's profile information
-    const { data: profileData, error: profileError } = await supabase
-      .from('perfis')
-      .select('nome, sobrenome, telefone')
-      .eq('id', userId)
-      .maybeSingle();
+    const profileCollection = db.collection('profiles');
+    const profileResult = await profileCollection.findOne({
+      _id: userId
+    });
     
-    if (!profileError && profileData) {
+    if (profileResult.error === null && profileResult.data) {
       context.userProfile = {
-        nome: profileData.nome || '',
-        sobrenome: profileData.sobrenome || '',
-        nomeCompleto: `${profileData.nome || ''} ${profileData.sobrenome || ''}`.trim(),
-        telefone: profileData.telefone
+        nome: profileResult.data.nome || '',
+        sobrenome: profileResult.data.sobrenome || '',
+        nomeCompleto: `${profileResult.data.nome || ''} ${profileResult.data.sobrenome || ''}`.trim(),
+        telefone: profileResult.data.telefone
       };
     }
     
     // Fetch user's default address
-    const { data: addressData, error: addressError } = await supabase
-      .from('enderecos')
-      .select('*')
-      .eq('usuario_id', userId)
-      .eq('isdefault', true)
-      .maybeSingle();
+    const addressCollection = db.collection('addresses');
+    const addressResult = await addressCollection.findOne({
+      usuario_id: userId,
+      isdefault: true
+    });
     
-    if (!addressError && addressData) {
-      context.userAddress = addressData;
+    if (addressResult.error === null && addressResult.data) {
+      context.userAddress = addressResult.data;
       
       // Add user location information
       context.userLocation = {
-        cidade: addressData.cidade,
-        estado: addressData.estado,
-        cep: addressData.cep
+        cidade: addressResult.data.cidade,
+        estado: addressResult.data.estado,
+        cep: addressResult.data.cep
       };
     }
     
@@ -79,16 +66,26 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
     if (context.previousOrders && context.previousOrders.length > 0) {
       const orderIds = context.previousOrders.map(order => order.id);
       
-      const { data: frequentItems, error: itemsError } = await supabase
-        .from('itens_pedido')
-        .select('nome_item_cardapio, count')
-        .in('pedido_id', orderIds)
-        .order('count', { ascending: false })
-        .limit(3)
-        .toArray();
+      const itemsCollection = db.collection('order_items');
+      const frequentItemsResult = await itemsCollection.find({
+        pedido_id: { $in: orderIds }
+      }).toArray();
       
-      if (!itemsError && frequentItems && Array.isArray(frequentItems)) {
-        context.frequentItems = frequentItems.map(item => item.nome_item_cardapio);
+      if (frequentItemsResult.error === null && frequentItemsResult.data && Array.isArray(frequentItemsResult.data)) {
+        // Group and count items
+        const itemCounts: Record<string, number> = {};
+        frequentItemsResult.data.forEach(item => {
+          const itemName = item.nome_item_cardapio;
+          if (itemName) {
+            itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
+          }
+        });
+        
+        // Sort by count and take top 3
+        context.frequentItems = Object.entries(itemCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([itemName]) => itemName);
       }
     }
     

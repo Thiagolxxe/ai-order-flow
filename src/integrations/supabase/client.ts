@@ -4,7 +4,7 @@
  * We're migrating to MongoDB but still have some references to Supabase.
  * This provides a compatible interface to avoid breaking changes.
  */
-import { connectToDatabase } from '../mongodb/client';
+import { connectToDatabase, MongoResponse } from '../mongodb/client';
 
 // Supabase client mock that forwards to MongoDB
 export const supabase = {
@@ -40,146 +40,155 @@ export const supabase = {
     })
   },
   from: (table: string) => ({
-    select: (columns?: string) => ({
-      eq: async (column: string, value: any) => {
-        try {
-          const { db } = await connectToDatabase();
-          const collection = db.collection(mapTableToCollection(table));
-          const result = await collection.findOne({ [column]: value });
-          return result;
-        } catch (error) {
-          console.error(`Error in select eq operation for ${table}:`, error);
-          return { data: null, error };
-        }
-      },
-      lte: (column: string, value: any) => ({
-        gte: (column: string, value: any) => ({
-          toArray: async () => {
-            try {
-              const { db } = await connectToDatabase();
-              const collection = db.collection(mapTableToCollection(table));
-              const result = await collection.find({}).toArray();
-              return result;
-            } catch (error) {
-              console.error(`Error in select lte gte toArray operation for ${table}:`, error);
-              return { data: [], error };
+    select: (columns?: string) => {
+      const selectQuery = {
+        eq: async (column: string, value: any) => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            const result = await collection.findOne({ [column]: value });
+            return { data: result.data, error: result.error };
+          } catch (error) {
+            console.error(`Error in select eq operation for ${table}:`, error);
+            return { data: null, error };
+          }
+        },
+        in: async (column: string, values: any[]) => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            // Since we're mocking, we can just simulate the response structure here
+            return {
+              toArray: async () => {
+                const result = await collection.find({ [column]: { $in: values } }).toArray();
+                return { data: result.data, error: result.error };
+              }
+            };
+          } catch (error) {
+            console.error(`Error in select in operation for ${table}:`, error);
+            return {
+              toArray: async () => ({ data: [], error })
+            };
+          }
+        },
+        ilike: async (column: string, value: string) => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            // Simulate case-insensitive search in MongoDB
+            return {
+              toArray: async () => {
+                const result = await collection.find({ [column]: new RegExp(value.replace(/%/g, ''), 'i') }).toArray();
+                return { data: result.data, error: result.error };
+              }
+            };
+          } catch (error) {
+            console.error(`Error in select ilike operation for ${table}:`, error);
+            return {
+              toArray: async () => ({ data: [], error })
+            };
+          }
+        },
+        or: async (conditions: string) => {
+          try {
+            const { db } = await connectToDatabase();
+            const collection = db.collection(mapTableToCollection(table));
+            // Parse the or conditions string (in a real implementation, this would be more sophisticated)
+            return {
+              toArray: async () => {
+                const result = await collection.find({}).toArray();
+                return { data: result.data, error: result.error };
+              }
+            };
+          } catch (error) {
+            console.error(`Error in select or operation for ${table}:`, error);
+            return {
+              toArray: async () => ({ data: [], error })
+            };
+          }
+        },
+        order: (column: string, { ascending }: { ascending: boolean }) => {
+          return {
+            limit: (limit: number) => {
+              return {
+                toArray: async () => {
+                  try {
+                    const { db } = await connectToDatabase();
+                    const collection = db.collection(mapTableToCollection(table));
+                    const result = await collection.find({}).toArray();
+                    return { data: result.data, error: result.error };
+                  } catch (error) {
+                    console.error(`Error in select order limit toArray operation for ${table}:`, error);
+                    return { data: [], error };
+                  }
+                }
+              };
+            },
+            toArray: async () => {
+              try {
+                const { db } = await connectToDatabase();
+                const collection = db.collection(mapTableToCollection(table));
+                const result = await collection.find({}).toArray();
+                return { data: result.data, error: result.error };
+              } catch (error) {
+                console.error(`Error in select order toArray operation for ${table}:`, error);
+                return { data: [], error };
+              }
             }
-          }
-        })
-      }),
-      in: (column: string, values: any[]) => ({
-        toArray: async () => {
-          try {
-            const { db } = await connectToDatabase();
-            const collection = db.collection(mapTableToCollection(table));
-            const result = await collection.find({}).toArray();
-            return result;
-          } catch (error) {
-            console.error(`Error in select in toArray operation for ${table}:`, error);
-            return { data: [], error };
-          }
-        }
-      }),
-      order: (column: string, { ascending }: { ascending: boolean }) => ({
-        limit: (limit: number) => ({
-          toArray: async () => {
-            try {
-              const { db } = await connectToDatabase();
-              const collection = db.collection(mapTableToCollection(table));
-              const result = await collection.find({}).toArray();
-              return result;
-            } catch (error) {
-              console.error(`Error in select order limit toArray operation for ${table}:`, error);
-              return { data: [], error };
+          };
+        },
+        limit: (limit: number) => {
+          return {
+            toArray: async () => {
+              try {
+                const { db } = await connectToDatabase();
+                const collection = db.collection(mapTableToCollection(table));
+                const result = await collection.find({}).toArray();
+                return { data: result.data, error: result.error };
+              } catch (error) {
+                console.error(`Error in select limit toArray operation for ${table}:`, error);
+                return { data: [], error };
+              }
             }
-          }
-        }),
+          };
+        },
         toArray: async () => {
           try {
             const { db } = await connectToDatabase();
             const collection = db.collection(mapTableToCollection(table));
             const result = await collection.find({}).toArray();
-            return result;
+            return { data: result.data, error: result.error };
           } catch (error) {
-            console.error(`Error in select order toArray operation for ${table}:`, error);
+            console.error(`Error in select toArray operation for ${table}:`, error);
             return { data: [], error };
           }
-        }
-      }),
-      limit: (limit: number) => ({
-        toArray: async () => {
+        },
+        single: async () => {
           try {
             const { db } = await connectToDatabase();
             const collection = db.collection(mapTableToCollection(table));
-            const result = await collection.find({}).toArray();
-            return result;
+            const result = await collection.findOne({});
+            return { data: result.data, error: result.error };
           } catch (error) {
-            console.error(`Error in select limit toArray operation for ${table}:`, error);
-            return { data: [], error };
+            console.error(`Error in select single operation for ${table}:`, error);
+            return { data: null, error };
           }
-        }
-      }),
-      ilike: (column: string, value: any) => ({
-        toArray: async () => {
+        },
+        maybeSingle: async () => {
           try {
             const { db } = await connectToDatabase();
             const collection = db.collection(mapTableToCollection(table));
-            // Simulate ilike with regex in MongoDB
-            const result = await collection.find({}).toArray();
-            return result;
+            const result = await collection.findOne({});
+            return { data: result.data, error: result.error };
           } catch (error) {
-            console.error(`Error in select ilike toArray operation for ${table}:`, error);
-            return { data: [], error };
+            console.error(`Error in select maybeSingle operation for ${table}:`, error);
+            return { data: null, error };
           }
         }
-      }),
-      or: (orConditions: string) => ({
-        toArray: async () => {
-          try {
-            const { db } = await connectToDatabase();
-            const collection = db.collection(mapTableToCollection(table));
-            const result = await collection.find({}).toArray();
-            return result;
-          } catch (error) {
-            console.error(`Error in select or toArray operation for ${table}:`, error);
-            return { data: [], error };
-          }
-        }
-      }),
-      toArray: async () => {
-        try {
-          const { db } = await connectToDatabase();
-          const collection = db.collection(mapTableToCollection(table));
-          const result = await collection.find({}).toArray();
-          return result;
-        } catch (error) {
-          console.error(`Error in select toArray operation for ${table}:`, error);
-          return { data: [], error };
-        }
-      },
-      single: async () => {
-        try {
-          const { db } = await connectToDatabase();
-          const collection = db.collection(mapTableToCollection(table));
-          const result = await collection.findOne({});
-          return result;
-        } catch (error) {
-          console.error(`Error in select single operation for ${table}:`, error);
-          return { data: null, error };
-        }
-      },
-      maybeSingle: async () => {
-        try {
-          const { db } = await connectToDatabase();
-          const collection = db.collection(mapTableToCollection(table));
-          const result = await collection.findOne({});
-          return result;
-        } catch (error) {
-          console.error(`Error in select maybeSingle operation for ${table}:`, error);
-          return { data: null, error };
-        }
-      }
-    }),
+      };
+      
+      return selectQuery;
+    },
     insert: (data: any) => ({
       select: (columns?: string) => ({
         single: async () => {

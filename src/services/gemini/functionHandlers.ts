@@ -1,4 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
+
+import { connectToDatabase } from '@/integrations/mongodb/client';
 import { FunctionCall, FunctionResponse, OrderContext } from './types';
 
 /**
@@ -65,29 +66,16 @@ const getOrderStatus = async (
     }
     
     // Query the database for the order
-    const { data, error } = await supabase
-      .from('pedidos')
-      .select(`
-        id,
-        status,
-        numero_pedido,
-        criado_em,
-        restaurante_id,
-        restaurantes (
-          nome
-        )
-      `)
-      .eq('numero_pedido', orderNumber)
-      .single();
+    const { db } = await connectToDatabase();
+    const orderCollection = db.collection('orders');
+    const orderResult = await orderCollection.findOne({ numero_pedido: orderNumber });
     
-    if (error) {
-      console.error('Error fetching order status:', error);
+    if (orderResult.error || !orderResult.data) {
+      console.error('Error fetching order status:', orderResult.error);
       return { result: `Pedido #${orderNumber} não encontrado` };
     }
     
-    if (!data) {
-      return { result: `Pedido #${orderNumber} não encontrado` };
-    }
+    const data = orderResult.data;
     
     // Calculate estimated time based on order creation time
     const orderDate = new Date(data.criado_em);
@@ -105,7 +93,7 @@ const getOrderStatus = async (
       status: data.status,
       restaurant: data.restaurantes?.nome || 'Restaurante',
       estimatedTimeMinutes: estimatedTime,
-      orderId: data.id,
+      orderId: data._id,
       orderDate: data.criado_em
     };
   } catch (error) {
@@ -127,41 +115,37 @@ const searchRestaurants = async (
       return { result: 'Nenhum critério de busca fornecido' };
     }
     
-    // Start building the query
-    let query = supabase
-      .from('restaurantes')
-      .select(`
-        id,
-        nome,
-        tipo_cozinha,
-        cidade,
-        taxa_entrega,
-        valor_pedido_minimo
-      `)
-      .eq('ativo', true);
+    // Connect to MongoDB
+    const { db } = await connectToDatabase();
+    const restaurantsCollection = db.collection('restaurants');
     
-    // Apply filters if provided
+    // Build query
+    const query: any = { ativo: true };
+    
     if (cuisine) {
-      query = query.ilike('tipo_cozinha', `%${cuisine}%`);
+      query.tipo_cozinha = { $regex: cuisine, $options: 'i' };
     }
     
     if (location) {
-      query = query.or(`cidade.ilike.%${location}%,endereco.ilike.%${location}%`);
+      query.$or = [
+        { cidade: { $regex: location, $options: 'i' } },
+        { endereco: { $regex: location, $options: 'i' } }
+      ];
     }
     
     if (name) {
-      query = query.ilike('nome', `%${name}%`);
+      query.nome = { $regex: name, $options: 'i' };
     }
     
     // Execute the query
-    const { data, error } = await query.limit(5);
+    const result = await restaurantsCollection.find(query).toArray();
     
-    if (error) {
-      console.error('Error searching restaurants:', error);
+    if (result.error) {
+      console.error('Error searching restaurants:', result.error);
       return { result: 'Erro ao buscar restaurantes' };
     }
     
-    if (!data || data.length === 0) {
+    if (!result.data || result.data.length === 0) {
       return { 
         result: 'Nenhum restaurante encontrado com os critérios fornecidos',
         restaurants: []
@@ -169,8 +153,8 @@ const searchRestaurants = async (
     }
     
     // Format the response
-    const restaurants = data.map(restaurant => ({
-      id: restaurant.id,
+    const restaurants = result.data.slice(0, 5).map(restaurant => ({
+      id: restaurant._id,
       name: restaurant.nome,
       cuisine: restaurant.tipo_cozinha,
       city: restaurant.cidade,
@@ -200,56 +184,54 @@ const reorderPreviousMeal = async (
       return { result: 'Número do pedido não fornecido' };
     }
     
-    // Query the database for the order and its items
-    const { data: order, error: orderError } = await supabase
-      .from('pedidos')
-      .select(`
-        id,
-        restaurante_id,
-        restaurantes (
-          nome,
-          id
-        )
-      `)
-      .eq('numero_pedido', orderNumber)
-      .single();
+    // Connect to MongoDB
+    const { db } = await connectToDatabase();
     
-    if (orderError || !order) {
-      console.error('Error fetching order:', orderError);
+    // Query the database for the order
+    const orderCollection = db.collection('orders');
+    const orderResult = await orderCollection.findOne({ numero_pedido: orderNumber });
+    
+    if (orderResult.error || !orderResult.data) {
+      console.error('Error fetching order:', orderResult.error);
       return { result: `Pedido #${orderNumber} não encontrado` };
     }
     
-    // Get the items in this order
-    const { data: orderItems, error: itemsError } = await supabase
-      .from('itens_pedido')
-      .select(`
-        id,
-        quantidade,
-        nome_item_cardapio,
-        preco_unitario
-      `)
-      .eq('pedido_id', order.id);
+    const order = orderResult.data;
     
-    if (itemsError) {
-      console.error('Error fetching order items:', itemsError);
+    // Get restaurant information
+    const restaurantCollection = db.collection('restaurants');
+    const restaurantResult = await restaurantCollection.findOne({ _id: order.restaurante_id });
+    
+    if (restaurantResult.error || !restaurantResult.data) {
+      return { result: 'Erro ao buscar informações do restaurante' };
+    }
+    
+    const restaurant = restaurantResult.data;
+    
+    // Get the items in this order
+    const orderItemsCollection = db.collection('order_items');
+    const orderItemsResult = await orderItemsCollection.find({ pedido_id: order._id }).toArray();
+    
+    if (orderItemsResult.error) {
+      console.error('Error fetching order items:', orderItemsResult.error);
       return { result: 'Erro ao buscar itens do pedido' };
     }
     
-    if (!orderItems || orderItems.length === 0) {
+    if (!orderItemsResult.data || orderItemsResult.data.length === 0) {
       return { result: 'Este pedido não possui itens' };
     }
     
     // Format the items
-    const items = orderItems.map(item => ({
+    const items = orderItemsResult.data.map(item => ({
       name: item.nome_item_cardapio,
       quantity: item.quantidade,
       price: item.preco_unitario
     }));
     
     return {
-      result: `Pedido #${orderNumber} do restaurante ${order.restaurantes.nome} contém ${items.length} itens`,
+      result: `Pedido #${orderNumber} do restaurante ${restaurant.nome} contém ${items.length} itens`,
       restaurantId: order.restaurante_id,
-      restaurantName: order.restaurantes.nome,
+      restaurantName: restaurant.nome,
       items
     };
   } catch (error) {
@@ -296,34 +278,34 @@ const addItemToCart = async (
     }
     
     // Fetch item details from database
-    const { data: itemData, error: itemError } = await supabase
-      .from('itens_cardapio')
-      .select(`
-        id,
-        nome,
-        preco,
-        restaurante_id,
-        restaurantes (
-          nome
-        )
-      `)
-      .eq('id', itemId)
-      .single();
+    const { db } = await connectToDatabase();
+    const menuItemsCollection = db.collection('menu_items');
+    const itemResult = await menuItemsCollection.findOne({ _id: itemId });
     
-    if (itemError || !itemData) {
-      console.error('Error fetching item:', itemError);
+    if (itemResult.error || !itemResult.data) {
+      console.error('Error fetching item:', itemResult.error);
       return { result: `Item não encontrado` };
     }
     
+    const item = itemResult.data;
+    
+    // Get restaurant information
+    const restaurantCollection = db.collection('restaurants');
+    const restaurantResult = await restaurantCollection.findOne({ _id: item.restaurante_id });
+    
+    const restaurantName = restaurantResult.error || !restaurantResult.data 
+      ? 'Restaurante' 
+      : restaurantResult.data.nome;
+    
     return {
-      result: `Adicionado ${quantity}x ${itemData.nome} ao carrinho`,
+      result: `Adicionado ${quantity}x ${item.nome} ao carrinho`,
       item: {
-        id: itemData.id,
-        name: itemData.nome,
-        price: itemData.preco,
+        id: item._id,
+        name: item.nome,
+        price: item.preco,
         quantity: quantity,
-        restaurantId: itemData.restaurante_id,
-        restaurantName: itemData.restaurantes?.nome || 'Restaurante',
+        restaurantId: item.restaurante_id,
+        restaurantName: restaurantName,
         specialInstructions: specialInstructions
       },
       action: 'add_to_cart'
@@ -339,88 +321,71 @@ const addItemToCart = async (
  */
 const recommendRestaurants = async (context?: OrderContext): Promise<FunctionResponse> => {
   try {
+    // Connect to MongoDB
+    const { db } = await connectToDatabase();
+    const restaurantsCollection = db.collection('restaurants');
+    
     // Get cuisines from past orders if available
     let preferredCuisines: string[] = [];
     
     if (context?.previousOrders && context.previousOrders.length > 0) {
       const restaurantIds = context.previousOrders.map(order => order.restaurante_id);
       
-      const { data: restaurants, error: restaurantsError } = await supabase
-        .from('restaurantes')
-        .select('tipo_cozinha')
-        .in('id', restaurantIds);
+      const restaurantQuery = { _id: { $in: restaurantIds } };
+      const restaurantsResult = await restaurantsCollection.find(restaurantQuery).toArray();
       
-      if (!restaurantsError && restaurants) {
-        preferredCuisines = restaurants.map(r => r.tipo_cozinha).filter(Boolean);
+      if (!restaurantsResult.error && restaurantsResult.data) {
+        preferredCuisines = restaurantsResult.data
+          .map(r => r.tipo_cozinha)
+          .filter(Boolean);
       }
     }
     
     // Build query for recommendations
-    let query = supabase
-      .from('restaurantes')
-      .select(`
-        id,
-        nome,
-        tipo_cozinha,
-        descricao,
-        taxa_entrega,
-        logo_url
-      `)
-      .eq('ativo', true);
+    let query: any = { ativo: true };
     
     // If we have preferred cuisines, prioritize those
     if (preferredCuisines.length > 0) {
-      query = query.in('tipo_cozinha', preferredCuisines);
+      query.tipo_cozinha = { $in: preferredCuisines };
     }
     
     // Get location-based recommendations if we have user location
     if (context?.userLocation?.cidade) {
-      query = query.eq('cidade', context.userLocation.cidade);
+      query.cidade = context.userLocation.cidade;
     }
     
-    const { data: recommendations, error: recError } = await query.limit(5);
+    const recommendationsResult = await restaurantsCollection.find(query).toArray();
     
-    if (recError) {
-      console.error('Error fetching recommendations:', recError);
+    if (recommendationsResult.error) {
+      console.error('Error fetching recommendations:', recommendationsResult.error);
       return { result: 'Erro ao buscar recomendações' };
     }
     
+    let recommendations = recommendationsResult.data;
+    
     if (!recommendations || recommendations.length === 0) {
       // Fallback to popular restaurants
-      const { data: popular, error: popError } = await supabase
-        .from('restaurantes')
-        .select(`
-          id,
-          nome,
-          tipo_cozinha,
-          descricao,
-          taxa_entrega,
-          logo_url
-        `)
-        .eq('ativo', true)
-        .limit(5);
+      delete query.tipo_cozinha;
+      delete query.cidade;
       
-      if (popError || !popular || popular.length === 0) {
+      const popularResult = await restaurantsCollection.find({ ativo: true }).toArray();
+      
+      if (popularResult.error || !popularResult.data || popularResult.data.length === 0) {
         return { result: 'Não foi possível encontrar recomendações' };
       }
       
-      return {
-        result: 'Recomendações populares de restaurantes',
-        restaurants: popular.map(r => ({
-          id: r.id,
-          name: r.nome,
-          cuisine: r.tipo_cozinha,
-          description: r.descricao,
-          deliveryFee: r.taxa_entrega,
-          logoUrl: r.logo_url
-        }))
-      };
+      recommendations = popularResult.data;
     }
     
+    // Limit to 5 restaurants
+    const limitedRecommendations = recommendations.slice(0, 5);
+    
     return {
-      result: 'Recomendações personalizadas de restaurantes',
-      restaurants: recommendations.map(r => ({
-        id: r.id,
+      result: preferredCuisines.length > 0 
+        ? 'Recomendações personalizadas de restaurantes' 
+        : 'Recomendações populares de restaurantes',
+      restaurants: limitedRecommendations.map(r => ({
+        id: r._id,
         name: r.nome,
         cuisine: r.tipo_cozinha,
         description: r.descricao,
@@ -447,21 +412,16 @@ const initiateCheckout = async (
     }
     
     // Get restaurant information
-    const { data: restaurant, error: restError } = await supabase
-      .from('restaurantes')
-      .select(`
-        id,
-        nome,
-        taxa_entrega,
-        valor_pedido_minimo
-      `)
-      .eq('id', restaurantId)
-      .single();
+    const { db } = await connectToDatabase();
+    const restaurantCollection = db.collection('restaurants');
+    const restaurantResult = await restaurantCollection.findOne({ _id: restaurantId });
     
-    if (restError || !restaurant) {
-      console.error('Error fetching restaurant:', restError);
+    if (restaurantResult.error || !restaurantResult.data) {
+      console.error('Error fetching restaurant:', restaurantResult.error);
       return { result: 'Restaurante não encontrado' };
     }
+    
+    const restaurant = restaurantResult.data;
     
     // Get user's default address if available
     let deliveryAddress = null;
@@ -479,7 +439,7 @@ const initiateCheckout = async (
     return {
       result: `Iniciando checkout para ${restaurant.nome}`,
       restaurant: {
-        id: restaurant.id,
+        id: restaurant._id,
         name: restaurant.nome,
         deliveryFee: restaurant.taxa_entrega,
         minimumOrder: restaurant.valor_pedido_minimo
