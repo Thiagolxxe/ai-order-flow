@@ -21,7 +21,7 @@ interface Restaurant {
   isNew?: boolean;
 }
 
-// Filtros de categorias
+// Filter categories
 const cuisineFilters = [
   'Todos',
   'Americana',
@@ -57,14 +57,15 @@ const RestaurantList = ({
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Buscar restaurantes do Supabase
+  // Fetch restaurants from Supabase
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('restaurantes')
-          .select('*');
+          .select('*')
+          .toArray();
         
         if (error) {
           throw error;
@@ -93,8 +94,8 @@ const RestaurantList = ({
             valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
             tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
             faixa_preco: restaurant.faixa_preco || 2,
-            featured: Math.random() > 0.7, // Exemplo: alguns restaurantes são destacados aleatoriamente
-            isNew: restaurant.criado_em && (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // É novo se foi criado nos últimos 30 dias
+            featured: Math.random() > 0.7, // Example: some restaurants are randomly highlighted
+            isNew: restaurant.criado_em && (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // Is new if created in the last 30 days
           };
         });
         

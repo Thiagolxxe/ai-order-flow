@@ -49,7 +49,8 @@ export async function connectToDatabase() {
           // Find one document
           findOne: async (query: any): Promise<any> => {
             console.log(`MongoDB findOne on ${collectionName}:`, query);
-            return null; // Mock implementation
+            // Return mock data based on collection
+            return getMockDataByCollection(collectionName, query);
           },
           
           // Find multiple documents
@@ -57,7 +58,8 @@ export async function connectToDatabase() {
             console.log(`MongoDB find on ${collectionName}:`, query);
             return {
               toArray: async (): Promise<any[]> => {
-                return []; // Mock implementation
+                // Return array of mock data based on collection
+                return [getMockDataByCollection(collectionName, query)];
               }
             };
           },
@@ -98,6 +100,62 @@ export async function connectToDatabase() {
     connectionError = error as Error;
     console.error('Failed to connect to MongoDB:', error);
     throw error;
+  }
+}
+
+// Helper function to generate mock data based on collection name
+function getMockDataByCollection(collectionName: string, query: any): any {
+  switch (collectionName) {
+    case 'users':
+      return {
+        _id: new ObjectId().toString(),
+        email: 'user@example.com',
+        name: 'John Doe',
+        role: 'user',
+        createdAt: new Date()
+      };
+    case 'restaurants':
+      return {
+        _id: new ObjectId().toString(),
+        name: 'Example Restaurant',
+        cuisine: 'Italian',
+        address: '123 Main St',
+        city: 'Example City',
+        deliveryFee: 5.0,
+        minimumOrder: 20.0,
+        estimatedDeliveryTime: 30
+      };
+    case 'orders':
+      return {
+        _id: new ObjectId().toString(),
+        orderNumber: 'ORD-' + Math.floor(Math.random() * 1000000),
+        status: 'pending',
+        items: [
+          { 
+            name: 'Pizza', 
+            price: 15.0, 
+            quantity: 1 
+          }
+        ],
+        subtotal: 15.0,
+        deliveryFee: 5.0,
+        total: 20.0,
+        createdAt: new Date()
+      };
+    case 'menu_items':
+      return {
+        _id: new ObjectId().toString(),
+        name: 'Pizza Margherita',
+        description: 'Classic Italian pizza with tomato and mozzarella',
+        price: 15.0,
+        available: true,
+        restaurantId: new ObjectId().toString()
+      };
+    default:
+      return {
+        _id: new ObjectId().toString(),
+        createdAt: new Date()
+      };
   }
 }
 

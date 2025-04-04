@@ -1,11 +1,11 @@
 
 /**
- * Utilitários para autenticação
+ * Authentication utilities
  */
 import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
 
 /**
- * Interface para a sessão do usuário
+ * User session interface
  */
 export interface UserSession {
   id: string;
