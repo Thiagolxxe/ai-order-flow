@@ -47,8 +47,13 @@ const Notifications = () => {
     try {
       const { success, error } = await apiService.notifications.markAsRead(notificationId);
       
-      if (!success) {
-        throw new Error(error);
+      if (!success && error) {
+        // Fix type error by safely extracting message from error
+        const errorMessage = typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'Erro desconhecido';
+          
+        throw new Error(errorMessage);
       }
       
       // Update local state

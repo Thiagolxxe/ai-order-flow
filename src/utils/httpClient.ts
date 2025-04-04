@@ -27,6 +27,7 @@ export interface RequestOptions {
   headers?: Record<string, string>;
   timeout?: number;
   body?: any;
+  params?: Record<string, any>; // Add params to interface
 }
 
 /**
@@ -36,11 +37,11 @@ export const httpClient = {
   /**
    * Função auxiliar para fazer requisições
    */
-  async request<T>(
+  async request(
     endpoint: string,
     method: string,
     options: RequestOptions = {}
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResponse> {
     const url = endpoint.startsWith('http')
       ? endpoint
       : `${API_BASE_URL}/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`;
@@ -62,7 +63,23 @@ export const httpClient = {
     }, options.timeout || API_TIMEOUT);
 
     try {
-      const response = await fetch(url, {
+      // Handle URL params if present
+      let finalUrl = url;
+      if (options.params) {
+        const queryParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+        
+        const queryString = queryParams.toString();
+        if (queryString) {
+          finalUrl += (url.includes('?') ? '&' : '?') + queryString;
+        }
+      }
+
+      const response = await fetch(finalUrl, {
         method,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
@@ -122,15 +139,15 @@ export const httpClient = {
   /**
    * GET request
    */
-  async get<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, 'GET', options);
+  async get(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse> {
+    return this.request(endpoint, 'GET', options);
   },
 
   /**
    * POST request
    */
-  async post<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, 'POST', {
+  async post(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse> {
+    return this.request(endpoint, 'POST', {
       ...options,
       body: data,
     });
@@ -139,8 +156,8 @@ export const httpClient = {
   /**
    * PUT request
    */
-  async put<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, 'PUT', {
+  async put(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse> {
+    return this.request(endpoint, 'PUT', {
       ...options,
       body: data,
     });
@@ -149,8 +166,8 @@ export const httpClient = {
   /**
    * PATCH request
    */
-  async patch<T>(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, 'PATCH', {
+  async patch(endpoint: string, data: any = {}, options: RequestOptions = {}): Promise<ApiResponse> {
+    return this.request(endpoint, 'PATCH', {
       ...options,
       body: data,
     });
@@ -159,10 +176,10 @@ export const httpClient = {
   /**
    * DELETE request
    */
-  async delete<T>(
+  async delete(
     endpoint: string,
     options: RequestOptions = {}
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, 'DELETE', options);
+  ): Promise<ApiResponse> {
+    return this.request(endpoint, 'DELETE', options);
   },
 };

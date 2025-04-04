@@ -1,211 +1,157 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
 
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Nome deve ter pelo menos 2 caracteres' }),
+  email: z.string().email({ message: 'Email inválido' }),
+  password: z.string().min(6, { message: 'Senha deve ter pelo menos 6 caracteres' }),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Senhas não conferem",
+  path: ["confirmPassword"],
+});
+
 const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { signup } = useUser();
+  const { signUp } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validar formulário
-    if (!name || !email || !phone || !password || !confirmPassword) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-    
-    if (!termsAccepted) {
-      toast.error('Você precisa aceitar os termos de uso');
-      return;
-    }
-    
-    setIsLoading(true);
-    
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+
     try {
-      // Separar nome e sobrenome
-      const nameParts = name.trim().split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-      
-      // Registrar usuário
-      const { error } = await signup(email, password, {
-        nome: firstName,
-        sobrenome: lastName,
-        telefone: phone
+      const { error } = await signUp(values.email, values.password, {
+        name: values.name
       });
-      
+
       if (error) {
-        throw error;
+        throw new Error(error.message);
       }
-      
-      toast.success('Cadastro realizado com sucesso!');
+
+      toast.success('Conta criada com sucesso!');
       navigate('/');
     } catch (error: any) {
-      console.error('Erro ao cadastrar:', error);
-      toast.error(error.message || 'Erro ao cadastrar. Por favor, tente novamente.');
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Erro ao criar conta');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
+    <div className="container flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center mb-2">
-            <Button variant="ghost" size="icon" asChild className="mr-2">
-              <Link to="/">
-                <ArrowLeftIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-            <CardTitle className="text-2xl">Criar Conta</CardTitle>
-          </div>
+          <CardTitle className="text-2xl">Criar conta</CardTitle>
           <CardDescription>
-            Preencha os campos abaixo para se cadastrar
+            Preencha os campos abaixo para criar sua conta
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input 
-                id="name"
-                placeholder="Digite seu nome completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Seu nome" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input 
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="seu.email@exemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input 
-                id="phone"
-                placeholder="(00) 00000-0000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Crie uma senha" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input 
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Crie uma senha forte"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <Input 
-                id="confirmPassword"
-                type={showPassword ? "text" : "password"}
-                placeholder="Confirme sua senha"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirme a senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Confirme sua senha" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="terms" 
-                checked={termsAccepted}
-                onCheckedChange={(checked) => 
-                  setTermsAccepted(checked as boolean)
-                }
-              />
-              <Label 
-                htmlFor="terms" 
-                className="text-sm text-muted-foreground font-normal"
-              >
-                Concordo com os{' '}
-                <Link 
-                  to="/termos" 
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  Termos de Uso
-                </Link>{' '}
-                e{' '}
-                <Link 
-                  to="/privacidade" 
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  Política de Privacidade
-                </Link>
-              </Label>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Processando...' : 'Criar Conta'}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando conta...
+                  </>
+                ) : 'Criar conta'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="text-sm text-muted-foreground text-center w-full">
             Já tem uma conta?{' '}
-            <Button variant="link" className="p-0 h-auto" asChild>
-              <Link to="/login">Entrar</Link>
-            </Button>
-          </p>
+            <Link 
+              to="/login"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Faça login
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>

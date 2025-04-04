@@ -1,335 +1,324 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeftIcon, User, MapPin, CreditCard, Edit2Icon, PlusIcon, LogOutIcon, ShoppingBag } from 'lucide-react';
-import { toast } from 'sonner';
 import { useUser } from '@/context/UserContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-// Dados de exemplo do usuário
-const mockUserData = {
-  name: 'João Silva',
-  email: 'joao.silva@exemplo.com',
-  phone: '(11) 98765-4321',
-  addresses: [
-    {
-      id: '1',
-      label: 'Casa',
-      street: 'Av. Paulista, 1578',
-      complement: 'Apto 202',
-      neighborhood: 'Bela Vista',
-      city: 'São Paulo',
-      state: 'SP',
-      zipcode: '01310-200'
-    },
-    {
-      id: '2',
-      label: 'Trabalho',
-      street: 'Rua Augusta, 1234',
-      complement: 'Sala 45',
-      neighborhood: 'Consolação',
-      city: 'São Paulo',
-      state: 'SP',
-      zipcode: '01304-001'
-    }
-  ],
-  paymentMethods: [
-    {
-      id: '1',
-      type: 'credit',
-      brand: 'Visa',
-      lastDigits: '1234',
-      expirationDate: '12/25'
-    },
-    {
-      id: '2',
-      type: 'credit',
-      brand: 'Mastercard',
-      lastDigits: '5678',
-      expirationDate: '08/24'
-    }
-  ]
-};
+import { apiService } from '@/services/apiService';
+import { toast } from 'sonner';
+import { 
+  User, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Lock, 
+  CreditCard, 
+  BellRing, 
+  Settings,
+  Loader2
+} from 'lucide-react';
 
 const UserProfile = () => {
-  const [userData, setUserData] = useState(mockUserData);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: userData.name,
-    email: userData.email,
-    phone: userData.phone
+  const { user, updateUserData } = useUser();
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
   });
-  const navigate = useNavigate();
-  const { signOut } = useUser();
-  const isMobile = useIsMobile();
-  
+  const [addresses, setAddresses] = useState([]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      setLoadingData(true);
+      try {
+        if (user) {
+          // Set initial data from current user
+          setProfile({
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            address: user.address || ''
+          });
+          
+          // Fetch additional user data
+          const { data, error } = await apiService.users.getProfile();
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          if (data) {
+            setProfile(prevProfile => ({
+              ...prevProfile,
+              ...data,
+              email: user.email // Keep email from auth
+            }));
+          }
+          
+          // Fetch user addresses
+          const addressesResponse = await apiService.addresses.getAll();
+          if (addressesResponse.data) {
+            setAddresses(addressesResponse.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast.error('Não foi possível carregar seu perfil');
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setProfile(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleSaveProfile = () => {
-    setUserData(prev => ({ ...prev, ...formData }));
-    setIsEditing(false);
-    toast.success('Perfil atualizado com sucesso!');
-  };
-  
-  const handleLogout = async () => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
     try {
-      const success = await signOut();
-      
-      if (!success) {
-        throw new Error("Falha ao fazer logout");
+      const { error } = await apiService.users.updateProfile({
+        name: profile.name,
+        phone: profile.phone,
+        address: profile.address
+      });
+
+      // Make sure we handle the update correctly and don't check for truthiness of void
+      if (error) {
+        throw new Error(error.message);
+      } else {
+        // If no error, update was successful
+        toast.success('Perfil atualizado com sucesso');
+        
+        // Update user context
+        updateUserData({
+          name: profile.name,
+          phone: profile.phone,
+          address: profile.address
+        });
       }
-      
-      navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao fazer logout. Por favor, tente novamente.');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Falha ao atualizar perfil');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="container px-4 py-6 pb-20">
-      {/* Cabeçalho */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/">
-            <ArrowLeftIcon className="h-5 w-5" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold">Meu Perfil</h1>
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
+  if (loadingData) {
+    return (
+      <div className="container max-w-4xl mx-auto py-8 px-4">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-lg">Carregando seu perfil...</span>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Menu lateral em telas grandes */}
-        <div className="hidden lg:block">
+    );
+  }
+
+  return (
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div className="w-full md:w-1/3 mb-4 md:mb-0">
+          <Card className="mb-4">
+            <CardContent className="pt-6 flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 mb-4">
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+              </Avatar>
+              <h2 className="text-xl font-bold">{profile.name || 'Usuário'}</h2>
+              <p className="text-sm text-muted-foreground">{profile.email}</p>
+              <Button variant="outline" className="mt-4 w-full">
+                Editar foto de perfil
+              </Button>
+            </CardContent>
+          </Card>
+          
           <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center space-y-4 mb-6">
-                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <User className="h-10 w-10" />
-                </div>
-                <div className="text-center">
-                  <h2 className="font-semibold text-lg">{userData.name}</h2>
-                  <p className="text-foreground/70">{userData.email}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/perfil">
-                    <User className="mr-2 h-4 w-4" />
-                    Informações Pessoais
-                  </Link>
+            <CardHeader>
+              <CardTitle>Menu de navegação</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="grid gap-1">
+                <Button variant="ghost" className="justify-start">
+                  <User className="mr-2 h-4 w-4" /> Dados pessoais
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/perfil/enderecos">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Endereços
-                  </Link>
+                <Button variant="ghost" className="justify-start">
+                  <MapPin className="mr-2 h-4 w-4" /> Endereços
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/perfil/pagamentos">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Métodos de Pagamento
-                  </Link>
+                <Button variant="ghost" className="justify-start">
+                  <CreditCard className="mr-2 h-4 w-4" /> Métodos de pagamento
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/pedidos">
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    Meus Pedidos
-                  </Link>
+                <Button variant="ghost" className="justify-start">
+                  <Lock className="mr-2 h-4 w-4" /> Segurança
                 </Button>
-              </div>
-              
-              <div className="mt-6">
-                <Button 
-                  variant="destructive" 
-                  className="w-full" 
-                  onClick={handleLogout}
-                >
-                  <LogOutIcon className="mr-2 h-4 w-4" />
-                  Sair
+                <Button variant="ghost" className="justify-start">
+                  <BellRing className="mr-2 h-4 w-4" /> Notificações
+                </Button>
+                <Button variant="ghost" className="justify-start">
+                  <Settings className="mr-2 h-4 w-4" /> Configurações
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
         
-        {/* Conteúdo principal */}
-        <div className="lg:col-span-2">
-          {/* Abas (visíveis em telas pequenas) */}
-          <Tabs defaultValue="personal" className="lg:hidden mb-6">
-            <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="personal">
-                <User className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="addresses">
-                <MapPin className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="payments">
-                <CreditCard className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="orders" asChild>
-                <Link to="/pedidos">
-                  <ShoppingBag className="h-4 w-4" />
-                </Link>
-              </TabsTrigger>
+        <div className="w-full md:w-2/3">
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="profile">Perfil</TabsTrigger>
+              <TabsTrigger value="addresses">Endereços</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informações Pessoais</CardTitle>
+                  <CardDescription>
+                    Atualize suas informações de perfil
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit}>
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Nome completo</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          placeholder="Seu nome"
+                          value={profile.name}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="seu.email@exemplo.com"
+                          value={profile.email}
+                          disabled
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          O email não pode ser alterado
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="phone">Telefone</Label>
+                        <div className="flex items-center">
+                          <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            placeholder="(11) 99999-9999"
+                            value={profile.phone}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="address">Endereço principal</Label>
+                        <div className="flex items-center">
+                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="address"
+                            name="address"
+                            placeholder="Seu endereço"
+                            value={profile.address}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </div>
+                      
+                      <Separator className="my-2" />
+                      
+                      <Button type="submit" disabled={loading}>
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : 'Salvar alterações'}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="addresses">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Seus endereços</CardTitle>
+                  <CardDescription>
+                    Gerencie os endereços de entrega
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {addresses.length === 0 ? (
+                    <div className="text-center py-8">
+                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                      <h3 className="text-lg font-medium">Nenhum endereço cadastrado</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Adicione um endereço para facilitar suas compras
+                      </p>
+                      <Button>
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Adicionar endereço
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {addresses.map((address: any) => (
+                        <Card key={address.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-medium">{address.label || 'Endereço'}</p>
+                                <p className="text-sm text-muted-foreground">{address.endereco}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {address.cidade}, {address.estado} - {address.cep}
+                                </p>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Editar
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button className="mt-2">
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Adicionar novo endereço
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
-          
-          {/* Conteúdo da aba de informações pessoais */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Informações Pessoais</CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                {isEditing ? 'Cancelar' : 'Editar'}
-                {!isEditing && <Edit2Icon className="ml-2 h-4 w-4" />}
-              </Button>
-            </CardHeader>
-            <CardContent className="p-6">
-              {isEditing ? (
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome Completo</Label>
-                      <Input 
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input 
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      <Input 
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    className="w-full sm:w-auto"
-                    onClick={handleSaveProfile}
-                  >
-                    Salvar Alterações
-                  </Button>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-foreground/70">Nome Completo</Label>
-                      <p className="font-medium">{userData.name}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-foreground/70">E-mail</Label>
-                      <p className="font-medium">{userData.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-foreground/70">Telefone</Label>
-                      <p className="font-medium">{userData.phone}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Endereços */}
-          <Card className="mt-6">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Endereços</CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Adicionar
-              </Button>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {userData.addresses.map((address) => (
-                  <div key={address.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium">{address.label}</h3>
-                      <Button variant="ghost" size="icon">
-                        <Edit2Icon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-sm text-foreground/70">{address.street}, {address.complement}</p>
-                    <p className="text-sm text-foreground/70">{address.neighborhood}, {address.city} - {address.state}</p>
-                    <p className="text-sm text-foreground/70">CEP: {address.zipcode}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Métodos de Pagamento */}
-          <Card className="mt-6">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Métodos de Pagamento</CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Adicionar
-              </Button>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {userData.paymentMethods.map((method) => (
-                  <div key={method.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium">{method.brand}</h3>
-                      <Button variant="ghost" size="icon">
-                        <Edit2Icon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-sm text-foreground/70">**** **** **** {method.lastDigits}</p>
-                    <p className="text-sm text-foreground/70">Expira em: {method.expirationDate}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Botão de logout (visível em telas pequenas) */}
-          <div className="mt-6 lg:hidden">
-            <Button 
-              variant="destructive" 
-              className="w-full" 
-              onClick={handleLogout}
-            >
-              <LogOutIcon className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </div>
         </div>
       </div>
     </div>

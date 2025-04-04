@@ -1,7 +1,9 @@
 
-import { connectToDatabase } from "@/integrations/mongodb/client";
-import { ObjectId } from "@/integrations/mongodb/client";
-import { authService } from "./authService";
+/**
+ * Services for restaurant functionality
+ */
+import { connectToDatabase, ObjectId } from "@/integrations/mongodb/client";
+import { authService } from "@/services/authService";
 
 /**
  * Fetches restaurant data from MongoDB
@@ -15,9 +17,10 @@ export const fetchRestaurantFromDatabase = async (restaurantId: string): Promise
     }
 
     const { db } = await connectToDatabase();
+    const restaurants = db.collection("restaurants");
     
     // Fetch restaurant data
-    const restaurant = await db.collection("restaurants").findOne({
+    const restaurant = await restaurants.findOne({
       _id: restaurantId
     });
 
@@ -103,6 +106,8 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
     }
 
     const { db } = await connectToDatabase();
+    const restaurants = db.collection("restaurants");
+    const userRoles = db.collection("user_roles");
     
     // Register the restaurant
     console.log("Creating restaurant with owner ID:", userId);
@@ -120,14 +125,14 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       created_at: new Date()
     };
     
-    const result = await db.collection("restaurants").insertOne(restaurant);
+    const result = await restaurants.insertOne(restaurant);
     
     if (!result.insertedId) {
       throw new Error("Failed to create restaurant");
     }
 
     // Add restaurant owner role
-    await db.collection("user_roles").insertOne({
+    await userRoles.insertOne({
       userId: userId,
       role: "restaurante",
       created_at: new Date()
@@ -185,8 +190,9 @@ export const getRestaurantData = async (restaurantId: string): Promise<any> => {
 export const registerRestaurantOwner = async (userId: string) => {
   try {
     const { db } = await connectToDatabase();
+    const userRoles = db.collection("user_roles");
     
-    await db.collection("user_roles").insertOne({
+    await userRoles.insertOne({
       userId: userId,
       role: "restaurante",
       created_at: new Date()

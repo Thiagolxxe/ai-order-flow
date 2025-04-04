@@ -36,11 +36,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initializeUser = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Verificar se a sessão é válida
+      // Check if session is valid
       if (isSessionValid()) {
         const userData = getCurrentUser();
         
-        // Se tiver um usuário na sessão, atualizar estado
+        // If we have a user in the session, update state
         if (userData) {
           setUser({
             id: userData.id,
@@ -78,8 +78,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
       }
 
-      if (data?.session?.user) {
-        setUser(data.session.user);
+      // Type safe check for session in data
+      if (data && typeof data === 'object' && 'session' in data && data.session) {
+        const sessionData = data.session;
+        
+        // Check if user exists in session data
+        if ('user' in sessionData) {
+          setUser(sessionData.user as User);
+        }
       }
 
       return {};
@@ -102,8 +108,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
       }
 
-      if (data?.session?.user) {
-        setUser(data.session.user);
+      // Type safe check for session in data
+      if (data && typeof data === 'object' && 'session' in data && data.session) {
+        const sessionData = data.session;
+        
+        // Check if user exists in session data
+        if ('user' in sessionData) {
+          setUser(sessionData.user as User);
+        }
       }
 
       return {};

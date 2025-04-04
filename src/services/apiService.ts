@@ -1,9 +1,8 @@
-
 /**
  * Serviço centralizado para comunicação com a API
  */
 import { httpClient } from '@/utils/httpClient';
-import { apiConfig } from '@/config/apiConfig';
+import { apiConfig, SESSION_STORAGE_KEY } from '@/config/apiConfig';
 import { saveSession, removeSession, UserSession } from '@/utils/authUtils';
 
 // Interfaces para autenticação
@@ -20,10 +19,31 @@ interface AuthSignInParams {
   password: string;
 }
 
+// Type for API responses
+interface ApiSuccessResponse<T> {
+  data: T;
+  error?: never;
+}
+
+interface ApiErrorResponse {
+  error: { message: string; code?: string; details?: any };
+  data?: never;
+}
+
+type ApiResult<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+// Define types for auth responses
+interface AuthResponse {
+  session: {
+    user: any;
+    [key: string]: any;
+  };
+}
+
 export const apiService = {
   // Auth operations
   auth: {
-    signUp: async (params: AuthSignUpParams) => {
+    signUp: async (params: AuthSignUpParams): Promise<ApiResult<{ session?: any }>> => {
       try {
         const { email, password, ...userData } = params;
         const { data, error } = await httpClient.post(apiConfig.endpoints.auth.register, {
@@ -36,9 +56,9 @@ export const apiService = {
           return { error: { message: error.message || 'Falha no registro' } };
         }
         
-        // Armazenar sessão
-        if (data?.session) {
-          saveSession(data.session);
+        // Store session
+        if (data && typeof data === 'object' && 'session' in data) {
+          saveSession(data.session as UserSession);
         }
         
         return { data };
@@ -48,7 +68,7 @@ export const apiService = {
       }
     },
     
-    signIn: async ({ email, password }: AuthSignInParams) => {
+    signIn: async ({ email, password }: AuthSignInParams): Promise<ApiResult<{ session?: any }>> => {
       try {
         const { data, error } = await httpClient.post(apiConfig.endpoints.auth.login, {
           email, 
@@ -59,9 +79,9 @@ export const apiService = {
           return { error: { message: error.message || 'Falha na autenticação' } };
         }
         
-        // Armazenar sessão
-        if (data?.session) {
-          saveSession(data.session);
+        // Store session
+        if (data && typeof data === 'object' && 'session' in data) {
+          saveSession(data.session as UserSession);
         }
         
         return { data };
@@ -71,18 +91,18 @@ export const apiService = {
       }
     },
     
-    signOut: async () => {
+    signOut: async (): Promise<ApiResult<null>> => {
       try {
-        // Chamar logout na API
+        // Call logout API
         await httpClient.post(apiConfig.endpoints.auth.logout);
         
-        // Remover sessão local
+        // Remove local session
         removeSession();
         
-        return { error: null };
+        return { data: null };
       } catch (error: any) {
         console.error('Sign out error:', error);
-        // Mesmo em caso de erro na API, remover sessão local
+        // Even if API error, remove local session
         removeSession();
         return { error: { message: 'Falha ao sair' } };
       }
@@ -90,22 +110,28 @@ export const apiService = {
     
     getSession: async (): Promise<{ data: { session: UserSession | null } }> => {
       try {
-        // Implementar obtenção de sessão
-        const sessionStr = localStorage.getItem(apiConfig.SESSION_STORAGE_KEY);
+        // Implement session retrieval
+        const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
         
         if (!sessionStr) {
           return { data: { session: null } };
         }
         
-        const { session, expires_at } = JSON.parse(sessionStr);
-        
-        // Verificar se a sessão expirou
-        if (new Date(expires_at) < new Date()) {
-          removeSession();
+        try {
+          const sessionData = JSON.parse(sessionStr);
+          const { session, expires_at } = sessionData;
+          
+          // Check if session expired
+          if (new Date(expires_at) < new Date()) {
+            removeSession();
+            return { data: { session: null } };
+          }
+          
+          return { data: { session } };
+        } catch (e) {
+          console.error('Error parsing session:', e);
           return { data: { session: null } };
         }
-        
-        return { data: { session } };
       } catch (error: any) {
         console.error('Get session error:', error);
         return { data: { session: null } };
@@ -116,14 +142,14 @@ export const apiService = {
       try {
         const { data, error } = await httpClient.post(apiConfig.endpoints.auth.refreshToken);
         
-        if (error || !data?.session) {
-          // Se falhar em renovar, fazer logout
+        if (error || !(data && typeof data === 'object' && 'session' in data)) {
+          // If refresh fails, log out
           removeSession();
           return { error: error || { message: 'Falha ao renovar sessão' } };
         }
         
-        // Atualizar sessão com novo token
-        saveSession(data.session);
+        // Update session with new token
+        saveSession(data.session as UserSession);
         
         return { data };
       } catch (error: any) {
@@ -334,6 +360,23 @@ export const apiService = {
       } catch (error: any) {
         console.error('Get notifications error:', error);
         return { error: { message: 'Falha ao buscar notificações' } };
+      }
+    },
+    
+    getByUserId: async () => {
+      try {
+        const { data, error } = await httpClient.get(
+          apiConfig.endpoints.notifications.base
+        );
+        
+        if (error) {
+          return { error };
+        }
+        
+        return { data };
+      } catch (error: any) {
+        console.error('Get user notifications error:', error);
+        return { error: { message: 'Falha ao buscar notificações do usuário' } };
       }
     },
     
