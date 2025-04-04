@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,96 +62,56 @@ const SuperUserCreator = () => {
     setIsRlsError(false);
 
     try {
-      // Get existing session if any
-      const { data: sessionData } = await supabase.auth.getSession();
-      const existingSession = sessionData.session;
+      // Connect to MongoDB
+      const { db } = await connectToDatabase();
       
-      // If we have a session, use it for creating the admin user
-      if (existingSession) {
-        await supabase.auth.setSession({
-          access_token: existingSession.access_token,
-          refresh_token: existingSession.refresh_token
-        });
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-      });
-
-      if (error) {
-        // Handle rate limiting
-        if (error.message.includes("security purposes") || error.status === 429) {
-          const waitTime = extractWaitTime(error.message);
-          
-          setError(`Muitas tentativas recentes. Por favor, aguarde.`);
-          setIsRateLimited(true);
-          setCountdown(waitTime);
-          toast({
-            title: "Limite de tentativas excedido",
-            description: `Tente novamente em ${waitTime} segundos.`,
-            variant: "destructive"
-          });
-          return;
-        }
-
-        console.error('Error creating user:', error);
-        setError(error.message);
+      // Check if user already exists
+      const existingUser = await db.collection('users').findOne({ email });
+      if (existingUser.data) {
+        setError('Usuário com este email já existe');
         toast({
-          title: "Erro ao criar usuário",
-          description: error.message,
+          title: "Usuário já existe",
+          description: "Este email já está registrado no sistema.",
           variant: "destructive"
         });
+        setCreating(false);
         return;
       }
-
-      const newUser = data.user;
-
-      if (newUser) {
-        // Briefly wait for auth to complete processing
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Assign admin role to the new user
-        const { error: roleError } = await supabase
-          .from('funcoes_usuario')
-          .insert({
-            usuario_id: newUser.id,
-            role_name: 'admin'
-          });
-
-        if (roleError) {
-          console.error('Error assigning admin role:', roleError);
-          
-          if (roleError.code === '42501') {
-            // This is a Row Level Security violation
-            setIsRlsError(true);
-            setError('Permissão negada. Verifique se você está autenticado corretamente.');
-            toast({
-              title: "Erro de permissão",
-              description: "Não foi possível atribuir função de administrador devido a restrições de segurança.",
-              variant: "destructive"
-            });
-            return;
-          }
-          
-          setError(roleError.message);
-          toast({
-            title: "Erro ao atribuir role de administrador",
-            description: roleError.message,
-            variant: "destructive"
-          });
-          return;
-        }
-
-        console.log('Super user created successfully:', newUser.id);
-        setEmail('');
-        setPassword('');
-        toast({
-          title: "Usuário criado",
-          description: "Usuário administrador criado com sucesso!",
-          variant: "default"
-        });
+      
+      // Create new user
+      const userId = Math.random().toString(36).substring(2, 15);
+      const newUser = {
+        id: userId,
+        email: email,
+        password: password, // In a real app, this would be hashed
+        created_at: new Date().toISOString()
+      };
+      
+      const result = await db.collection('users').insertOne(newUser);
+      
+      if (!result.data) {
+        throw new Error('Falha ao criar usuário');
       }
+      
+      // Assign admin role to the new user
+      const roleResult = await db.collection('user_roles').insertOne({
+        usuario_id: userId,
+        role_name: 'admin',
+        created_at: new Date().toISOString()
+      });
+      
+      if (!roleResult.data) {
+        throw new Error('Falha ao atribuir função de administrador');
+      }
+
+      console.log('Super user created successfully:', userId);
+      setEmail('');
+      setPassword('');
+      toast({
+        title: "Usuário criado",
+        description: "Usuário administrador criado com sucesso!",
+        variant: "default"
+      });
     } catch (err: any) {
       console.error('Unexpected error:', err);
       setError(err.message || "Ocorreu um erro inesperado ao criar o usuário.");

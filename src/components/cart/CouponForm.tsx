@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PercentIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 
 interface CouponFormProps {
   restaurantId: string | undefined;
@@ -19,28 +20,32 @@ const CouponForm: React.FC<CouponFormProps> = ({
   onApplyCoupon 
 }) => {
   const [couponCode, setCouponCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Apply coupon
   const applyCoupon = async () => {
     if (!couponCode) return;
     
+    setIsLoading(true);
     try {
+      // Connect to database
+      const { db } = await connectToDatabase();
+      
       // Verify coupon is valid
-      const { data: promoData, error: promoError } = await supabase
-        .from('promocoes')
-        .select('*')
-        .eq('codigo', couponCode.toUpperCase())
-        .eq('ativo', true)
-        .lte('data_inicio', new Date().toISOString())
-        .gte('data_fim', new Date().toISOString())
-        .maybeSingle();
+      const now = new Date().toISOString();
+      const promoResult = await db.collection('coupons').findOne({
+        codigo: couponCode.toUpperCase(),
+        ativo: true,
+        data_inicio: { $lte: now },
+        data_fim: { $gte: now }
+      });
       
-      if (promoError) throw promoError;
-      
-      if (!promoData) {
+      if (!promoResult.data) {
         toast.error('Cupom inválido ou expirado');
         return;
       }
+      
+      const promoData = promoResult.data;
       
       // Check if coupon is for the current restaurant
       if (promoData.restaurante_id && promoData.restaurante_id !== restaurantId) {
@@ -67,6 +72,8 @@ const CouponForm: React.FC<CouponFormProps> = ({
     } catch (error) {
       console.error('Erro ao aplicar cupom:', error);
       toast.error('Não foi possível aplicar o cupom');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -80,10 +87,16 @@ const CouponForm: React.FC<CouponFormProps> = ({
       <Button 
         variant="outline" 
         onClick={applyCoupon}
-        disabled={!couponCode}
+        disabled={!couponCode || isLoading}
       >
-        <PercentIcon className="h-4 w-4 mr-2" />
-        Aplicar
+        {isLoading ? (
+          "Aplicando..."
+        ) : (
+          <>
+            <PercentIcon className="h-4 w-4 mr-2" />
+            Aplicar
+          </>
+        )}
       </Button>
     </div>
   );

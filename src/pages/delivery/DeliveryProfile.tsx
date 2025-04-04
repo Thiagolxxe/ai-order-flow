@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Upload, Save, Image, Plus, X, Play } from 'lucide-react';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 // Form validation schema
@@ -50,7 +50,7 @@ const DeliveryProfile = () => {
   });
 
   // Redirect if not logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated) {
       toast.error('Você precisa estar logado para acessar esta página');
       navigate('/login');
@@ -62,29 +62,40 @@ const DeliveryProfile = () => {
     
     setIsLoading(true);
     try {
-      // Update profile information
-      const { error } = await supabase
-        .from('entregadores')
-        .upsert({
-          id: user.id,
-          tipo_veiculo: data.tipo_veiculo,
-          placa: data.placa,
-          ativo: true
-        });
-
-      if (error) throw error;
+      // Connect to MongoDB
+      const { db } = await connectToDatabase();
+      
+      // Update driver information
+      const driverResult = await db.collection('drivers').updateOne(
+        { id: user.id },
+        { 
+          $set: {
+            tipo_veiculo: data.tipo_veiculo,
+            placa: data.placa,
+            ativo: true
+          }
+        }
+      );
+      
+      if (!driverResult.data) {
+        throw new Error('Falha ao atualizar informações do entregador');
+      }
       
       // Update user profile
-      const { error: profileError } = await supabase
-        .from('perfis')
-        .upsert({
-          id: user.id,
-          nome: data.nome,
-          telefone: data.telefone,
-          endereco: data.endereco
-        });
+      const profileResult = await db.collection('profiles').updateOne(
+        { id: user.id },
+        {
+          $set: {
+            nome: data.nome,
+            telefone: data.telefone,
+            endereco: data.endereco
+          }
+        }
+      );
         
-      if (profileError) throw profileError;
+      if (!profileResult.data) {
+        throw new Error('Falha ao atualizar perfil de usuário');
+      }
       
       toast.success('Perfil atualizado com sucesso!');
     } catch (error: any) {
@@ -103,7 +114,7 @@ const DeliveryProfile = () => {
         setProfileImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
-      // Todo: Upload to Supabase storage
+      // Todo: Upload to storage
     }
   };
   

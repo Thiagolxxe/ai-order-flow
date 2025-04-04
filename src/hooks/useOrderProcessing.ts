@@ -1,205 +1,181 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/context/UserContext';
-import { CheckoutData, PaymentMethod } from '@/components/checkout/types';
-import { generateGeminiResponse } from '@/services/gemini';
+import { connectToDatabase, ObjectId } from '@/integrations/mongodb/client';
 
-interface AddressData {
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  instructions?: string;
+  options?: any[];
+}
+
+interface OrderAddress {
   street: string;
-  complement: string;
+  number: string;
+  complement?: string;
   neighborhood: string;
   city: string;
   state: string;
-  zipcode: string;
+  zipCode: string;
 }
 
-interface OrderProcessingProps {
-  checkoutData: CheckoutData | null;
-  selectedAddress: string;
-  addresses: any[];
-  selectedPayment: PaymentMethod;
-  notes: string;
-  addressData: AddressData;
-  isAuthenticated: boolean;
+interface OrderData {
+  restaurantId: string;
+  items: OrderItem[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentMethod: string;
+  address: OrderAddress;
+  notes?: string;
+  userId?: string;
 }
 
-export const useOrderProcessing = ({
-  checkoutData,
-  selectedAddress,
-  addresses,
-  selectedPayment,
-  notes,
-  addressData,
-  isAuthenticated
-}: OrderProcessingProps) => {
+export const useOrderProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [aiMessage, setAiMessage] = useState<string>('');
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user } = useUser();
 
-  // Request AI suggestions based on order data
-  const requestAISuggestions = async () => {
-    if (!checkoutData) return;
-    
+  const processOrder = async (orderData: OrderData) => {
+    if (!orderData.restaurantId) {
+      toast.error('ID do restaurante não fornecido');
+      return false;
+    }
+
+    if (!orderData.items || orderData.items.length === 0) {
+      toast.error('Nenhum item no pedido');
+      return false;
+    }
+
+    setIsProcessing(true);
+
     try {
-      // Create context object for AI
-      const context = {
-        restaurantId: checkoutData.restaurantId,
-        cartItems: checkoutData.items || [],
+      // Generate a unique order number
+      const randomPart = Math.floor(100000 + Math.random() * 900000);
+      const generatedOrderNumber = `ORD-${Date.now().toString().substring(9)}${randomPart}`;
+      
+      // Connect to MongoDB
+      const { db } = await connectToDatabase();
+      
+      // Create order in MongoDB
+      const orderDetails = {
+        numero_pedido: generatedOrderNumber,
+        cliente_id: orderData.userId || null,
+        restaurante_id: orderData.restaurantId,
+        subtotal: orderData.subtotal,
+        taxa_entrega: orderData.deliveryFee,
+        taxa_servico: 0, // Default to 0 for service fee
+        imposto: 0, // Default to 0 for tax
+        gorjeta: 0, // Default to 0 for tip
+        total: orderData.total,
+        metodo_pagamento: orderData.paymentMethod,
+        status_pagamento: 'pendente',
+        status: 'pendente',
+        endereco_entrega: `${orderData.address.street}, ${orderData.address.number}`,
+        cidade_entrega: orderData.address.city,
+        estado_entrega: orderData.address.state,
+        cep_entrega: orderData.address.zipCode,
+        instrucoes_entrega: orderData.notes || null,
+        criado_em: new Date().toISOString(),
+        atualizado_em: new Date().toISOString()
       };
       
-      const prompt = `
-        Analise este pedido e forneça sugestões úteis.
-        Itens do pedido: ${checkoutData.items?.map(item => `${item.quantity}x ${item.name} (R$${item.price})`).join(', ')}
-        Subtotal: R$${checkoutData.subtotal}
-        Taxa de entrega: R$${checkoutData.deliveryFee}
-        Total: R$${checkoutData.total}
-        
-        Por favor, forneça 3 sugestões úteis no formato:
-        SUGGESTIONS: sugestão 1, sugestão 2, sugestão 3
-        
-        E uma mensagem personalizada para o cliente sobre o pedido.
-      `;
+      // Insert order into database
+      const orderResult = await db.collection('orders').insertOne(orderDetails);
       
-      const response = await generateGeminiResponse(prompt, context);
-      
-      if (response.suggestions) {
-        setAiSuggestions(response.suggestions);
+      if (!orderResult.data) {
+        throw new Error('Erro ao criar pedido');
       }
       
-      // Extract message part (everything before SUGGESTIONS if present)
-      let message = response.responseText;
-      const suggestionIndex = message.indexOf('SUGGESTIONS:');
-      if (suggestionIndex > -1) {
-        message = message.substring(0, suggestionIndex).trim();
+      const orderId = orderResult.data.insertedId;
+      
+      // Insert order items
+      for (const item of orderData.items) {
+        const orderItem = {
+          pedido_id: orderId,
+          nome_item_cardapio: item.name,
+          quantidade: item.quantity,
+          preco_unitario: item.price,
+          preco_total: item.price * item.quantity,
+          instrucoes_especiais: item.instructions || null,
+          criado_em: new Date().toISOString()
+        };
+        
+        // Insert item
+        const itemResult = await db.collection('order_items').insertOne(orderItem);
+        
+        if (!itemResult.data) {
+          throw new Error('Erro ao adicionar itens ao pedido');
+        }
+        
+        // Insert item options if any
+        if (item.options && item.options.length > 0) {
+          for (const option of item.options) {
+            const itemOption = {
+              item_pedido_id: itemResult.data.insertedId,
+              nome_opcao: option.group || 'Opção',
+              nome_escolha: option.name,
+              ajuste_preco: option.price || 0,
+              criado_em: new Date().toISOString()
+            };
+            
+            await db.collection('escolhas_item_pedido').insertOne(itemOption);
+          }
+        }
       }
       
-      setAiMessage(message);
+      // Create initial order status history
+      await db.collection('order_status_history').insertOne({
+        pedido_id: orderId,
+        status: 'pendente',
+        criado_em: new Date().toISOString(),
+        observacoes: 'Pedido recebido pelo sistema'
+      });
+      
+      // Create notification for order
+      if (orderData.userId) {
+        await db.collection('notifications').insertOne({
+          usuario_id: orderData.userId,
+          titulo: 'Pedido Realizado',
+          mensagem: `Seu pedido #${generatedOrderNumber} foi recebido e está sendo processado.`,
+          tipo: 'pedido',
+          id_relacionado: orderId,
+          lida: false,
+          criado_em: new Date().toISOString()
+        });
+      }
+      
+      // Set order number for the UI
+      setOrderNumber(generatedOrderNumber);
+      
+      // Show success message
+      toast.success('Pedido realizado com sucesso!');
+      
+      return true;
     } catch (error) {
-      console.error('Error getting AI suggestions:', error);
+      console.error('Error processing order:', error);
+      toast.error('Erro ao processar pedido. Por favor, tente novamente.');
+      return false;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Process order
-  const processOrder = async () => {
-    if (!checkoutData) {
-      toast.error("Dados do pedido não encontrados");
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      // Validar endereço
-      let enderecoEntrega, cidadeEntrega, estadoEntrega, cepEntrega;
-      
-      if (isAuthenticated && selectedAddress) {
-        const address = addresses.find(addr => addr.id === selectedAddress);
-        if (!address) {
-          toast.error("Selecione um endereço válido");
-          setIsProcessing(false);
-          return;
-        }
-        
-        enderecoEntrega = `${address.street}, ${address.complement || ''} - ${address.neighborhood}`;
-        cidadeEntrega = address.city;
-        estadoEntrega = address.state;
-        cepEntrega = address.zipcode;
-      } else {
-        // Validar campos de endereço para usuários não autenticados
-        const { street, complement, neighborhood, city, state, zipcode } = addressData;
-        
-        if (!street || !neighborhood || !city || !state || !zipcode) {
-          toast.error("Preencha o endereço completo para entrega");
-          setIsProcessing(false);
-          return;
-        }
-        
-        enderecoEntrega = `${street}, ${complement || ''} - ${neighborhood}`;
-        cidadeEntrega = city;
-        estadoEntrega = state;
-        cepEntrega = zipcode;
-      }
-      
-      // Gerar número de pedido
-      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
-      
-      // Criar o pedido no banco de dados
-      const { data: orderData, error: orderError } = await supabase
-        .from('pedidos')
-        .insert({
-          restaurante_id: checkoutData.restaurantId,
-          cliente_id: user?.id,
-          subtotal: checkoutData.subtotal || 0,
-          taxa_entrega: checkoutData.deliveryFee || 0,
-          taxa_servico: 0,
-          imposto: 0,
-          gorjeta: 0,
-          total: checkoutData.total || 0,
-          metodo_pagamento: selectedPayment,
-          numero_pedido: orderNumber.toString(),
-          status_pagamento: selectedPayment === 'pix' ? 'pendente' : 'aprovado',
-          status: 'pendente',
-          endereco_entrega: enderecoEntrega,
-          cidade_entrega: cidadeEntrega,
-          estado_entrega: estadoEntrega,
-          cep_entrega: cepEntrega,
-          instrucoes_entrega: notes
-        })
-        .select()
-        .single();
-      
-      if (orderError) throw orderError;
-      
-      // Criar os itens do pedido
-      const orderItems = (checkoutData.items || []).map(item => ({
-        pedido_id: orderData.id,
-        item_cardapio_id: item.id,
-        nome_item_cardapio: item.name,
-        quantidade: item.quantity,
-        preco_unitario: item.price,
-        preco_total: item.price * item.quantity
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('itens_pedido')
-        .insert(orderItems);
-      
-      if (itemsError) throw itemsError;
-      
-      // Adicionar entrada ao histórico de status
-      const { error: historyError } = await supabase
-        .from('historico_status_pedido')
-        .insert({
-          pedido_id: orderData.id,
-          status: 'pendente',
-          observacoes: 'Pedido recebido'
-        });
-      
-      if (historyError) throw historyError;
-      
-      // Limpar dados do carrinho
-      localStorage.removeItem('checkout_data');
-      localStorage.removeItem(`cart_${checkoutData.restaurantId}`);
-      
-      // Redirecionar para a página de detalhes do pedido
-      toast.success("Pedido realizado com sucesso!");
-      navigate(`/pedido/${orderData.id}`);
-    } catch (error) {
-      console.error('Erro ao processar pedido:', error);
-      toast.error("Não foi possível processar o pedido");
-      setIsProcessing(false);
+  const redirectToOrderDetails = () => {
+    if (orderNumber) {
+      // Navigate to order status page
+      navigate(`/order/${orderNumber}`);
     }
   };
 
   return {
     isProcessing,
+    orderNumber,
     processOrder,
-    requestAISuggestions,
-    aiSuggestions,
-    aiMessage
+    redirectToOrderDetails,
   };
 };

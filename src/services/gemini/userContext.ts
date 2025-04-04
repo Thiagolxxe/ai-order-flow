@@ -18,7 +18,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       cliente_id: userId
     }).toArray();
     
-    if (orderResult.error === null && orderResult.data && Array.isArray(orderResult.data)) {
+    if (orderResult.data && Array.isArray(orderResult.data)) {
       context.previousOrders = orderResult.data.map(order => ({
         id: order._id || '',
         numero_pedido: order.numero_pedido || '',
@@ -35,7 +35,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       _id: userId
     });
     
-    if (profileResult.error === null && profileResult.data) {
+    if (profileResult.data) {
       context.userProfile = {
         nome: profileResult.data.nome || '',
         sobrenome: profileResult.data.sobrenome || '',
@@ -51,7 +51,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
       isdefault: true
     });
     
-    if (addressResult.error === null && addressResult.data) {
+    if (addressResult.data) {
       context.userAddress = addressResult.data;
       
       // Add user location information
@@ -71,7 +71,7 @@ export const fetchUserContext = async (userId?: string): Promise<OrderContext> =
         pedido_id: { $in: orderIds }
       }).toArray();
       
-      if (frequentItemsResult.error === null && frequentItemsResult.data && Array.isArray(frequentItemsResult.data)) {
+      if (frequentItemsResult.data && Array.isArray(frequentItemsResult.data)) {
         // Group and count items
         const itemCounts: Record<string, number> = {};
         frequentItemsResult.data.forEach(item => {

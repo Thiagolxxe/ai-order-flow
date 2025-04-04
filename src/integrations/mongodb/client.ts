@@ -45,6 +45,14 @@ interface MongoCollection {
   insertOne: (document: any) => Promise<MongoResponse<{ insertedId: string }>>;
   updateOne: (filter: any, update: any) => Promise<MongoResponse<{ modifiedCount: number }>>;
   deleteOne: (filter: any) => Promise<MongoResponse<{ deletedCount: number }>>;
+  createIndex: (fields: any, options?: any) => Promise<string>;
+}
+
+// Mock MongoDB database interface
+interface MongoDatabase {
+  collection: (collectionName: string) => MongoCollection;
+  listCollections: () => { toArray: () => Promise<any[]> };
+  createCollection: (name: string) => Promise<any>;
 }
 
 // Mock MongoDB client
@@ -60,7 +68,7 @@ export async function connectToDatabase() {
     console.log('Connected to MongoDB');
     
     // Define database operations
-    const db = {
+    const db: MongoDatabase = {
       collection: (collectionName: string): MongoCollection => {
         return {
           // Find one document
@@ -113,8 +121,33 @@ export async function connectToDatabase() {
               },
               error: null
             };
+          },
+
+          // Create index
+          createIndex: async (fields: any, options?: any): Promise<string> => {
+            console.log(`MongoDB createIndex on ${collectionName}:`, { fields, options });
+            return "mock-index-name";
           }
         };
+      },
+      
+      // List collections
+      listCollections: () => {
+        return {
+          toArray: async () => {
+            return [
+              { name: 'users' },
+              { name: 'restaurants' },
+              { name: 'menu_items' }
+            ];
+          }
+        };
+      },
+      
+      // Create collection
+      createCollection: async (name: string) => {
+        console.log(`MongoDB createCollection: ${name}`);
+        return { name };
       }
     };
     
