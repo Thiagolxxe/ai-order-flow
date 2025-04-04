@@ -92,7 +92,7 @@ export async function connectToDatabase() {
       }
     };
     
-    return { db, client: null };
+    return { db };
   } catch (error) {
     connectionStatus = CONNECTION_STATUS.ERROR;
     connectionError = error as Error;

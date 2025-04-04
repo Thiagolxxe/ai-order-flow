@@ -13,9 +13,10 @@ export interface UserContextData {
     error?: { message: string };
   }>;
   signOut: () => Promise<void>;
-  signup: (email: string, password: string, userData?: any) => Promise<{
+  signUp: (email: string, password: string, userData?: any) => Promise<{
     error?: { message: string };
   }>;
+  updateUserData?: (userData: Partial<UserSession>) => void;
 }
 
 // Create the context with a default value
@@ -26,7 +27,7 @@ const UserContext = createContext<UserContextData>({
   role: null,
   signIn: async () => ({ error: undefined }),
   signOut: async () => {},
-  signup: async () => ({ error: undefined }),
+  signUp: async () => ({ error: undefined }),
 });
 
 // Export the hook for using the context
@@ -40,6 +41,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [role, setRole] = useState<string | null>(null);
 
+  // Update user data
+  const updateUserData = (userData: Partial<UserSession>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    
+    // Update session in localStorage
+    saveSession(updatedUser);
+  };
+
   // Method to sign in a user
   const signIn = async (email: string, password: string) => {
     try {
@@ -51,8 +63,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       if (error) throw error;
 
       if (data?.session) {
-        setUser(data.session);
-        saveSession(data.session);
+        const userSession: UserSession = {
+          id: data.session.user.id,
+          email: data.session.user.email,
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          role: 'user', // Default role
+          user: data.session.user
+        };
+        
+        setUser(userSession);
+        saveSession(userSession);
         
         // Fetch user role
         setRole('user'); // Default role - would come from backend in real app
@@ -66,7 +87,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Method to sign up a user
-  const signup = async (email: string, password: string, userData: any = {}) => {
+  const signUp = async (email: string, password: string, userData: any = {}) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -76,8 +97,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       if (error) throw error;
 
       if (data?.session) {
-        setUser(data.session);
-        saveSession(data.session);
+        const userSession: UserSession = {
+          id: data.session.user.id,
+          email: data.session.user.email,
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          role: 'user', // Default role
+          user: data.session.user
+        };
+        
+        setUser(userSession);
+        saveSession(userSession);
         
         // Set default role for new users
         setRole('user');
@@ -134,7 +164,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         role,
         signIn,
         signOut,
-        signup,
+        signUp,
+        updateUserData
       }}
     >
       {children}

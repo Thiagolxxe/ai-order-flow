@@ -42,10 +42,13 @@ export const authService = {
       console.log('Sign up called with:', { email, userData });
       
       const mockUser = { id: 'mock-user-id', email };
-      const mockSession = { 
+      const mockSession: UserSession = { 
+        id: 'mock-user-id',
+        email,
         user: { ...mockUser, ...userData },
         access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token'
+        refresh_token: 'mock-refresh-token',
+        role: 'user'
       };
       
       return {
@@ -73,10 +76,13 @@ export const authService = {
       console.log('Sign in called with:', { email });
       
       const mockUser = { id: 'mock-user-id', email };
-      const mockSession = {
+      const mockSession: UserSession = {
+        id: 'mock-user-id',
+        email,
         user: mockUser,
         access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token'
+        refresh_token: 'mock-refresh-token',
+        role: 'user'
       };
       
       return {
@@ -90,6 +96,29 @@ export const authService = {
       return {
         data: null,
         error: { message: error.message || 'Error signing in' }
+      };
+    }
+  },
+  
+  /**
+   * Set session
+   */
+  setSession: async (session: UserSession) => {
+    try {
+      // Save session to localStorage
+      localStorage.setItem('deliveryapp_session', JSON.stringify({
+        session,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      }));
+      
+      return {
+        data: { session },
+        error: null
+      };
+    } catch (error: any) {
+      return {
+        data: null,
+        error: { message: error.message || 'Error setting session' }
       };
     }
   }

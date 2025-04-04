@@ -42,77 +42,82 @@ export const supabase = {
       eq: (column: string, value: any) => ({
         lte: (column: string, value: any) => ({
           gte: (column: string, value: any) => ({
-            maybeSingle: async () => ({ id: 'mock-id' }),
-            single: async () => ({ id: 'mock-id' }),
+            maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null }),
+            single: async () => ({ data: { id: 'mock-id' }, error: null }),
             order: (column: string, { ascending }: { ascending: boolean }) => ({
               limit: (limit: number) => ({
-                maybeSingle: async () => ({ id: 'mock-id' }),
-                single: async () => ({ id: 'mock-id' }),
-                toArray: async () => [{ id: 'mock-id' }]
+                maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null }),
+                single: async () => ({ data: { id: 'mock-id' }, error: null }),
+                toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
               }),
-              maybeSingle: async () => ({ id: 'mock-id' }),
-              single: async () => ({ id: 'mock-id' }),
-              toArray: async () => [{ id: 'mock-id' }]
+              maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null }),
+              single: async () => ({ data: { id: 'mock-id' }, error: null }),
+              toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
             }),
             limit: (limit: number) => ({
-              maybeSingle: async () => ({ id: 'mock-id' }),
-              single: async () => ({ id: 'mock-id' }),
-              toArray: async () => [{ id: 'mock-id' }]
+              maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null }),
+              single: async () => ({ data: { id: 'mock-id' }, error: null }),
+              toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
             }),
             ilike: (column: string, value: any) => ({
-              toArray: async () => [{ id: 'mock-id' }]
+              toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
             }),
             or: (orConditions: string) => ({
-              toArray: async () => [{ id: 'mock-id' }]
+              toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
             }),
             in: (column: string, values: any[]) => ({
-              toArray: async () => [{ id: 'mock-id' }]
+              toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
             }),
-            toArray: async () => [{ id: 'mock-id' }]
+            toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
           })
         }),
         in: (column: string, values: any[]) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
         order: (column: string, { ascending }: { ascending: boolean }) => ({
           limit: (limit: number) => ({
-            toArray: async () => [{ id: 'mock-id' }]
+            toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
           }),
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
         limit: (limit: number) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
         ilike: (column: string, value: any) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
         or: (orConditions: string) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
         in: (column: string, values: any[]) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
-        toArray: async () => [{ id: 'mock-id' }],
-        maybeSingle: async () => ({ id: 'mock-id' }),
-        single: async () => ({ id: 'mock-id' })
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null }),
+        maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null }),
+        single: async () => ({ data: { id: 'mock-id' }, error: null })
       }),
       in: (column: string, values: any[]) => ({
-        toArray: async () => [{ id: 'mock-id' }]
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
       }),
       order: (column: string, { ascending }: { ascending: boolean }) => ({
         limit: (limit: number) => ({
-          toArray: async () => [{ id: 'mock-id' }]
+          toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
         }),
-        toArray: async () => [{ id: 'mock-id' }]
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
       }),
       limit: (limit: number) => ({
-        toArray: async () => [{ id: 'mock-id' }]
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
       }),
       ilike: (column: string, value: any) => ({
-        toArray: async () => [{ id: 'mock-id' }]
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
       }),
       or: (orConditions: string) => ({
-        toArray: async () => [{ id: 'mock-id' }]
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null })
+      }),
+      eq: (column: string, value: any) => ({
+        toArray: async () => ({ data: [{ id: 'mock-id' }], error: null }),
+        single: async () => ({ data: { id: 'mock-id' }, error: null }),
+        maybeSingle: async () => ({ data: { id: 'mock-id' }, error: null })
       }),
       toArray: async () => {
         return { data: [{ id: 'mock-id' }], error: null };
@@ -121,7 +126,8 @@ export const supabase = {
     insert: (data: any) => ({
       select: (columns?: string) => ({
         single: async () => ({ data: { id: 'mock-id' }, error: null })
-      })
+      }),
+      error: null
     }),
     upsert: (data: any) => ({
       select: (columns?: string) => ({

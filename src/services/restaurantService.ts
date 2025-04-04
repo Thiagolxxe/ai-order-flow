@@ -101,7 +101,7 @@ export const createRestaurant = async (restaurantData: any, userData: any) => {
       }
     } else {
       // Use existing authenticated user
-      userId = session.user.id;
+      userId = session.id;
       console.log("Using existing authenticated user:", userId);
     }
 

@@ -1,56 +1,57 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Mail, LockKeyhole, User, ArrowRight } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-
-const formSchema = z.object({
-  name: z.string().min(2, { message: 'Nome deve ter pelo menos 2 caracteres' }),
-  email: z.string().email({ message: 'Email inválido' }),
-  password: z.string().min(6, { message: 'Senha deve ter pelo menos 6 caracteres' }),
-  confirmPassword: z.string()
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Senhas não conferem",
-  path: ["confirmPassword"],
-});
-
 const Register = () => {
-  const { signUp } = useUser();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    },
+  const { signUp, isAuthenticated } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true);
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Basic validation
+    if (!formData.email || !formData.password || !formData.name) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('As senhas não coincidem');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const { error } = await signUp(values.email, values.password, {
-        name: values.name
+      const { error } = await signUp(formData.email, formData.password, {
+        name: formData.name
       });
 
       if (error) {
@@ -60,100 +61,125 @@ const Register = () => {
       toast.success('Conta criada com sucesso!');
       navigate('/');
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('Error creating account:', error);
       toast.error(error.message || 'Erro ao criar conta');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Criar conta</CardTitle>
-          <CardDescription>
-            Preencha os campos abaixo para criar sua conta
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Seu nome" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="seu.email@exemplo.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Crie uma senha" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirme a senha</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Confirme sua senha" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Criando conta...
-                  </>
-                ) : 'Criar conta'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-muted-foreground text-center w-full">
-            Já tem uma conta?{' '}
-            <Link 
-              to="/login"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Faça login
-            </Link>
+    <div className="container relative flex h-[100dvh] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <Link
+        to="/login"
+        className="absolute left-4 top-4 md:left-8 md:top-8 text-secondary hover:underline"
+      >
+        Voltar para login
+      </Link>
+      <div className="relative hidden h-full flex-col bg-muted p-10 text-foreground lg:flex">
+        <div className="absolute inset-0 bg-zinc-900/20" />
+        <Link
+          to="/"
+          className="absolute left-4 top-4 md:left-8 md:top-8 text-lg font-bold"
+        >
+          DeliveryApp
+        </Link>
+        <div className="relative mt-20">
+          <div className="mb-4 flex items-center justify-center">
+            <User className="mr-2 h-4 w-4" />
+            Cadastro de novos usuários
           </div>
-        </CardFooter>
-      </Card>
+          <h1 className="text-2xl font-semibold">
+            Bem-vindo ao nosso sistema de entregas!
+          </h1>
+          <p className="mt-2 text-default">
+            Crie sua conta e aproveite os melhores restaurantes da cidade.
+          </p>
+        </div>
+      </div>
+      <div className="lg:p-8">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <Card>
+            <CardHeader className="space-y-0">
+              <CardTitle>Criar uma conta</CardTitle>
+              <CardDescription>
+                Entre com seu email abaixo para criar sua conta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nome completo</Label>
+                <div className="relative">
+                  <User className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
+                  <Input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Digite seu nome completo"
+                    className="pl-10"
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    className="pl-10"
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <LockKeyhole className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
+                  <Input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Senha"
+                    className="pl-10"
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                <div className="relative">
+                  <LockKeyhole className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
+                  <Input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    placeholder="Confirmar senha"
+                    className="pl-10"
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+              <Button disabled={isLoading} onClick={handleSubmit}>
+                Criar conta
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Separator />
+              <div className="text-center text-sm">
+                Já tem uma conta?{' '}
+                <Link to="/login" className="text-primary underline">
+                  Faça login
+                </Link>
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

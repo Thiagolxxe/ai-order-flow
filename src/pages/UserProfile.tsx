@@ -95,19 +95,20 @@ const UserProfile = () => {
         address: profile.address
       });
 
-      // Make sure we handle the update correctly and don't check for truthiness of void
       if (error) {
         throw new Error(error.message);
       } else {
         // If no error, update was successful
         toast.success('Perfil atualizado com sucesso');
         
-        // Update user context
-        updateUserData({
-          name: profile.name,
-          phone: profile.phone,
-          address: profile.address
-        });
+        // Update user context if the function exists
+        if (updateUserData) {
+          updateUserData({
+            name: profile.name,
+            phone: profile.phone,
+            address: profile.address
+          });
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);

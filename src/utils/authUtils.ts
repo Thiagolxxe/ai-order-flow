@@ -12,6 +12,8 @@ export interface UserSession {
   email: string;
   name?: string;
   role?: string;
+  phone?: string;
+  address?: string;
   user?: {
     id: string;
     email: string;
