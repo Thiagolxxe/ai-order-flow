@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +8,23 @@ import { AlertIcon } from "@/assets/icons";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.error(
       "404 Error: Usuário tentou acessar uma rota inexistente:",
       location.pathname
     );
-  }, [location.pathname]);
+    
+    // Automatically redirect common Portuguese routes
+    const route = getSuggestion(location.pathname);
+    if (route) {
+      console.log(`Redirecting from ${location.pathname} to ${route}`);
+      setTimeout(() => {
+        navigate(route);
+      }, 1500); // Add a short delay to show the message before redirecting
+    }
+  }, [location.pathname, navigate]);
 
   // Função para sugerir uma rota baseado na rota atual
   const getSuggestion = (path: string) => {
@@ -28,14 +38,43 @@ const NotFound = () => {
       '/carrinho': '/cart',
       '/finalizar': '/checkout',
       '/cadastro': '/register',
-      '/restaurante/cadastro': '/restaurant-signup'
+      '/restaurante/cadastro': '/restaurant-signup',
+      '/favoritos': '/favorites',
+      '/notificacoes': '/notifications',
+      '/configuracoes': '/settings',
+      '/ajuda': '/help',
+      '/entregador/cadastro': '/delivery/signup',
+      '/entregador/painel': '/delivery/dashboard',
+      '/entregador/perfil': '/delivery/profile'
     };
+
+    // Verificação exata primeiro
+    if (routeMap[path]) {
+      return routeMap[path];
+    }
 
     // Verifica se alguma das chaves é um prefixo da rota atual
     for (const [ptRoute, engRoute] of Object.entries(routeMap)) {
       if (path.startsWith(ptRoute)) {
-        return path.replace(ptRoute, engRoute);
+        const suffix = path.substring(ptRoute.length);
+        return engRoute + suffix;
       }
+    }
+    
+    // Verifique rotas com parâmetros
+    const restauranteMatch = path.match(/^\/restaurante\/([^\/]+)$/);
+    if (restauranteMatch) {
+      return `/restaurant/${restauranteMatch[1]}`;
+    }
+    
+    const pedidoMatch = path.match(/^\/pedido\/([^\/]+)$/);
+    if (pedidoMatch) {
+      return `/order/${pedidoMatch[1]}`;
+    }
+    
+    const entregaMatch = path.match(/^\/entrega\/([^\/]+)$/);
+    if (entregaMatch) {
+      return `/tracking/${entregaMatch[1]}`;
     }
 
     return null;
@@ -59,6 +98,8 @@ const NotFound = () => {
             {suggestedRoute && (
               <span className="block mt-2">
                 Você quis dizer: <Link to={suggestedRoute} className="text-primary font-medium hover:underline">{suggestedRoute}</Link>?
+                <br />
+                <span className="text-sm text-muted-foreground">Redirecionando automaticamente...</span>
               </span>
             )}
           </p>

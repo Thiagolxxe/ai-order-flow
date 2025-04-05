@@ -111,19 +111,24 @@ function App() {
                   
                   {/* Portuguese Route Redirects */}
                   <Route path="/restaurantes" element={<Navigate to="/restaurants" replace />} />
+                  <Route path="/restaurante/:id" element={<Navigate to={({ params }) => `/restaurant/${params.id}`} replace />} />
                   <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
                   <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
                   <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
+                  <Route path="/pedido/:id" element={<Navigate to={({ params }) => `/order/${params.id}`} replace />} />
                   <Route path="/perfil" element={<Navigate to="/profile" replace />} />
                   <Route path="/carrinho" element={<Navigate to="/cart" replace />} />
                   <Route path="/finalizar" element={<Navigate to="/checkout" replace />} />
                   <Route path="/cadastro" element={<Navigate to="/register" replace />} />
-                  <Route path="/restaurante/:id" element={<Navigate to="/restaurant/:id" replace />} />
                   <Route path="/restaurante/cadastro" element={<Navigate to="/restaurant-signup" replace />} />
                   <Route path="/favoritos" element={<Navigate to="/favorites" replace />} />
                   <Route path="/notificacoes" element={<Navigate to="/notifications" replace />} />
                   <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
                   <Route path="/ajuda" element={<Navigate to="/help" replace />} />
+                  <Route path="/entrega/:id" element={<Navigate to={({ params }) => `/tracking/${params.id}`} replace />} />
+                  <Route path="/entregador/cadastro" element={<Navigate to="/delivery/signup" replace />} />
+                  <Route path="/entregador/painel" element={<Navigate to="/delivery/dashboard" replace />} />
+                  <Route path="/entregador/perfil" element={<Navigate to="/delivery/profile" replace />} />
                   
                   {/* 404 Route */}
                   <Route path="*" element={<NotFound />} />
