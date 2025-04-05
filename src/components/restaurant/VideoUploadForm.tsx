@@ -1,337 +1,565 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, ChangeEvent } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, X, PlayCircle, FileVideo, Music, Edit2, Scissors } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAuth } from '@/hooks/useAuth';
+import { Upload, X, Music, Scissors, Globe } from 'lucide-react';
+import { supabaseClient } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
-import VideoEditor from '@/components/video-editor/VideoEditor';
-import { AudioTrack } from '@/components/video-editor/VideoEditor';
+import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface VideoUploadFormProps {
-  restaurantId: string;
-  onUploadComplete?: () => void;
+export interface Video {
+  id?: string;
+  titulo: string;
+  descricao: string;
+  video_url: string;
+  thumbnail_url?: string;
+  restaurante_id: string;
+  item_cardapio_id?: string;
 }
 
-const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ restaurantId, onUploadComplete }) => {
-  const { user } = useAuth();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [selectedAudioTrack, setSelectedAudioTrack] = useState<AudioTrack | null>(null);
-  const [isVideoCompressed, setIsVideoCompressed] = useState(false);
+export interface VideoUploadFormProps {
+  restaurantId: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+  videoToEdit?: Video;
+}
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+interface MusicTrack {
+  id: string;
+  title: string;
+  artist: string;
+  url: string;
+  license: string;
+}
+
+// Mock music library (Creative Commons tracks)
+const musicLibrary: MusicTrack[] = [
+  {
+    id: '1',
+    title: 'Acoustic Vibes',
+    artist: 'Creative Sound',
+    url: 'https://example.com/tracks/acoustic-vibes.mp3',
+    license: 'CC BY 4.0'
+  },
+  {
+    id: '2',
+    title: 'Jazz Cafe',
+    artist: 'Open Music',
+    url: 'https://example.com/tracks/jazz-cafe.mp3',
+    license: 'CC BY-SA 4.0'
+  },
+  {
+    id: '3',
+    title: 'Summer Breeze',
+    artist: 'Free Sounds',
+    url: 'https://example.com/tracks/summer-breeze.mp3',
+    license: 'CC BY-NC 4.0'
+  }
+];
+
+const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ 
+  restaurantId, 
+  onSuccess,
+  onCancel,
+  videoToEdit 
+}) => {
+  const [title, setTitle] = useState(videoToEdit?.titulo || '');
+  const [description, setDescription] = useState(videoToEdit?.descricao || '');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(videoToEdit?.video_url || null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(videoToEdit?.thumbnail_url || null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState('upload');
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(100);
+  const [videoDuration, setVideoDuration] = useState(0);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check if file is too large (> 50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error("O arquivo é muito grande. O tamanho máximo é 50MB.");
+      // Check if the file is a video
+      if (!file.type.startsWith('video/')) {
+        toast.error('Por favor, selecione um arquivo de vídeo válido');
+        return;
+      }
+      
+      // Check file size (limit to 100MB)
+      if (file.size > 100 * 1024 * 1024) {
+        toast.error('O arquivo é muito grande. O tamanho máximo é 100MB');
         return;
       }
       
       setVideoFile(file);
+      
+      // Create a preview URL
       const url = URL.createObjectURL(file);
-      setVideoPreview(url);
-      setIsVideoCompressed(false);
+      setPreviewUrl(url);
+      
+      // Reset trim values
+      setTrimStart(0);
+      setTrimEnd(100);
+      
+      // Load video metadata to get duration
+      const video = document.createElement('video');
+      video.onloadedmetadata = () => {
+        setVideoDuration(video.duration);
+      };
+      video.src = url;
     }
   };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Check if file is too large (> 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("A imagem é muito grande. O tamanho máximo é 5MB.");
-        return;
+  const handleUpload = async () => {
+    if (!title.trim()) {
+      toast.error('Por favor, informe um título para o vídeo');
+      return;
+    }
+    
+    if (!videoFile && !videoToEdit) {
+      toast.error('Por favor, selecione um vídeo para upload');
+      return;
+    }
+    
+    setUploading(true);
+    setProgress(0);
+    
+    try {
+      let videoUrl = videoToEdit?.video_url || '';
+      
+      // If we have a new video file, upload it
+      if (videoFile) {
+        // Compress and trim the video if needed
+        const processedVideo = await processVideo(videoFile);
+        
+        // Generate a unique filename
+        const timestamp = new Date().getTime();
+        const extension = videoFile.name.split('.').pop();
+        const filename = `${restaurantId}_${timestamp}.${extension}`;
+        
+        // Upload to storage
+        const { data, error } = await supabaseClient.storage
+          .from('videos')
+          .upload(`restaurant/${restaurantId}/${filename}`, processedVideo, {
+            upsert: true,
+            onUploadProgress: (progress) => {
+              setProgress(Math.round((progress.loaded / progress.total) * 100));
+            }
+          });
+          
+        if (error) {
+          throw new Error(`Erro ao fazer upload do vídeo: ${error.message}`);
+        }
+        
+        // Get the public URL
+        const { data: urlData } = supabaseClient.storage
+          .from('videos')
+          .getPublicUrl(`restaurant/${restaurantId}/${filename}`);
+          
+        videoUrl = urlData.publicUrl;
+        
+        // Generate thumbnail from the video (this is simplified for this example)
+        const thumbnailFilename = `${restaurantId}_${timestamp}_thumb.jpg`;
+        const thumbnailBlob = await generateThumbnail(videoFile);
+        
+        const { data: thumbData, error: thumbError } = await supabaseClient.storage
+          .from('videos')
+          .upload(`restaurant/${restaurantId}/thumbnails/${thumbnailFilename}`, thumbnailBlob, {
+            upsert: true,
+          });
+          
+        if (thumbError) {
+          console.error('Erro ao fazer upload da thumbnail:', thumbError);
+          // Continue without thumbnail if there's an error
+        } else {
+          const { data: thumbUrlData } = supabaseClient.storage
+            .from('videos')
+            .getPublicUrl(`restaurant/${restaurantId}/thumbnails/${thumbnailFilename}`);
+            
+          setThumbnailUrl(thumbUrlData.publicUrl);
+        }
       }
       
-      setThumbnailFile(file);
-      const url = URL.createObjectURL(file);
-      setThumbnailPreview(url);
-    }
-  };
-
-  const clearVideo = () => {
-    setVideoFile(null);
-    if (videoPreview) URL.revokeObjectURL(videoPreview);
-    setVideoPreview(null);
-    setSelectedAudioTrack(null);
-    setIsVideoCompressed(false);
-  };
-
-  const clearThumbnail = () => {
-    setThumbnailFile(null);
-    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
-    setThumbnailPreview(null);
-  };
-
-  const openVideoEditor = () => {
-    if (!videoFile) {
-      toast.error("Por favor, adicione um vídeo antes de editar");
-      return;
-    }
-    setIsEditorOpen(true);
-  };
-
-  const handleEditorSave = (editedVideo: File, audioTrack: AudioTrack | null) => {
-    // In a real implementation, the video would be properly edited and compressed
-    // Here we're just updating the state to simulate this
-    setSelectedAudioTrack(audioTrack);
-    setIsVideoCompressed(true);
-    setIsEditorOpen(false);
-    toast.success("Edições aplicadas com sucesso!");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!videoFile) {
-      toast.error("Por favor, adicione um vídeo");
-      return;
-    }
-    
-    if (!title) {
-      toast.error("Por favor, adicione um título");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // In production, we would upload files to cloud storage and get URLs
-      // For now, we'll simulate by using local object URLs
-      const videoUrl = videoPreview || "";
-      const thumbnailUrl = thumbnailPreview || `https://source.unsplash.com/random/800x600/?food,${title.toLowerCase()}`;
-      
+      // Save the video metadata to the database
       const { db } = await connectToDatabase();
       
-      // Create video entry in database
-      const videoData = {
-        id: crypto.randomUUID(),
-        restaurante_id: restaurantId,
+      // Prepare the video data
+      const videoData: Partial<Video> = {
         titulo: title,
         descricao: description,
         video_url: videoUrl,
-        thumbnail_url: thumbnailUrl,
-        views: 0,
-        likes: 0,
-        comentarios: 0,
-        audio_track: selectedAudioTrack ? {
-          nome: selectedAudioTrack.name,
-          artista: selectedAudioTrack.artist,
-          url: selectedAudioTrack.url
-        } : null,
-        comprimido: isVideoCompressed,
-        ativo: true,
-        criado_em: new Date().toISOString(),
+        restaurante_id: restaurantId,
+        thumbnail_url: thumbnailUrl || undefined
       };
       
-      await db.collection('videos').insertOne(videoData);
+      if (videoToEdit?.id) {
+        // Update existing video
+        const result = await db.collection('videos').updateOne(
+          { _id: videoToEdit.id },
+          { $set: videoData }
+        );
+        
+        if (!result || result.error) {
+          throw new Error('Erro ao atualizar vídeo no banco de dados');
+        }
+        
+        toast.success('Vídeo atualizado com sucesso!');
+      } else {
+        // Create new video
+        const result = await db.collection('videos').insertOne({
+          ...videoData,
+          views: 0,
+          likes: 0,
+          comentarios: 0,
+          ativo: true,
+          criado_em: new Date()
+        });
+        
+        if (!result || result.error) {
+          throw new Error('Erro ao salvar vídeo no banco de dados');
+        }
+        
+        toast.success('Vídeo enviado com sucesso!');
+      }
       
-      toast.success("Vídeo enviado com sucesso!");
+      // Clean up
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       
-      // Reset form
+      // Reset form and notify parent
       setTitle('');
       setDescription('');
-      clearVideo();
-      clearThumbnail();
-      setSelectedAudioTrack(null);
-      setIsVideoCompressed(false);
-      
-      // Call callback if provided
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
-    } catch (error) {
-      console.error("Error uploading video:", error);
-      toast.error("Erro ao enviar vídeo. Tente novamente.");
+      setVideoFile(null);
+      setPreviewUrl(null);
+      setThumbnailUrl(null);
+      onSuccess();
+    } catch (error: any) {
+      console.error('Erro no upload:', error);
+      toast.error(error.message || 'Erro ao enviar vídeo');
     } finally {
-      setIsLoading(false);
+      setUploading(false);
     }
   };
 
+  // Simple function to process the video (in a real app, this would use a video processing library)
+  const processVideo = async (file: File): Promise<Blob> => {
+    // In a real implementation, this would compress and trim the video
+    // For this mock version, we'll just return the original file
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Apply music if selected
+    if (selectedTrack) {
+      console.log(`Applying music track: ${selectedTrack}`);
+      // In a real implementation, this would mix the audio track with the video
+    }
+    
+    // Apply trimming if needed
+    if (trimStart > 0 || trimEnd < 100) {
+      console.log(`Trimming video from ${trimStart}% to ${trimEnd}%`);
+      // In a real implementation, this would trim the video
+    }
+    
+    return file;
+  };
+
+  // Function to generate a thumbnail from the video
+  const generateThumbnail = async (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      video.onloadedmetadata = () => {
+        // Seek to 25% of the video duration
+        video.currentTime = video.duration * 0.25;
+      };
+      
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail'));
+            }
+          },
+          'image/jpeg',
+          0.7 // Quality
+        );
+      };
+      
+      video.onerror = () => {
+        reject(new Error('Error loading video for thumbnail generation'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleTrimChange = (values: number[]) => {
+    setTrimStart(values[0]);
+    setTrimEnd(values[1]);
+    
+    // Update video playback position if available
+    if (videoRef.current && videoDuration > 0) {
+      videoRef.current.currentTime = (videoDuration * values[0]) / 100;
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const calculateTrimmedDuration = () => {
+    const totalDuration = videoDuration;
+    const trimmedDuration = (totalDuration * (trimEnd - trimStart)) / 100;
+    return formatTime(trimmedDuration);
+  };
+
   return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="title" className="block text-sm font-medium">
-            Título do Vídeo
-          </label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Nome do prato ou promoção"
-            required
-          />
-        </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>{videoToEdit ? 'Editar Vídeo' : 'Publicar Novo Vídeo'}</CardTitle>
+        <CardDescription>
+          Compartilhe vídeos de pratos e experiências com seus clientes
+        </CardDescription>
+      </CardHeader>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-3 mx-4 mb-2">
+          <TabsTrigger value="upload">Upload</TabsTrigger>
+          <TabsTrigger value="edit">Edição</TabsTrigger>
+          <TabsTrigger value="music">Trilha Sonora</TabsTrigger>
+        </TabsList>
         
-        <div className="space-y-2">
-          <label htmlFor="description" className="block text-sm font-medium">
-            Descrição
-          </label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descreva o prato e atraia seus clientes"
-            rows={3}
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Video upload */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Vídeo
-            </label>
+        <TabsContent value="upload">
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Título</Label>
+              <Input
+                id="title"
+                placeholder="Título do vídeo"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={uploading}
+              />
+            </div>
             
-            {!videoPreview ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center h-40 bg-gray-50">
-                <FileVideo className="h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 mb-2">MP4, MOV ou WebM (máx. 50MB)</p>
-                <Button type="button" variant="outline" size="sm" asChild>
-                  <label>
-                    Selecionar Vídeo
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="video/mp4,video/quicktime,video/webm"
-                      onChange={handleVideoChange}
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                placeholder="Descrição do vídeo"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={uploading}
+                className="resize-none h-24"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="video">Vídeo</Label>
+              <div className="flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                {previewUrl ? (
+                  <div className="relative w-full">
+                    <video 
+                      src={previewUrl} 
+                      controls 
+                      className="rounded-lg w-full max-h-[300px] object-contain"
+                      ref={videoRef}
                     />
-                  </label>
-                </Button>
-              </div>
-            ) : (
-              <div className="relative rounded-lg overflow-hidden h-40 bg-black">
-                <video 
-                  src={videoPreview} 
-                  className="h-full w-full object-contain"
-                  controls
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute top-2 right-2" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setVideoFile(null);
+                        setPreviewUrl(null);
+                      }}
+                      disabled={uploading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <Upload className="h-12 w-12 text-gray-400 mb-2" />
+                    <p className="font-medium text-gray-800 dark:text-gray-200">Clique para selecionar um vídeo</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      MP4, MOV ou WebM (max 100MB)
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="video"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={uploading}
                 />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="icon"
-                    className="bg-primary/90 hover:bg-primary"
-                    onClick={openVideoEditor}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    onClick={clearVideo}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+              </div>
+            </div>
+            
+            {uploading && (
+              <div className="space-y-2 mt-4">
+                <div className="flex justify-between text-sm">
+                  <span>Enviando...</span>
+                  <span>{progress}%</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+            )}
+          </CardContent>
+        </TabsContent>
+        
+        <TabsContent value="edit">
+          <CardContent className="space-y-4">
+            {previewUrl ? (
+              <>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label>Cortar Vídeo</Label>
+                    <span className="text-sm text-muted-foreground">
+                      Duração: {calculateTrimmedDuration()}
+                    </span>
+                  </div>
+                  <div className="px-2">
+                    <Slider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[trimStart, trimEnd]}
+                      onValueChange={handleTrimChange}
+                      disabled={uploading || !previewUrl}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Início: {formatTime((videoDuration * trimStart) / 100)}</span>
+                    <span>Fim: {formatTime((videoDuration * trimEnd) / 100)}</span>
+                  </div>
                 </div>
                 
-                {/* Video info tags */}
-                <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
-                  {isVideoCompressed && (
-                    <span className="bg-green-500/80 text-white text-xs px-2 py-0.5 rounded">
-                      Comprimido
-                    </span>
-                  )}
-                  {selectedAudioTrack && (
-                    <span className="bg-blue-500/80 text-white text-xs px-2 py-0.5 rounded flex items-center">
-                      <Music className="h-3 w-3 mr-1" />
-                      {selectedAudioTrack.name}
-                    </span>
-                  )}
+                <div className="pt-4">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (videoRef.current) {
+                          videoRef.current.currentTime = (videoDuration * trimStart) / 100;
+                          videoRef.current.play();
+                        }
+                      }}
+                      disabled={uploading}
+                    >
+                      <Scissors className="h-4 w-4 mr-2" />
+                      Pré-visualizar corte
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Scissors className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Selecione um vídeo na aba Upload para editar</p>
+              </div>
+            )}
+          </CardContent>
+        </TabsContent>
+        
+        <TabsContent value="music">
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Selecionar Trilha Sonora</Label>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Globe className="h-3 w-3 mr-1" />
+                  <span>Creative Commons</span>
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Thumbnail upload */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Miniatura (Opcional)
-            </label>
-            
-            {!thumbnailPreview ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center h-40 bg-gray-50">
-                <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 mb-2">JPG, PNG (máx. 5MB)</p>
-                <Button type="button" variant="outline" size="sm" asChild>
-                  <label>
-                    Selecionar Imagem
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/jpeg,image/png"
-                      onChange={handleThumbnailChange}
-                    />
-                  </label>
-                </Button>
-              </div>
-            ) : (
-              <div className="relative rounded-lg overflow-hidden h-40">
-                <img 
-                  src={thumbnailPreview} 
-                  className="h-full w-full object-cover"
-                  alt="Thumbnail preview"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={clearThumbnail}
+              
+              {musicLibrary.map((track) => (
+                <div
+                  key={track.id}
+                  className={`p-3 rounded-md cursor-pointer flex items-center justify-between ${
+                    selectedTrack === track.id ? 'bg-primary/10 border border-primary/20' : 'border'
+                  }`}
+                  onClick={() => setSelectedTrack(track.id === selectedTrack ? null : track.id)}
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="pt-2">
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Enviando..." : "Publicar Vídeo"}
-          </Button>
-        </div>
-        
-        <div className="text-sm text-gray-500 space-y-1">
-          <p>Dicas para criar vídeos mais atrativos:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Grave na vertical (9:16) como TikTok/Instagram Reels</li>
-            <li>Mantenha entre 15-60 segundos para maior engajamento</li>
-            <li>Mostre o prato em detalhes e de forma atraente</li>
-            <li>Use boa iluminação</li>
-          </ul>
-        </div>
-      </form>
+                  <div className="flex items-center">
+                    <Music className="h-4 w-4 mr-3 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{track.title}</p>
+                      <p className="text-xs text-muted-foreground">{track.artist}</p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{track.license}</div>
+                </div>
+              ))}
+              
+              {selectedTrack && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedTrack(null)}
+                    disabled={uploading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remover trilha
+                  </Button>
+                </div>
+              )}
+              
+              {!musicLibrary.length && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Music className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Não há trilhas sonoras disponíveis</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </TabsContent>
+      </Tabs>
       
-      {/* Video Editor Dialog */}
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Editar Vídeo</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            <VideoEditor 
-              videoFile={videoFile} 
-              onSave={handleEditorSave}
-              onClose={() => setIsEditorOpen(false)}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={onCancel} disabled={uploading}>
+          Cancelar
+        </Button>
+        <Button onClick={handleUpload} disabled={uploading}>
+          {uploading ? 'Enviando...' : videoToEdit ? 'Atualizar Vídeo' : 'Publicar Vídeo'}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, MarkerProps } from 'react-leaflet';
 import L from 'leaflet';
 import { Bike } from 'lucide-react';
 
@@ -15,7 +15,7 @@ const driverIcon = new L.DivIcon({
   popupAnchor: [0, -30]
 });
 
-interface DriverMarkerProps {
+interface DriverMarkerProps extends Omit<MarkerProps, 'position' | 'icon'> {
   position: [number, number];
   name: string;
   vehicle?: string;
@@ -28,12 +28,13 @@ const DriverMarker: React.FC<DriverMarkerProps> = ({
   name, 
   vehicle = "Moto", 
   estimatedTime,
-  eta
+  eta,
+  ...props
 }) => {
   const displayTime = eta || estimatedTime;
   
   return (
-    <Marker position={position} icon={driverIcon}>
+    <Marker position={position} icon={driverIcon} {...props}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

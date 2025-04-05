@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabaseClient } from '@/integrations/supabase/client';
@@ -7,27 +8,33 @@ import { useNavigate } from 'react-router-dom';
 interface User {
   id: string;
   email: string;
-  user_metadata: {
-    nome: string;
-    sobrenome: string;
+  user_metadata?: {
+    nome?: string;
+    sobrenome?: string;
   };
+  name?: string;
+  phone?: string;
+  address?: string;
 }
 
-interface AuthContextProps {
+interface UserContextProps {
   user: User | null;
   session: { access_token: string } | null;
   isLoading: boolean;
-  signIn: (credentials: any) => Promise<void>;
-  signUp: (credentials: any) => Promise<void>;
+  isAuthenticated: boolean;
+  role: string | null;
+  signIn: (email: string, password: string) => Promise<{error?: any}>;
+  signUp: (credentials: any) => Promise<{error?: any}>;
   signOut: () => Promise<void>;
+  updateUserData?: (data: Partial<User>) => void;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const UserContext = createContext<UserContextProps | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
+export const useUser = () => {
+  const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useAuth must be used within a UserProvider');
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };
@@ -36,6 +43,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -52,6 +60,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data?.session) {
           setUser(data.session.user as User);
           setSession({ access_token: data.session.access_token });
+          
+          // Check user role
+          try {
+            const { db } = await connectToDatabase();
+            const userRolesResult = await db.collection('funcoes_usuario').findOne({
+              usuario_id: data.session.user.id
+            });
+            
+            if (userRolesResult && userRolesResult.data) {
+              setRole(userRolesResult.data.role_name);
+            }
+          } catch (error) {
+            console.error('Erro ao verificar função do usuário:', error);
+          }
         }
       } finally {
         setIsLoading(false);
@@ -66,9 +88,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN') {
           setUser(session?.user as User || null);
           setSession({ access_token: session?.access_token || '' });
+          
+          // Check user role when signing in
+          if (session?.user) {
+            try {
+              const { db } = await connectToDatabase();
+              const userRolesResult = await db.collection('funcoes_usuario').findOne({
+                usuario_id: session.user.id
+              });
+              
+              if (userRolesResult && userRolesResult.data) {
+                setRole(userRolesResult.data.role_name);
+              }
+            } catch (error) {
+              console.error('Erro ao verificar função do usuário:', error);
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setSession(null);
+          setRole(null);
         }
       }
     );
@@ -78,19 +117,40 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [navigate]);
   
-  const signIn = async (credentials: any) => {
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabaseClient.auth.signIn(credentials);
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      
       if (error) {
         toast.error(error.message);
         console.error('Erro ao fazer login:', error);
+        return { error };
       } else {
         setUser(data.user as User);
         setSession({ access_token: data.session.access_token });
+        
+        // Check user role when signing in
+        try {
+          const { db } = await connectToDatabase();
+          const userRolesResult = await db.collection('funcoes_usuario').findOne({
+            usuario_id: data.user.id
+          });
+          
+          if (userRolesResult && userRolesResult.data) {
+            setRole(userRolesResult.data.role_name);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar função do usuário:', error);
+        }
+        
         localStorage.setItem('userData', JSON.stringify(data.user));
         toast.success('Login realizado com sucesso!');
         navigate('/');
+        return {};
       }
     } finally {
       setIsLoading(false);
@@ -104,12 +164,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         toast.error(error.message);
         console.error('Erro ao criar conta:', error);
+        return { error };
       } else {
         setUser(data.user as User);
-        setSession({ access_token: data.session.access_token });
+        if (data.session) {
+          setSession({ access_token: data.session.access_token });
+        }
         localStorage.setItem('userData', JSON.stringify(data.user));
         toast.success('Conta criada com sucesso!');
         navigate('/');
+        return {};
       }
     } finally {
       setIsLoading(false);
@@ -126,6 +190,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUser(null);
         setSession(null);
+        setRole(null);
         localStorage.removeItem('userData');
         toast.success('Logout realizado com sucesso!');
         navigate('/login');
@@ -135,18 +200,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  const value: AuthContextProps = {
+  const updateUserData = (data: Partial<User>) => {
+    if (user) {
+      setUser({
+        ...user,
+        ...data
+      });
+    }
+  };
+  
+  const value: UserContextProps = {
     user,
     session,
     isLoading,
+    isAuthenticated: !!user,
+    role,
     signIn,
     signUp,
     signOut,
+    updateUserData
   };
   
   return (
-    <AuthContext.Provider value={value}>
+    <UserContext.Provider value={value}>
       {children}
-    </AuthContext.Provider>
+    </UserContext.Provider>
   );
 };

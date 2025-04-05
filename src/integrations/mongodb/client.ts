@@ -1,325 +1,148 @@
 
-/**
- * MongoDB client for connecting to the database
- */
+// MongoDB client integration
 
-// Use a type declaration for ObjectId
-export class ObjectId {
-  constructor(id?: string) {
-    // Implementation not needed for front-end
-  }
-
-  toString(): string {
-    return "mock-object-id";
-  }
-
-  static isValid(id?: string): boolean {
-    if (!id) return false;
-    return /^[0-9a-fA-F]{24}$/.test(id);
-  }
-}
-
-// Connection status
-const CONNECTION_STATUS = {
-  DISCONNECTED: 'disconnected',
-  CONNECTED: 'connected',
-  CONNECTING: 'connecting',
-  ERROR: 'error'
-};
-
-let connectionStatus = CONNECTION_STATUS.DISCONNECTED;
-let connectionError: Error | null = null;
-
-// Define response type for MongoDB operations
 export interface MongoResponse<T> {
-  data: T;
-  error: null | Error;
-}
-
-// Define collection interface
-interface MongoCollection {
-  findOne: (query: any) => Promise<MongoResponse<any>>;
-  find: (query: any) => Promise<MongoResponse<any[]>>;
-  insertOne: (document: any) => Promise<MongoResponse<{ insertedId: string }>>;
-  updateOne: (filter: any, update: any) => Promise<MongoResponse<{ modifiedCount: number }>>;
-  deleteOne: (filter: any) => Promise<MongoResponse<{ deletedCount: number }>>;
-  createIndex: (fields: any, options?: any) => Promise<string>;
-}
-
-// Mock MongoDB database interface
-interface MongoDatabase {
-  collection: (collectionName: string) => MongoCollection;
-  listCollections: () => { toArray: () => Promise<any[]> };
-  createCollection: (name: string) => Promise<any>;
-}
-
-// Mock MongoDB client
-export async function connectToDatabase() {
-  try {
-    connectionStatus = CONNECTION_STATUS.CONNECTING;
-    console.log('Connecting to MongoDB...');
-    
-    // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    connectionStatus = CONNECTION_STATUS.CONNECTED;
-    console.log('Connected to MongoDB');
-    
-    // Define database operations
-    const db: MongoDatabase = {
-      collection: (collectionName: string): MongoCollection => {
-        return {
-          // Find one document
-          findOne: async (query: any): Promise<MongoResponse<any>> => {
-            console.log(`MongoDB findOne on ${collectionName}:`, query);
-            // Return mock data based on collection
-            const data = getMockDataByCollection(collectionName, query);
-            return { data, error: null };
-          },
-          
-          // Find multiple documents
-          find: async (query: any): Promise<MongoResponse<any[]>> => {
-            console.log(`MongoDB find on ${collectionName}:`, query);
-            // Return array of mock data based on collection
-            const mockItems = [];
-            for (let i = 0; i < 5; i++) {
-              mockItems.push(getMockDataByCollection(collectionName, {...query, _mockIndex: i}));
-            }
-            return { data: mockItems, error: null };
-          },
-          
-          // Insert one document
-          insertOne: async (document: any): Promise<MongoResponse<{ insertedId: string }>> => {
-            console.log(`MongoDB insertOne on ${collectionName}:`, document);
-            return {
-              data: {
-                insertedId: new ObjectId().toString()
-              },
-              error: null
-            };
-          },
-          
-          // Update one document
-          updateOne: async (filter: any, update: any): Promise<MongoResponse<{ modifiedCount: number }>> => {
-            console.log(`MongoDB updateOne on ${collectionName}:`, { filter, update });
-            return {
-              data: {
-                modifiedCount: 1
-              },
-              error: null
-            };
-          },
-          
-          // Delete one document
-          deleteOne: async (filter: any): Promise<MongoResponse<{ deletedCount: number }>> => {
-            console.log(`MongoDB deleteOne on ${collectionName}:`, filter);
-            return {
-              data: {
-                deletedCount: 1
-              },
-              error: null
-            };
-          },
-
-          // Create index
-          createIndex: async (fields: any, options?: any): Promise<string> => {
-            console.log(`MongoDB createIndex on ${collectionName}:`, { fields, options });
-            return "mock-index-name";
-          }
-        };
-      },
-      
-      // List collections
-      listCollections: () => {
-        return {
-          toArray: async () => {
-            return [
-              { name: 'users' },
-              { name: 'restaurants' },
-              { name: 'menu_items' }
-            ];
-          }
-        };
-      },
-      
-      // Create collection
-      createCollection: async (name: string) => {
-        console.log(`MongoDB createCollection: ${name}`);
-        return { name };
-      }
-    };
-    
-    return { db };
-  } catch (error) {
-    connectionStatus = CONNECTION_STATUS.ERROR;
-    connectionError = error as Error;
-    console.error('Failed to connect to MongoDB:', error);
-    throw error;
-  }
-}
-
-// Helper function to generate mock data based on collection name
-function getMockDataByCollection(collectionName: string, query: any): any {
-  switch (collectionName) {
-    case 'users':
-      return {
-        _id: new ObjectId().toString(),
-        email: 'user@example.com',
-        name: 'John Doe',
-        role: 'user',
-        createdAt: new Date()
-      };
-    case 'restaurants':
-      return {
-        _id: new ObjectId().toString(),
-        nome: 'Example Restaurant',
-        tipo_cozinha: 'Italian',
-        endereco: '123 Main St',
-        cidade: 'Example City',
-        estado: 'SP',
-        deliveryFee: 5.0,
-        valor_pedido_minimo: 20.0,
-        tempo_entrega_estimado: 30,
-        logo_url: '/images/restaurants/logo-default.png',
-        banner_url: '/images/restaurants/banner-default.jpg'
-      };
-    case 'orders':
-      return {
-        _id: new ObjectId().toString(),
-        numero_pedido: 'ORD-' + Math.floor(Math.random() * 1000000),
-        status: 'pendente',
-        restaurante_id: new ObjectId().toString(),
-        endereco_entrega: '123 Main St',
-        cidade_entrega: 'Example City',
-        estado_entrega: 'SP',
-        criado_em: new Date().toISOString(),
-        subtotal: 15.0,
-        taxa_entrega: 5.0,
-        total: 20.0,
-        entregador_id: new ObjectId().toString(),
-        restaurantes: { 
-          nome: 'Mock Restaurant',
-          id: 'mock-restaurant-id'
-        }
-      };
-    case 'menu_items':
-      return {
-        _id: new ObjectId().toString(),
-        nome: 'Pizza Margherita',
-        descricao: 'Classic Italian pizza with tomato and mozzarella',
-        preco: 15.0,
-        disponivel: true,
-        restaurante_id: new ObjectId().toString()
-      };
-    case 'profiles':
-      return {
-        _id: query.id || new ObjectId().toString(),
-        nome: 'John',
-        sobrenome: 'Doe',
-        telefone: '555-123-4567'
-      };
-    case 'enderecos':
-      return { 
-        _id: new ObjectId().toString(), 
-        endereco: '123 Main St', 
-        complemento: 'Apt 4B', 
-        bairro: 'Centro', 
-        cidade: 'São Paulo', 
-        estado: 'SP', 
-        cep: '01234-567',
-        isdefault: true
-      };
-    case 'ratings':
-      return {
-        _id: new ObjectId().toString(),
-        restaurantId: query.restaurantId || new ObjectId().toString(),
-        rating: 4.5,
-        comment: 'Great food and service!'
-      };
-    case 'promocoes':
-      return {
-        _id: new ObjectId().toString(),
-        codigo: 'DISCOUNT10',
-        valor: 10,
-        tipo: 'percentual',
-        restaurante_id: query.restaurante_id || new ObjectId().toString(),
-        valor_pedido_minimo: 20.0,
-        data_inicio: new Date(Date.now() - 86400000).toISOString(),
-        data_fim: new Date(Date.now() + 86400000).toISOString(),
-        ativo: true
-      };
-    case 'entregadores':
-      return { 
-        _id: query.id || new ObjectId().toString(), 
-        tipo_veiculo: 'Moto', 
-        latitude_atual: -23.5505, 
-        longitude_atual: -46.6333 
-      };
-    case 'itens_pedido':
-      return {
-        _id: new ObjectId().toString(),
-        pedido_id: query.pedido_id || new ObjectId().toString(),
-        quantidade: 1,
-        nome_item_cardapio: 'Pizza Margherita',
-        preco_unitario: 15.0,
-        preco_total: 15.0
-      };
-    case 'videos':
-      return {
-        _id: new ObjectId().toString(),
-        titulo: 'Video ' + Math.floor(Math.random() * 100),
-        descricao: 'Descrição do vídeo', 
-        video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        thumbnail_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
-        restaurante_id: query.restaurante_id || new ObjectId().toString(),
-        restaurante_nome: 'Restaurante Example',
-        preco: 15.99,
-        views: Math.floor(Math.random() * 1000),
-        likes: Math.floor(Math.random() * 100),
-        ativo: true,
-        criado_em: new Date().toISOString()
-      };
-    default:
-      return {
-        _id: new ObjectId().toString(),
-        createdAt: new Date()
-      };
-  }
-}
-
-/**
- * Get connection status
- */
-export function getConnectionStatus() {
-  return {
-    status: connectionStatus,
-    error: connectionError
+  data: T | null;
+  error?: {
+    message: string;
+    code?: number;
   };
 }
 
-/**
- * Check if connected to database
- */
-export function isConnected() {
-  return connectionStatus === CONNECTION_STATUS.CONNECTED;
+export async function connectToDatabase() {
+  // This function would normally connect to a MongoDB instance
+  // For now, we'll implement a mock version that simulates MongoDB behavior
+  
+  return {
+    db: {
+      collection: (collectionName: string) => {
+        return {
+          find: async (query: any = {}) => {
+            console.log(`MongoDB: Finding documents in ${collectionName} with query:`, query);
+            // Mock implementation that returns an array of items
+            const mockData = getMockData(collectionName, query);
+            
+            // Custom implementation with toArray method
+            const result: Promise<MongoResponse<any[]>> = Promise.resolve({
+              data: mockData
+            });
+            
+            // Add toArray method to the Promise
+            Object.defineProperty(result, 'toArray', {
+              value: () => Promise.resolve(mockData),
+              enumerable: false,
+              configurable: true
+            });
+            
+            return result;
+          },
+          findOne: async (query: any = {}) => {
+            console.log(`MongoDB: Finding one document in ${collectionName} with query:`, query);
+            // Mock implementation that returns a single item
+            const mockData = getMockData(collectionName, query);
+            return {
+              data: mockData && mockData.length > 0 ? mockData[0] : null
+            };
+          },
+          insertOne: async (document: any) => {
+            console.log(`MongoDB: Inserting document into ${collectionName}:`, document);
+            // Mock successful insert
+            return {
+              data: { 
+                insertedId: crypto.randomUUID(),
+                ...document
+              }
+            };
+          },
+          updateOne: async (query: any, update: any) => {
+            console.log(`MongoDB: Updating document in ${collectionName} with query:`, query);
+            console.log(`MongoDB: Update operation:`, update);
+            // Mock successful update
+            return {
+              data: { 
+                matchedCount: 1,
+                modifiedCount: 1,
+                ...update.$set
+              }
+            };
+          },
+          deleteOne: async (query: any) => {
+            console.log(`MongoDB: Deleting document from ${collectionName} with query:`, query);
+            // Mock successful delete
+            return {
+              data: { 
+                deletedCount: 1
+              }
+            };
+          }
+        };
+      }
+    }
+  };
 }
 
-/**
- * Check MongoDB connection status
- * @returns Promise<boolean> True if connection is successful
- */
-export async function checkMongoDBConnection(): Promise<boolean> {
-  try {
-    // If already connected, return true
-    if (connectionStatus === CONNECTION_STATUS.CONNECTED) {
-      return true;
-    }
-    
-    // Try to connect
-    await connectToDatabase();
-    return true;
-  } catch (error) {
-    console.error('MongoDB connection check failed:', error);
-    return false;
+// Helper function to generate mock data based on collection name
+function getMockData(collectionName: string, query: any): any[] {
+  switch (collectionName) {
+    case 'restaurants':
+      return [
+        {
+          _id: '1',
+          nome: 'Restaurante Italiano',
+          descricao: 'O melhor da culinária italiana',
+          tipo_cozinha: 'Italiana',
+          endereco: 'Rua da Itália, 123',
+          cidade: 'São Paulo',
+          estado: 'SP',
+          proprietario_id: query.proprietario_id || 'user123',
+          banner_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
+        }
+      ];
+    case 'orders':
+      return [
+        {
+          _id: '1',
+          numero_pedido: 'ORD12345',
+          status: 'preparando',
+          cliente_id: query.cliente_id || 'user123',
+          restaurante_id: '1',
+          endereco_entrega: 'Rua dos Clientes, 456, São Paulo, SP',
+          total: 75.90
+        }
+      ];
+    case 'videos':
+      return [
+        {
+          _id: '1',
+          titulo: 'Preparando nossa pizza especial',
+          descricao: 'Veja como preparamos nossa pizza mais pedida',
+          video_url: 'https://example.com/video1.mp4',
+          thumbnail_url: 'https://example.com/thumbnail1.jpg',
+          restaurante_id: query.restaurante_id || '1',
+          views: 120,
+          likes: 45
+        }
+      ];
+    case 'users':
+    case 'profiles':
+      return [
+        {
+          _id: '1',
+          id: query.id || 'user123',
+          nome: 'João Silva',
+          email: 'joao@exemplo.com',
+          telefone: '(11) 98765-4321'
+        }
+      ];
+    case 'funcoes_usuario':
+      return [
+        {
+          _id: '1',
+          usuario_id: query.usuario_id || 'user123',
+          role_name: 'cliente'
+        }
+      ];
+    default:
+      return [];
   }
 }

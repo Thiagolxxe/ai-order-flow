@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, MarkerProps } from 'react-leaflet';
 import L from 'leaflet';
 import { Home } from 'lucide-react';
 
@@ -15,15 +15,15 @@ const userIcon = new L.DivIcon({
   popupAnchor: [0, -30]
 });
 
-interface UserMarkerProps {
+interface UserMarkerProps extends Omit<MarkerProps, 'position' | 'icon'> {
   position: [number, number];
   name?: string;
   address: string;
 }
 
-const UserMarker: React.FC<UserMarkerProps> = ({ position, name = 'Seu endereço', address }) => {
+const UserMarker: React.FC<UserMarkerProps> = ({ position, name = 'Seu endereço', address, ...props }) => {
   return (
-    <Marker position={position} icon={userIcon}>
+    <Marker position={position} icon={userIcon} {...props}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

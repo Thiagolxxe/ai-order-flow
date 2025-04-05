@@ -42,9 +42,10 @@ const Checkout = () => {
   const { 
     isProcessing, 
     processOrder, 
-    requestAISuggestions,
+    redirectToOrderDetails,
     aiSuggestions,
-    aiMessage
+    aiMessage,
+    requestAISuggestions
   } = useOrderProcessing({
     checkoutData,
     selectedAddress,
@@ -60,7 +61,7 @@ const Checkout = () => {
     if (checkoutData && !aiMessage) {
       requestAISuggestions();
     }
-  }, [checkoutData]);
+  }, [checkoutData, aiMessage, requestAISuggestions]);
 
   // Função para preencher o formulário de endereço
   const handleAddressSelect = (address: any) => {
@@ -70,6 +71,13 @@ const Checkout = () => {
     setCity(address.city);
     setState(address.state);
     setZipcode(address.zipcode);
+  };
+
+  const handleConfirmOrder = async () => {
+    const success = await processOrder();
+    if (success) {
+      redirectToOrderDetails();
+    }
   };
 
   if (loading) {
@@ -150,7 +158,7 @@ const Checkout = () => {
           <OrderSummary 
             checkoutData={checkoutData}
             isProcessing={isProcessing}
-            onConfirmOrder={processOrder}
+            onConfirmOrder={handleConfirmOrder}
           />
           
           {/* AI Suggestions */}

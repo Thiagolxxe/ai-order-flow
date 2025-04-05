@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, MarkerProps } from 'react-leaflet';
 import L from 'leaflet';
 import { Utensils } from 'lucide-react';
 
@@ -15,7 +15,7 @@ const restaurantIcon = new L.DivIcon({
   popupAnchor: [0, -30]
 });
 
-interface RestaurantMarkerProps {
+interface RestaurantMarkerProps extends Omit<MarkerProps, 'position' | 'icon'> {
   position: [number, number];
   restaurantName?: string;
   address?: string;
@@ -28,12 +28,13 @@ const RestaurantMarker: React.FC<RestaurantMarkerProps> = ({
   restaurantName, 
   address, 
   cuisine,
-  name
+  name,
+  ...props
 }) => {
   const displayName = name || restaurantName || 'Restaurante';
   
   return (
-    <Marker position={position} icon={restaurantIcon}>
+    <Marker position={position} icon={restaurantIcon} {...props}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{displayName}</h3>

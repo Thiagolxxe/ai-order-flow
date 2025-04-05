@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, MapContainerProps } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-interface MapProps {
+interface MapProps extends Omit<MapContainerProps, 'center' | 'zoom'> {
   center: [number, number];
   zoom: number;
   children: React.ReactNode;
 }
 
-const Map: React.FC<MapProps> = ({ center, zoom, children }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, children, ...props }) => {
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -17,8 +17,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, children }) => {
     if (document.readyState === 'complete') {
       setMapReady(true);
     } else {
-      window.addEventListener('load', () => setMapReady(true));
-      return () => window.removeEventListener('load', () => setMapReady(true));
+      const handleLoad = () => setMapReady(true);
+      window.addEventListener('load', handleLoad);
+      return () => window.removeEventListener('load', handleLoad);
     }
   }, []);
 
@@ -32,6 +33,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, children }) => {
       zoom={zoom}
       style={{ height: '100%', width: '100%' }}
       className="rounded-md shadow-md z-0"
+      {...props}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

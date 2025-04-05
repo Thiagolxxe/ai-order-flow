@@ -33,6 +33,17 @@ export interface RestaurantDetailsData {
   deliveryPosition?: { lat: number; lng: number };
 }
 
+// Legacy data format type for proper type narrowing
+interface LegacyRestaurantData {
+  id: string;
+  name: string;
+  address: string;
+  cuisine: string;
+  rating: number;
+  imageUrl: string;
+  deliveryPosition: { lat: number; lng: number };
+}
+
 export function useRestaurantDetails() {
   const { id } = useParams();
   const [restaurant, setRestaurant] = useState<RestaurantDetailsData | null>(null);
@@ -69,25 +80,29 @@ export function useRestaurantDetails() {
             deliveryPosition: { lat: -23.5505, lng: -46.6333 }
           };
           setRestaurant(restaurantData);
-        } else {
+        } else if (isLegacyData(data)) {
           // Old format, adapt to new format
+          const legacyData = data as LegacyRestaurantData;
           const restaurantData: RestaurantDetailsData = {
-            id: data.id,
-            nome: data.name || 'Restaurante',
-            tipo_cozinha: data.cuisine || 'Diversos',
-            endereco: data.address?.split(',')[0] || 'Endereço não disponível',
-            cidade: data.address?.split(',')[1]?.split('-')[0]?.trim() || 'São Paulo',
-            estado: data.address?.split('-')[1]?.trim() || 'SP',
-            faixa_preco: data.rating || 3,
-            banner_url: data.imageUrl || DEFAULT_IMAGE,
-            name: data.name,
-            address: data.address,
-            cuisine: data.cuisine,
-            rating: data.rating,
-            imageUrl: data.imageUrl,
-            deliveryPosition: data.deliveryPosition
+            id: legacyData.id,
+            nome: legacyData.name || 'Restaurante',
+            tipo_cozinha: legacyData.cuisine || 'Diversos',
+            endereco: legacyData.address?.split(',')[0] || 'Endereço não disponível',
+            cidade: legacyData.address?.split(',')[1]?.split('-')[0]?.trim() || 'São Paulo',
+            estado: legacyData.address?.split('-')[1]?.trim() || 'SP',
+            faixa_preco: legacyData.rating || 3,
+            banner_url: legacyData.imageUrl || DEFAULT_IMAGE,
+            name: legacyData.name,
+            address: legacyData.address,
+            cuisine: legacyData.cuisine,
+            rating: legacyData.rating,
+            imageUrl: legacyData.imageUrl,
+            deliveryPosition: legacyData.deliveryPosition
           };
           setRestaurant(restaurantData);
+        } else {
+          // Unknown data format
+          setError('Formato de dados de restaurante desconhecido');
         }
       } catch (error: any) {
         console.error('Error fetching restaurant:', error);
@@ -99,6 +114,15 @@ export function useRestaurantDetails() {
 
     fetchRestaurantDetails();
   }, [id]);
+
+  // Helper function to check if data is in legacy format
+  function isLegacyData(data: any): data is LegacyRestaurantData {
+    return data && 
+      typeof data === 'object' && 
+      'name' in data && 
+      'address' in data && 
+      'cuisine' in data;
+  }
 
   // Added DEFAULT_IMAGE property to the returned object
   return { 
