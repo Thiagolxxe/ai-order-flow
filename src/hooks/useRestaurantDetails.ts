@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getRestaurantData } from '@/services/restaurantService';
 
+// Define a default image constant
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop';
+
 export function useRestaurantDetails() {
   const { id } = useParams();
   const [restaurant, setRestaurant] = useState<any>(null);
@@ -38,5 +41,11 @@ export function useRestaurantDetails() {
     fetchRestaurantDetails();
   }, [id]);
 
-  return { restaurant, isLoading, error };
+  // Added DEFAULT_IMAGE property to the returned object
+  return { 
+    restaurant, 
+    isLoading, 
+    error,
+    DEFAULT_IMAGE 
+  };
 }

@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -82,6 +83,7 @@ function App() {
               <Navbar />
               <main className="flex-grow">
                 <Routes>
+                  {/* Main Routes */}
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
@@ -107,14 +109,23 @@ function App() {
                   <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
                   <Route path="/delivery/profile" element={<DeliveryProfile />} />
                   
-                  {/* Add redirects for common Portuguese routes */}
-                  <Route path="/restaurantes" element={<Navigate to="/restaurants" />} />
-                  <Route path="/videos" element={<Navigate to="/video-feed" />} />
-                  <Route path="/promocoes" element={<Navigate to="/promotions" />} />
-                  <Route path="/pedidos" element={<Navigate to="/orders" />} />
-                  <Route path="/restaurante/:id" element={<Navigate to={`/restaurant/:id`} />} />
-                  <Route path="/restaurante/cadastro" element={<Navigate to="/restaurant-signup" />} />
+                  {/* Portuguese Route Redirects */}
+                  <Route path="/restaurantes" element={<Navigate to="/restaurants" replace />} />
+                  <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
+                  <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
+                  <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
+                  <Route path="/perfil" element={<Navigate to="/profile" replace />} />
+                  <Route path="/carrinho" element={<Navigate to="/cart" replace />} />
+                  <Route path="/finalizar" element={<Navigate to="/checkout" replace />} />
+                  <Route path="/cadastro" element={<Navigate to="/register" replace />} />
+                  <Route path="/restaurante/:id" element={<Navigate to="/restaurant/:id" replace />} />
+                  <Route path="/restaurante/cadastro" element={<Navigate to="/restaurant-signup" replace />} />
+                  <Route path="/favoritos" element={<Navigate to="/favorites" replace />} />
+                  <Route path="/notificacoes" element={<Navigate to="/notifications" replace />} />
+                  <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
+                  <Route path="/ajuda" element={<Navigate to="/help" replace />} />
                   
+                  {/* 404 Route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

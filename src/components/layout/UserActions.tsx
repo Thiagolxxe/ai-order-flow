@@ -23,7 +23,7 @@ const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
             className="rounded-full"
             asChild
           >
-            <Link to="/notificacoes">
+            <Link to="/notifications">
               <NotificationIcon className="w-5 h-5" />
             </Link>
           </Button>
@@ -33,7 +33,7 @@ const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
             className="rounded-full bg-secondary"
             asChild
           >
-            <Link to="/perfil">
+            <Link to="/profile">
               <UserIcon className="w-5 h-5" />
             </Link>
           </Button>
@@ -44,7 +44,7 @@ const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
             <Link to="/login">Entrar</Link>
           </Button>
           <Button asChild>
-            <Link to="/cadastro">Cadastrar</Link>
+            <Link to="/register">Cadastrar</Link>
           </Button>
         </div>
       )}

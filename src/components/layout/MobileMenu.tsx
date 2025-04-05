@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -26,20 +27,20 @@ const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
 
   const navLinks = [
     { href: "/", label: "Início", icon: <Menu className="h-5 w-5" /> },
-    { href: "/restaurantes", label: "Restaurantes", icon: <Menu className="h-5 w-5" /> },
-    { href: "/videos", label: "Vídeos", icon: <Menu className="h-5 w-5" /> },
-    { href: "/promocoes", label: "Promoções", icon: <Menu className="h-5 w-5" /> },
-    { href: "/pedidos", label: "Meus Pedidos", icon: <Menu className="h-5 w-5" /> },
+    { href: "/restaurants", label: "Restaurantes", icon: <Menu className="h-5 w-5" /> },
+    { href: "/video-feed", label: "Vídeos", icon: <Menu className="h-5 w-5" /> },
+    { href: "/promotions", label: "Promoções", icon: <Menu className="h-5 w-5" /> },
+    { href: "/orders", label: "Meus Pedidos", icon: <Menu className="h-5 w-5" /> },
   ];
 
   const adminLinks = [
-    { href: "/admin/restaurante", label: "Painel do Restaurante", icon: <Settings className="h-5 w-5" /> },
+    { href: "/admin/restaurant", label: "Painel do Restaurante", icon: <Settings className="h-5 w-5" /> },
   ];
 
   const userLinks = [
-    { href: "/perfil", label: "Meu Perfil", icon: <User className="h-5 w-5" /> },
-    { href: "/configuracoes", label: "Configurações", icon: <Settings className="h-5 w-5" /> },
-    { href: "/ajuda", label: "Ajuda", icon: <HelpCircle className="h-5 w-5" /> },
+    { href: "/profile", label: "Meu Perfil", icon: <User className="h-5 w-5" /> },
+    { href: "/settings", label: "Configurações", icon: <Settings className="h-5 w-5" /> },
+    { href: "/help", label: "Ajuda", icon: <HelpCircle className="h-5 w-5" /> },
     { href: "/logout", label: "Sair", icon: <LogOut className="h-5 w-5" /> },
   ];
 
@@ -67,7 +68,7 @@ const MobileMenu = ({ isOpen, userRole, isAuthenticated }: MobileMenuProps) => {
             ))}
             <Separator className="my-2" />
             <Link
-              to="/restaurante/cadastro"
+              to="/restaurant-signup"
               className="flex items-center py-3 px-4 text-primary hover:bg-accent/50 transition-colors"
             >
               <Store className="h-5 w-5" />

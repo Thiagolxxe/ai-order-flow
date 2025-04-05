@@ -2,7 +2,6 @@
 import React from 'react';
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { Bicycle } from 'lucide-react';
 
 // Create a custom driver icon
 const driverIcon = new L.DivIcon({
@@ -24,7 +23,7 @@ interface DriverMarkerProps {
 
 const DriverMarker: React.FC<DriverMarkerProps> = ({ position, name, status = 'A caminho', eta }) => {
   return (
-    <Marker position={position} icon={driverIcon}>
+    <Marker position={position} icon={driverIcon as any}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>
