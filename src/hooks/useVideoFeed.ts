@@ -1,17 +1,20 @@
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Video, VideoFeedState } from './video-feed/types';
 import { MOCK_VIDEOS } from './video-feed/mock-data';
 import { useVideoNavigation } from './video-feed/useVideoNavigation';
 import { useVideoInteractions } from './video-feed/useVideoInteractions';
 import { useChatInteraction } from './video-feed/useChatInteraction';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 
 export type { Video } from './video-feed/types';
 
 export const useVideoFeed = () => {
   const navigate = useNavigate();
-  const [videos] = useState<Video[]>(MOCK_VIDEOS);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const feedContainerRef = useRef<HTMLDivElement>(null);
   
   // Video state management
@@ -25,7 +28,49 @@ export const useVideoFeed = () => {
   const { activeVideoIndex, muted, errorState, likedVideos } = state;
   
   // Active video
-  const activeVideo = videos[activeVideoIndex] || videos[0];
+  const activeVideo = videos[activeVideoIndex] || null;
+
+  // Fetch videos from database
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        setIsLoading(true);
+        const { db } = await connectToDatabase();
+        const results = await db.collection('videos')
+          .find({ ativo: true })
+          .toArray();
+        
+        if (results && results.length > 0) {
+          // Map database video format to app video format
+          const mappedVideos: Video[] = results.map(video => ({
+            id: video.id,
+            restaurantId: video.restaurante_id,
+            restaurantName: video.restaurante_nome || "Restaurante",
+            dishName: video.titulo,
+            price: video.preco || 0,
+            videoUrl: video.video_url,
+            thumbnailUrl: video.thumbnail_url || "",
+            likes: video.likes || 0,
+            description: video.descricao || "",
+          }));
+          
+          setVideos(mappedVideos);
+        } else {
+          // Fallback to mock data if no videos found
+          console.log("No videos found in database, using mock data");
+          setVideos(MOCK_VIDEOS);
+        }
+      } catch (error) {
+        console.error("Error fetching videos:", error);
+        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+        setVideos(MOCK_VIDEOS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchVideos();
+  }, []);
   
   // State updaters
   const setActiveVideoIndex = useCallback((index: number) => {
@@ -76,6 +121,7 @@ export const useVideoFeed = () => {
     activeVideo,
     feedContainerRef,
     videos,
+    isLoading,
     handleScroll,
     handleNext,
     handlePrevious,

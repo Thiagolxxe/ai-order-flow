@@ -24,6 +24,13 @@ export interface RestaurantDetailsData {
   taxa_entrega: number;
   valor_pedido_minimo: number;
   ativo: boolean;
+  // Compatibility with older usage
+  name?: string;
+  address?: string;
+  cuisine?: string;
+  rating?: number;
+  imageUrl?: string;
+  deliveryPosition?: { lat: number; lng: number };
 }
 
 export function useRestaurantDetails() {
@@ -49,7 +56,19 @@ export function useRestaurantDetails() {
           return;
         }
         
-        setRestaurant(data);
+        // Ensure compatibility with both old and new property names
+        const restaurantData: RestaurantDetailsData = {
+          ...data,
+          // Map properties for backward compatibility
+          name: data.nome,
+          address: `${data.endereco}, ${data.cidade} - ${data.estado}`,
+          cuisine: data.tipo_cozinha,
+          rating: data.faixa_preco,
+          imageUrl: data.banner_url || DEFAULT_IMAGE,
+          deliveryPosition: { lat: -23.5505, lng: -46.6333 }, // Placeholder coordinates
+        };
+        
+        setRestaurant(restaurantData);
       } catch (error: any) {
         console.error('Error fetching restaurant:', error);
         setError(error.message || 'Erro ao carregar dados do restaurante');

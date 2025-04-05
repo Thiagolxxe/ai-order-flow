@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Play, Plus, Trash2, Eye, ThumbsUp } from 'lucide-react';
@@ -37,10 +36,14 @@ const VideoManagement: React.FC<VideoManagementProps> = ({ restaurantId }) => {
       const { db } = await connectToDatabase();
       const result = await db.collection('videos')
         .find({ restaurante_id: restaurantId })
-        .sort({ criado_em: -1 })
         .toArray();
       
-      setVideos(result);
+      // Sort by created date (newest first)
+      const sortedVideos = result.sort((a, b) => {
+        return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
+      });
+      
+      setVideos(sortedVideos);
     } catch (error) {
       console.error("Error fetching videos:", error);
       toast.error("Erro ao carregar vídeos");

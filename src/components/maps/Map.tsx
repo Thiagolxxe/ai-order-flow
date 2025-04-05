@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, MapContainerProps } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface MapProps {
@@ -28,7 +28,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, children }) => {
 
   return (
     <MapContainer 
-      center={center}
+      center={center as any}
       zoom={zoom}
       style={{ height: '100%', width: '100%' }}
       className="rounded-md shadow-md z-0"

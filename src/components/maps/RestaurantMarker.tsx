@@ -3,14 +3,12 @@ import React from 'react';
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Utensils } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 
 // Create a custom restaurant icon
 const restaurantIcon = new L.DivIcon({
   className: 'custom-icon',
-  html: `<div class="bg-primary p-2 rounded-full text-white">
-           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-utensils"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/></svg>
+  html: `<div class="bg-red-500 p-2 rounded-full text-white">
+           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-utensils"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M3 11v9"/><path d="M17 2v9"/><path d="M17 14h.01"/><path d="M17 17h.01"/><path d="M17 20h.01"/><path d="M9 22h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2"/></svg>
          </div>`,
   iconSize: [30, 30],
   iconAnchor: [15, 30],
@@ -19,35 +17,28 @@ const restaurantIcon = new L.DivIcon({
 
 interface RestaurantMarkerProps {
   position: [number, number];
-  restaurant: {
-    id: string;
-    name: string;
-    cuisine: string;
-    address: string;
-  };
+  restaurantName?: string;
+  address?: string;
+  cuisine?: string;
+  name?: string;
 }
 
-const RestaurantMarker: React.FC<RestaurantMarkerProps> = ({ position, restaurant }) => {
-  const navigate = useNavigate();
-  
-  const handleViewMenu = () => {
-    navigate(`/restaurante/${restaurant.id}/menu`);
-  };
+const RestaurantMarker: React.FC<RestaurantMarkerProps> = ({ 
+  position, 
+  restaurantName, 
+  address, 
+  cuisine,
+  name
+}) => {
+  const displayName = name || restaurantName || 'Restaurante';
   
   return (
-    <Marker position={position} icon={restaurantIcon}>
+    <Marker position={position} icon={restaurantIcon as any}>
       <Popup>
-        <div className="text-sm w-48">
-          <h3 className="font-medium text-base">{restaurant.name}</h3>
-          <p className="text-muted-foreground">{restaurant.cuisine}</p>
-          <p className="text-gray-600 mt-1 text-xs">{restaurant.address}</p>
-          <Button 
-            size="sm" 
-            className="w-full mt-2"
-            onClick={handleViewMenu}
-          >
-            Ver Cardápio
-          </Button>
+        <div className="text-sm">
+          <h3 className="font-medium">{displayName}</h3>
+          {address && <p className="text-gray-600">{address}</p>}
+          {cuisine && <p className="text-gray-600 italic">{cuisine}</p>}
         </div>
       </Popup>
     </Marker>

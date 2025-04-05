@@ -23,7 +23,7 @@ interface UserMarkerProps {
 
 const UserMarker: React.FC<UserMarkerProps> = ({ position, name = 'Seu endereço', address }) => {
   return (
-    <Marker position={position} icon={userIcon}>
+    <Marker position={position} icon={userIcon as any}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

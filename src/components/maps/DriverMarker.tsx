@@ -20,23 +20,27 @@ interface DriverMarkerProps {
   name: string;
   vehicle?: string;
   estimatedTime?: string;
+  eta?: string;
 }
 
 const DriverMarker: React.FC<DriverMarkerProps> = ({ 
   position, 
   name, 
   vehicle = "Moto", 
-  estimatedTime 
+  estimatedTime,
+  eta
 }) => {
+  const displayTime = eta || estimatedTime;
+  
   return (
-    <Marker position={position} icon={driverIcon}>
+    <Marker position={position} icon={driverIcon as any}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>
           <p className="text-gray-600">Veículo: {vehicle}</p>
-          {estimatedTime && (
+          {displayTime && (
             <p className="mt-1 text-sm font-semibold">
-              Chegada estimada: {estimatedTime}
+              Chegada estimada: {displayTime}
             </p>
           )}
         </div>
