@@ -28,7 +28,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, children }) => {
 
   return (
     <MapContainer 
-      center={center as any}
+      center={center}
       zoom={zoom}
       style={{ height: '100%', width: '100%' }}
       className="rounded-md shadow-md z-0"

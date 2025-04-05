@@ -214,11 +214,14 @@ class SupabaseClientMock {
             ...item
           }));
           
-          const result = await db.collection(table).insertMany(itemsWithIds);
+          // Insert each document individually
+          const insertPromises = itemsWithIds.map(item => db.collection(table).insertOne(item));
+          await Promise.all(insertPromises);
+          
           return { 
             data: itemsWithIds,
             error: null,
-            count: result.insertedCount
+            count: itemsWithIds.length
           };
         } catch (error: any) {
           console.error(`Error inserting into ${table}:`, error);
@@ -226,17 +229,14 @@ class SupabaseClientMock {
         }
       },
       
-      update: async (values: any, options = {}) => {
+      update: async (values: any, options: any = {}) => {
         try {
           const { db } = await connectToDatabase();
-          const { match } = options;
+          const matchCondition = options.match || {};
           
-          if (!match) {
-            throw new Error('Update requires a match condition');
-          }
-          
-          const result = await db.collection(table).updateMany(
-            match,
+          // Update each matching document
+          const result = await db.collection(table).updateOne(
+            matchCondition,
             { $set: values }
           );
           
@@ -250,16 +250,13 @@ class SupabaseClientMock {
         }
       },
       
-      delete: async (options = {}) => {
+      delete: async (options: any = {}) => {
         try {
           const { db } = await connectToDatabase();
-          const { match } = options;
+          const matchCondition = options.match || {};
           
-          if (!match) {
-            throw new Error('Delete requires a match condition');
-          }
-          
-          const result = await db.collection(table).deleteMany(match);
+          // Delete each matching document
+          const result = await db.collection(table).deleteOne(matchCondition);
           
           return {
             data: { deleted: result.deletedCount },
@@ -272,12 +269,12 @@ class SupabaseClientMock {
       },
       
       eq: (column: string, value: any) => {
-        const match = { [column]: value };
+        const matchCondition = { [column]: value };
         return {
           single: async () => {
             try {
               const { db } = await connectToDatabase();
-              const data = await db.collection(table).findOne(match);
+              const data = await db.collection(table).findOne(matchCondition);
               return { data, error: null };
             } catch (error: any) {
               console.error(`Error querying ${table}:`, error);
@@ -288,7 +285,7 @@ class SupabaseClientMock {
           select: async (columns = '*') => {
             try {
               const { db } = await connectToDatabase();
-              const data = await db.collection(table).find(match).toArray();
+              const data = await db.collection(table).find(matchCondition).toArray();
               return { data, error: null };
             } catch (error: any) {
               console.error(`Error querying ${table}:`, error);
@@ -299,8 +296,8 @@ class SupabaseClientMock {
           update: async (values: any) => {
             try {
               const { db } = await connectToDatabase();
-              const result = await db.collection(table).updateMany(
-                match,
+              const result = await db.collection(table).updateOne(
+                matchCondition,
                 { $set: values }
               );
               
@@ -317,7 +314,7 @@ class SupabaseClientMock {
           delete: async () => {
             try {
               const { db } = await connectToDatabase();
-              const result = await db.collection(table).deleteMany(match);
+              const result = await db.collection(table).deleteOne(matchCondition);
               
               return {
                 data: { deleted: result.deletedCount },

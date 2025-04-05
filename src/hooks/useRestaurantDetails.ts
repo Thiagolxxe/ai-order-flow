@@ -6,9 +6,29 @@ import { getRestaurantData } from '@/services/restaurantService';
 // Define a default image constant
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop';
 
+export interface RestaurantDetailsData {
+  id: string;
+  nome: string;
+  descricao: string;
+  tipo_cozinha: string;
+  endereco: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  telefone: string;
+  email: string;
+  banner_url: string;
+  logo_url: string;
+  faixa_preco: number;
+  tempo_entrega_estimado: number;
+  taxa_entrega: number;
+  valor_pedido_minimo: number;
+  ativo: boolean;
+}
+
 export function useRestaurantDetails() {
   const { id } = useParams();
-  const [restaurant, setRestaurant] = useState<any>(null);
+  const [restaurant, setRestaurant] = useState<RestaurantDetailsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
