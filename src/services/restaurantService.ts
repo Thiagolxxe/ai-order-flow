@@ -125,7 +125,7 @@ export const getRestaurantData = async (id: string) => {
     // Fetch ratings
     const ratingsResult = await db.collection('ratings').find({
       restaurante_id: id
-    }).toArray();
+    });
     
     // Calculate average rating
     let avgRating = 0;
@@ -134,17 +134,22 @@ export const getRestaurantData = async (id: string) => {
       avgRating = totalRating / ratingsResult.data.length;
     }
     
+    // Return in the new format
     return {
-      id: restaurantResult.data._id.toString(),
-      name: restaurantResult.data.nome,
-      address: `${restaurantResult.data.endereco}, ${restaurantResult.data.cidade} - ${restaurantResult.data.estado}`,
-      cuisine: restaurantResult.data.tipo_cozinha,
-      rating: avgRating,
-      imageUrl: restaurantResult.data.banner_url || restaurantResult.data.logo_url,
-      deliveryPosition: {
-        lat: -23.5643,
-        lng: -46.6527
-      }
+      id: restaurantResult.data._id,
+      nome: restaurantResult.data.nome,
+      tipo_cozinha: restaurantResult.data.tipo_cozinha,
+      descricao: restaurantResult.data.descricao,
+      endereco: restaurantResult.data.endereco,
+      cidade: restaurantResult.data.cidade,
+      estado: restaurantResult.data.estado,
+      cep: restaurantResult.data.cep,
+      faixa_preco: restaurantResult.data.faixa_preco || 0,
+      banner_url: restaurantResult.data.banner_url,
+      logo_url: restaurantResult.data.logo_url,
+      tempo_entrega_estimado: restaurantResult.data.tempo_entrega_estimado || 30,
+      taxa_entrega: restaurantResult.data.taxa_entrega || 0,
+      valor_pedido_minimo: restaurantResult.data.valor_pedido_minimo || 0
     };
   } catch (error: any) {
     console.error('Error fetching restaurant data:', error);

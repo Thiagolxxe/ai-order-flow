@@ -1,174 +1,152 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { supabaseClient } from '@/integrations/supabase/client';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import { useNavigate } from 'react-router-dom';
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { saveSession, removeSession, UserSession } from '@/utils/authUtils';
-
-// Define the context data structure
-export interface UserContextData {
-  user: UserSession | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  role: string | null;
-  signIn: (email: string, password: string) => Promise<{
-    error?: { message: string };
-  }>;
-  signOut: () => Promise<void>;
-  signUp: (email: string, password: string, userData?: any) => Promise<{
-    error?: { message: string };
-  }>;
-  updateUserData?: (userData: Partial<UserSession>) => void;
+interface User {
+  id: string;
+  email: string;
+  user_metadata: {
+    nome: string;
+    sobrenome: string;
+  };
 }
 
-// Create the context with a default value
-const UserContext = createContext<UserContextData>({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  role: null,
-  signIn: async () => ({ error: undefined }),
-  signOut: async () => {},
-  signUp: async () => ({ error: undefined }),
-});
+interface AuthContextProps {
+  user: User | null;
+  session: { access_token: string } | null;
+  isLoading: boolean;
+  signIn: (credentials: any) => Promise<void>;
+  signUp: (credentials: any) => Promise<void>;
+  signOut: () => Promise<void>;
+}
 
-// Export the hook for using the context
-export const useUser = () => useContext(UserContext);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-// Provider component that wraps your app and makes auth object available
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [user, setUser] = useState<UserSession | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [role, setRole] = useState<string | null>(null);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within a UserProvider');
+  }
+  return context;
+};
 
-  // Update user data
-  const updateUserData = (userData: Partial<UserSession>) => {
-    if (!user) return;
-    
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    
-    // Update session in localStorage
-    saveSession(updatedUser);
-  };
-
-  // Method to sign in a user
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signIn({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      if (data?.session) {
-        const userSession: UserSession = {
-          id: data.session.user.id,
-          email: data.session.user.email,
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          role: 'user', // Default role
-          user: data.session.user
-        };
-        
-        setUser(userSession);
-        saveSession(userSession);
-        
-        // Fetch user role
-        setRole('user'); // Default role - would come from backend in real app
-      }
-
-      return { error: undefined };
-    } catch (error: any) {
-      console.error('Error signing in:', error.message);
-      return { error };
-    }
-  };
-
-  // Method to sign up a user
-  const signUp = async (email: string, password: string, userData: any = {}) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      if (data?.session) {
-        const userSession: UserSession = {
-          id: data.session.user.id,
-          email: data.session.user.email,
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          role: 'user', // Default role
-          user: data.session.user
-        };
-        
-        setUser(userSession);
-        saveSession(userSession);
-        
-        // Set default role for new users
-        setRole('user');
-      }
-
-      return { error: undefined };
-    } catch (error: any) {
-      console.error('Error signing up:', error.message);
-      return { error };
-    }
-  };
-
-  // Method to sign out
-  const signOut = async () => {
-    try {
-      removeSession();
-      setUser(null);
-      setRole(null);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  // Check for existing session on load
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<{ access_token: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  
   useEffect(() => {
-    async function loadUser() {
+    const loadSession = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        const { data } = await supabase.auth.getSession();
-
-        if (data.session) {
-          setUser(data.session);
-          
-          // Set role - would come from backend in real app
-          setRole('user');
+        const { data, error } = await supabaseClient.auth.getSession();
+        
+        if (error) {
+          console.error('Erro ao carregar sessão:', error);
+          return;
         }
-      } catch (error) {
-        console.error('Error loading user:', error);
+        
+        if (data?.session) {
+          setUser(data.session.user as User);
+          setSession({ access_token: data.session.access_token });
+        }
       } finally {
         setIsLoading(false);
       }
+    };
+    
+    loadSession();
+    
+    // Listen for authentication state changes
+    const { data: authListener } = supabaseClient.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN') {
+          setUser(session?.user as User || null);
+          setSession({ access_token: session?.access_token || '' });
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setSession(null);
+        }
+      }
+    );
+    
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [navigate]);
+  
+  const signIn = async (credentials: any) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabaseClient.auth.signIn(credentials);
+      if (error) {
+        toast.error(error.message);
+        console.error('Erro ao fazer login:', error);
+      } else {
+        setUser(data.user as User);
+        setSession({ access_token: data.session.access_token });
+        localStorage.setItem('userData', JSON.stringify(data.user));
+        toast.success('Login realizado com sucesso!');
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    loadUser();
-  }, []);
-
-  // Return the provider with the context value
+  };
+  
+  const signUp = async (credentials: any) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabaseClient.auth.signUp(credentials);
+      if (error) {
+        toast.error(error.message);
+        console.error('Erro ao criar conta:', error);
+      } else {
+        setUser(data.user as User);
+        setSession({ access_token: data.session.access_token });
+        localStorage.setItem('userData', JSON.stringify(data.user));
+        toast.success('Conta criada com sucesso!');
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const signOut = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        toast.error(error.message);
+        console.error('Erro ao fazer logout:', error);
+      } else {
+        setUser(null);
+        setSession(null);
+        localStorage.removeItem('userData');
+        toast.success('Logout realizado com sucesso!');
+        navigate('/login');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const value: AuthContextProps = {
+    user,
+    session,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+  };
+  
   return (
-    <UserContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        role,
-        signIn,
-        signOut,
-        signUp,
-        updateUserData
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
-    </UserContext.Provider>
+    </AuthContext.Provider>
   );
 };

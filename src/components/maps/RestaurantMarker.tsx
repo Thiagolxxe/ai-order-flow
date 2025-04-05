@@ -33,7 +33,7 @@ const RestaurantMarker: React.FC<RestaurantMarkerProps> = ({
   const displayName = name || restaurantName || 'Restaurante';
   
   return (
-    <Marker position={position} icon={restaurantIcon as any}>
+    <Marker position={position} icon={restaurantIcon}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{displayName}</h3>

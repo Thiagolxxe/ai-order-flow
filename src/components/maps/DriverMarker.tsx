@@ -33,7 +33,7 @@ const DriverMarker: React.FC<DriverMarkerProps> = ({
   const displayTime = eta || estimatedTime;
   
   return (
-    <Marker position={position} icon={driverIcon as any}>
+    <Marker position={position} icon={driverIcon}>
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

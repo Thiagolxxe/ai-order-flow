@@ -39,9 +39,7 @@ export interface MongoResponse<T> {
 // Define collection interface
 interface MongoCollection {
   findOne: (query: any) => Promise<MongoResponse<any>>;
-  find: (query: any) => {
-    toArray: () => Promise<MongoResponse<any[]>>;
-  };
+  find: (query: any) => Promise<MongoResponse<any[]>>;
   insertOne: (document: any) => Promise<MongoResponse<{ insertedId: string }>>;
   updateOne: (filter: any, update: any) => Promise<MongoResponse<{ modifiedCount: number }>>;
   deleteOne: (filter: any) => Promise<MongoResponse<{ deletedCount: number }>>;
@@ -80,14 +78,14 @@ export async function connectToDatabase() {
           },
           
           // Find multiple documents
-          find: (query: any) => {
+          find: async (query: any): Promise<MongoResponse<any[]>> => {
             console.log(`MongoDB find on ${collectionName}:`, query);
-            return {
-              toArray: async (): Promise<MongoResponse<any[]>> => {
-                // Return array of mock data based on collection
-                return { data: [getMockDataByCollection(collectionName, query)], error: null };
-              }
-            };
+            // Return array of mock data based on collection
+            const mockItems = [];
+            for (let i = 0; i < 5; i++) {
+              mockItems.push(getMockDataByCollection(collectionName, {...query, _mockIndex: i}));
+            }
+            return { data: mockItems, error: null };
           },
           
           // Insert one document
@@ -265,6 +263,21 @@ function getMockDataByCollection(collectionName: string, query: any): any {
         nome_item_cardapio: 'Pizza Margherita',
         preco_unitario: 15.0,
         preco_total: 15.0
+      };
+    case 'videos':
+      return {
+        _id: new ObjectId().toString(),
+        titulo: 'Video ' + Math.floor(Math.random() * 100),
+        descricao: 'Descrição do vídeo', 
+        video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        thumbnail_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+        restaurante_id: query.restaurante_id || new ObjectId().toString(),
+        restaurante_nome: 'Restaurante Example',
+        preco: 15.99,
+        views: Math.floor(Math.random() * 1000),
+        likes: Math.floor(Math.random() * 100),
+        ativo: true,
+        criado_em: new Date().toISOString()
       };
     default:
       return {

@@ -1,52 +1,50 @@
+
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { Play, Plus, Trash2, Eye, ThumbsUp } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlusCircle, Trash, Edit, Play, Pause, Eye, ThumbsUp } from 'lucide-react';
 import { connectToDatabase } from '@/integrations/mongodb/client';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 import VideoUploadForm from './VideoUploadForm';
 
-interface VideoItem {
-  id: string;
+interface Video {
+  _id: string;
   titulo: string;
   descricao?: string;
   video_url: string;
   thumbnail_url?: string;
-  views: number;
-  likes: number;
-  comentarios: number;
+  views?: number;
+  likes?: number;
   criado_em: string;
+  ativo: boolean;
 }
 
-interface VideoManagementProps {
-  restaurantId: string;
-}
-
-const VideoManagement: React.FC<VideoManagementProps> = ({ restaurantId }) => {
-  const [videos, setVideos] = useState<VideoItem[]>([]);
+const VideoManagement = ({ restaurantId }: { restaurantId: string }) => {
+  const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(null);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const fetchVideos = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
       const { db } = await connectToDatabase();
-      const result = await db.collection('videos')
-        .find({ restaurante_id: restaurantId })
-        .toArray();
+      const result = await db.collection('videos').find({ restaurante_id: restaurantId });
       
-      // Sort by created date (newest first)
-      const sortedVideos = result.sort((a, b) => {
-        return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
-      });
-      
-      setVideos(sortedVideos);
+      if (result.data) {
+        // Sort videos by creation date (newest first)
+        const sortedVideos = [...result.data].sort((a, b) => 
+          new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
+        );
+        setVideos(sortedVideos);
+      } else {
+        setVideos([]);
+      }
     } catch (error) {
-      console.error("Error fetching videos:", error);
-      toast.error("Erro ao carregar vídeos");
+      console.error('Error fetching videos:', error);
+      toast.error('Falha ao carregar vídeos');
     } finally {
       setIsLoading(false);
     }
@@ -56,222 +54,176 @@ const VideoManagement: React.FC<VideoManagementProps> = ({ restaurantId }) => {
     fetchVideos();
   }, [restaurantId]);
 
-  const handleDeleteVideo = async (videoId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este vídeo?")) {
-      return;
-    }
+  const handleVideoUploadSuccess = () => {
+    setShowUploadForm(false);
+    setSelectedVideo(null);
+    fetchVideos();
+    toast.success('Vídeo salvo com sucesso!');
+  };
 
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este vídeo?')) return;
+    
     try {
       const { db } = await connectToDatabase();
-      await db.collection('videos').deleteOne({ id: videoId });
+      await db.collection('videos').updateOne(
+        { _id: videoId },
+        { $set: { ativo: false } }
+      );
       
-      // Remove video from local state
-      setVideos(videos.filter(video => video.id !== videoId));
-      toast.success("Vídeo excluído com sucesso");
+      toast.success('Vídeo excluído com sucesso!');
+      fetchVideos();
     } catch (error) {
-      console.error("Error deleting video:", error);
-      toast.error("Erro ao excluir vídeo");
+      console.error('Error deleting video:', error);
+      toast.error('Falha ao excluir vídeo');
     }
   };
 
-  const handleUploadComplete = () => {
-    setUploadDialogOpen(false);
-    fetchVideos();
+  const handleEditVideo = (video: Video) => {
+    setSelectedVideo(video);
+    setShowUploadForm(true);
   };
 
-  const openVideoPreview = (video: VideoItem) => {
-    setCurrentVideo(video);
+  const toggleVideoPlay = (videoId: string) => {
+    setPlayingVideoId(prev => prev === videoId ? null : videoId);
   };
 
-  const closeVideoPreview = () => {
-    setCurrentVideo(null);
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Vídeos</h2>
+          <Skeleton className="h-9 w-32" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-3/4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full rounded-md" />
+                <div className="mt-2 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-8 w-full" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (showUploadForm) {
+    return (
+      <VideoUploadForm 
+        restaurantId={restaurantId} 
+        onSuccess={handleVideoUploadSuccess}
+        onCancel={() => {
+          setShowUploadForm(false);
+          setSelectedVideo(null);
+        }}
+        videoToEdit={selectedVideo}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gerenciar Vídeos</h2>
-        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Novo Vídeo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Vídeo</DialogTitle>
-            </DialogHeader>
-            <VideoUploadForm 
-              restaurantId={restaurantId} 
-              onUploadComplete={handleUploadComplete}
-            />
-          </DialogContent>
-        </Dialog>
+        <h2 className="text-2xl font-bold">Vídeos</h2>
+        <Button onClick={() => setShowUploadForm(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Adicionar Vídeo
+        </Button>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="popular">Populares</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="mt-4">
-          {isLoading ? (
-            <div className="text-center py-8">Carregando vídeos...</div>
-          ) : videos.length === 0 ? (
-            <div className="text-center py-8 border rounded-lg bg-muted/50">
-              <p className="mb-4 text-muted-foreground">Você ainda não tem vídeos publicados</p>
-              <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Adicionar Vídeo
-              </Button>
+      
+      {videos.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+            <div className="rounded-full bg-primary/10 p-4 mb-4">
+              <Play className="h-6 w-6 text-primary" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videos.map(video => (
-                <div key={video.id} className="border rounded-lg overflow-hidden bg-card">
-                  <div 
-                    className="aspect-[9/16] relative cursor-pointer"
-                    onClick={() => openVideoPreview(video)}
-                  >
-                    {video.thumbnail_url ? (
+            <h3 className="text-lg font-medium mb-2">Sem vídeos publicados</h3>
+            <p className="text-muted-foreground mb-4">
+              Comece a adicionar vídeos de seus pratos para atrair mais clientes!
+            </p>
+            <Button onClick={() => setShowUploadForm(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Adicionar Primeiro Vídeo
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {videos.map(video => (
+            <Card key={video._id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{video.titulo}</CardTitle>
+                {video.descricao && (
+                  <CardDescription className="line-clamp-2">{video.descricao}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative aspect-video bg-black">
+                  {playingVideoId === video._id ? (
+                    <video 
+                      src={video.video_url} 
+                      className="w-full h-full object-contain" 
+                      autoPlay 
+                      controls
+                    />
+                  ) : (
+                    <>
                       <img 
-                        src={video.thumbnail_url} 
-                        alt={video.titulo} 
-                        className="w-full h-full object-cover"
+                        src={video.thumbnail_url || '/placeholder.svg'} 
+                        alt={video.titulo}
+                        className="w-full h-full object-cover" 
                       />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <span className="text-muted-foreground">Sem miniatura</span>
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30"
+                        onClick={() => toggleVideoPlay(video._id)}
+                      >
+                        <div className="bg-white/90 rounded-full p-3">
+                          <Play className="h-6 w-6 text-primary" />
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                      <Play className="h-12 w-12 text-white" />
+                    </>
+                  )}
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <Eye className="h-4 w-4 mr-1" />
+                      <span>{video.views || 0} visualizações</span>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-                      <h3 className="text-white font-medium truncate">{video.titulo}</h3>
+                    <div className="flex items-center">
+                      <ThumbsUp className="h-4 w-4 mr-1" />
+                      <span>{video.likes || 0} curtidas</span>
                     </div>
-                  </div>
-                  <div className="p-3 flex flex-col gap-2">
-                    <div className="flex items-center text-sm text-muted-foreground justify-between">
-                      <div className="flex gap-3">
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" /> {video.views || 0}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <ThumbsUp className="h-4 w-4" /> {video.likes || 0}
-                        </span>
-                      </div>
-                      <span>
-                        {new Date(video.criado_em).toLocaleDateString('pt-BR')}
-                      </span>
+                    <div>
+                      {new Date(video.criado_em).toLocaleDateString()}
                     </div>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleDeleteVideo(video.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" /> Excluir
-                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="popular" className="mt-4">
-          {isLoading ? (
-            <div className="text-center py-8">Carregando vídeos...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videos
-                .sort((a, b) => (b.views + b.likes) - (a.views + a.likes))
-                .slice(0, 6)
-                .map(video => (
-                  <div key={video.id} className="border rounded-lg overflow-hidden bg-card">
-                    <div 
-                      className="aspect-[9/16] relative cursor-pointer"
-                      onClick={() => openVideoPreview(video)}
-                    >
-                      {video.thumbnail_url ? (
-                        <img 
-                          src={video.thumbnail_url} 
-                          alt={video.titulo} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <span className="text-muted-foreground">Sem miniatura</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <Play className="h-12 w-12 text-white" />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-                        <h3 className="text-white font-medium truncate">{video.titulo}</h3>
-                      </div>
-                    </div>
-                    <div className="p-3 flex flex-col gap-2">
-                      <div className="flex items-center text-sm text-muted-foreground justify-between">
-                        <div className="flex gap-3">
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-4 w-4" /> {video.views || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <ThumbsUp className="h-4 w-4" /> {video.likes || 0}
-                          </span>
-                        </div>
-                        <span>
-                          {new Date(video.criado_em).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => handleDeleteVideo(video.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" /> Excluir
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {currentVideo && (
-        <Dialog open={!!currentVideo} onOpenChange={closeVideoPreview}>
-          <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{currentVideo.titulo}</DialogTitle>
-            </DialogHeader>
-            <div className="aspect-[9/16] bg-black rounded-lg overflow-hidden">
-              <video 
-                src={currentVideo.video_url} 
-                controls 
-                autoPlay 
-                className="w-full h-full object-contain"
-              />
-            </div>
-            {currentVideo.descricao && (
-              <p className="text-sm">{currentVideo.descricao}</p>
-            )}
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <div className="flex gap-4">
-                <span className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" /> {currentVideo.views || 0} visualizações
-                </span>
-                <span className="flex items-center gap-1">
-                  <ThumbsUp className="h-4 w-4" /> {currentVideo.likes || 0} curtidas
-                </span>
-              </div>
-              <span>
-                Publicado em {new Date(currentVideo.criado_em).toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+              <CardFooter className="flex justify-between pt-0">
+                <Button variant="outline" size="sm" onClick={() => handleEditVideo(video)}>
+                  <Edit className="h-4 w-4 mr-1" /> Editar
+                </Button>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteVideo(video._id)}>
+                  <Trash className="h-4 w-4 mr-1" /> Excluir
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

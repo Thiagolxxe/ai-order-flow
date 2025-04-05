@@ -14,7 +14,7 @@ class SupabaseAuthMock {
       
       // Check if user already exists
       const existingUser = await db.collection('users').findOne({ email });
-      if (existingUser) {
+      if (existingUser.data) {
         return { 
           error: { message: 'Email já está em uso' },
           data: null
@@ -52,7 +52,7 @@ class SupabaseAuthMock {
       
       // Find user with matching email and password
       const user = await db.collection('users').findOne({ email, password });
-      if (!user) {
+      if (!user.data) {
         return { 
           error: { message: 'Email ou senha inválidos' },
           data: null
@@ -62,7 +62,7 @@ class SupabaseAuthMock {
       // In a real app, you'd create a session
       return {
         data: { 
-          user,
+          user: user.data,
           session: { 
             access_token: 'mock-token', 
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
@@ -195,8 +195,8 @@ class SupabaseClientMock {
       select: async (columns = '*') => {
         try {
           const { db } = await connectToDatabase();
-          const data = await db.collection(table).find({}).toArray();
-          return { data, error: null };
+          const result = await db.collection(table).find({});
+          return { data: result.data, error: null };
         } catch (error: any) {
           console.error(`Error selecting from ${table}:`, error);
           return { data: null, error };
@@ -241,7 +241,7 @@ class SupabaseClientMock {
           );
           
           return {
-            data: { updated: result.modifiedCount },
+            data: { updated: result.data?.modifiedCount || 0 },
             error: null
           };
         } catch (error: any) {
@@ -259,7 +259,7 @@ class SupabaseClientMock {
           const result = await db.collection(table).deleteOne(matchCondition);
           
           return {
-            data: { deleted: result.deletedCount },
+            data: { deleted: result.data?.deletedCount || 0 },
             error: null
           };
         } catch (error: any) {
@@ -274,8 +274,8 @@ class SupabaseClientMock {
           single: async () => {
             try {
               const { db } = await connectToDatabase();
-              const data = await db.collection(table).findOne(matchCondition);
-              return { data, error: null };
+              const result = await db.collection(table).findOne(matchCondition);
+              return { data: result.data, error: null };
             } catch (error: any) {
               console.error(`Error querying ${table}:`, error);
               return { data: null, error };
@@ -285,8 +285,8 @@ class SupabaseClientMock {
           select: async (columns = '*') => {
             try {
               const { db } = await connectToDatabase();
-              const data = await db.collection(table).find(matchCondition).toArray();
-              return { data, error: null };
+              const result = await db.collection(table).find(matchCondition);
+              return { data: result.data, error: null };
             } catch (error: any) {
               console.error(`Error querying ${table}:`, error);
               return { data: null, error };
@@ -302,7 +302,7 @@ class SupabaseClientMock {
               );
               
               return {
-                data: { updated: result.modifiedCount },
+                data: { updated: result.data?.modifiedCount || 0 },
                 error: null
               };
             } catch (error: any) {
@@ -317,7 +317,7 @@ class SupabaseClientMock {
               const result = await db.collection(table).deleteOne(matchCondition);
               
               return {
-                data: { deleted: result.deletedCount },
+                data: { deleted: result.data?.deletedCount || 0 },
                 error: null
               };
             } catch (error: any) {

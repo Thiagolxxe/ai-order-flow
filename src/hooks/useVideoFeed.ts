@@ -36,14 +36,12 @@ export const useVideoFeed = () => {
       try {
         setIsLoading(true);
         const { db } = await connectToDatabase();
-        const results = await db.collection('videos')
-          .find({ ativo: true })
-          .toArray();
+        const results = await db.collection('videos').find({ ativo: true });
         
-        if (results && results.length > 0) {
+        if (results.data && results.data.length > 0) {
           // Map database video format to app video format
-          const mappedVideos: Video[] = results.map(video => ({
-            id: video.id,
+          const mappedVideos: Video[] = results.data.map(video => ({
+            id: video._id,
             restaurantId: video.restaurante_id,
             restaurantName: video.restaurante_nome || "Restaurante",
             dishName: video.titulo,
