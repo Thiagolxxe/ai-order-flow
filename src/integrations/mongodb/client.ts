@@ -1,13 +1,35 @@
 
-// MongoDB client simplified for browser-side usage
-import { ObjectId as MongoObjectId } from 'mongodb';
+// Mock implementation of MongoDB client for browser-side usage
+// This avoids Node.js-specific dependencies like 'events' and 'crypto'
 
-// Re-export ObjectId for use in the app
-export const ObjectId = MongoObjectId;
+// Simple ObjectId implementation for browser
+export class ObjectId {
+  id: string;
+  
+  constructor(id?: string) {
+    this.id = id || this._generateId();
+  }
+  
+  toString() {
+    return this.id;
+  }
+  
+  // Simple ID generator for browser context
+  private _generateId() {
+    return 'id_' + Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
+  }
+  
+  // Check if a string is a valid ObjectId
+  static isValid(id?: string): boolean {
+    if (!id) return false;
+    return typeof id === 'string' && id.length > 0;
+  }
+}
 
 // Connection status tracking
 let connectionStatus = {
-  status: 'disconnected', // 'disconnected', 'connecting', 'connected'
+  status: 'disconnected' as 'disconnected' | 'connecting' | 'connected',
   error: null as Error | null
 };
 
