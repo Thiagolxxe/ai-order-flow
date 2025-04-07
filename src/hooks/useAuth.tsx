@@ -1,5 +1,5 @@
 
-import { useUser } from '@/context/UserContext';
+import { useUser } from '@/hooks/useUser';
 
 export const useAuth = () => {
   const { user, isAuthenticated, signOut } = useUser();

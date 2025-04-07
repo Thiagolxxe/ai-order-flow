@@ -1,148 +1,150 @@
 
-// MongoDB client integration
+// MongoDB client simplified for browser-side usage
+import { ObjectId as MongoObjectId } from 'mongodb';
 
+// Re-export ObjectId for use in the app
+export const ObjectId = MongoObjectId;
+
+// Connection status tracking
+let connectionStatus = {
+  status: 'disconnected', // 'disconnected', 'connecting', 'connected'
+  error: null as Error | null
+};
+
+export function getConnectionStatus() {
+  return connectionStatus;
+}
+
+export function isConnected() {
+  return connectionStatus.status === 'connected';
+}
+
+// Interface for MongoDB responses
 export interface MongoResponse<T> {
-  data: T | null;
-  error?: {
-    message: string;
-    code?: number;
+  data: T;
+  count?: number;
+  toArray?: () => T;
+}
+
+// Interface for the MongoDB client
+interface MongoClient {
+  db: {
+    collection: (collectionName: string) => {
+      find: (query?: any) => Promise<MongoResponse<any[]>>;
+      findOne: (query?: any) => Promise<{ data: any; error?: any }>;
+      insertOne: (document: any) => Promise<{ data: any; error?: any }>;
+      updateOne: (query: any, update: any) => Promise<{ data: any; error?: any }>;
+      deleteOne: (query: any) => Promise<{ data: any; error?: any }>;
+      createIndex?: (keys: any, options?: any) => Promise<string>;
+      listCollections?: () => Promise<MongoResponse<any[]>>;
+      toArray?: () => Promise<any[]>;
+    };
+    listCollections?: () => Promise<MongoResponse<any[]>>;
+    createCollection?: (name: string, options?: any) => Promise<{ data: any }>;
   };
 }
 
-export async function connectToDatabase() {
-  // This function would normally connect to a MongoDB instance
-  // For now, we'll implement a mock version that simulates MongoDB behavior
-  
-  return {
-    db: {
-      collection: (collectionName: string) => {
-        return {
-          find: async (query: any = {}) => {
-            console.log(`MongoDB: Finding documents in ${collectionName} with query:`, query);
-            // Mock implementation that returns an array of items
-            const mockData = getMockData(collectionName, query);
+// Simulated MongoDB client for browser development
+let mongoClient: MongoClient | null = null;
+
+// Connect to MongoDB
+export async function connectToDatabase(): Promise<{ db: any }> {
+  try {
+    console.log('Connecting to MongoDB...');
+    connectionStatus = { status: 'connecting', error: null };
+    
+    // In a real app, we would connect to a real MongoDB instance
+    // For this example, we're simulating the connection
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    mongoClient = {
+      db: {
+        collection: (collectionName: string) => ({
+          find: async (query = {}) => {
+            console.log(`Finding documents in ${collectionName} with query:`, query);
+            // Simulate database query
+            await new Promise(resolve => setTimeout(resolve, 200));
             
-            // Custom implementation with toArray method
-            const result: Promise<MongoResponse<any[]>> = Promise.resolve({
-              data: mockData
-            });
+            // Mock data with toArray method
+            const response = {
+              data: [],
+              count: 0,
+              toArray: function() { return this.data; }
+            };
             
-            // Add toArray method to the Promise
-            Object.defineProperty(result, 'toArray', {
-              value: () => Promise.resolve(mockData),
-              enumerable: false,
-              configurable: true
-            });
-            
-            return result;
+            return response;
           },
-          findOne: async (query: any = {}) => {
-            console.log(`MongoDB: Finding one document in ${collectionName} with query:`, query);
-            // Mock implementation that returns a single item
-            const mockData = getMockData(collectionName, query);
-            return {
-              data: mockData && mockData.length > 0 ? mockData[0] : null
-            };
+          findOne: async (query = {}) => {
+            console.log(`Finding one document in ${collectionName} with query:`, query);
+            // Simulate database query
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return { data: null };
           },
-          insertOne: async (document: any) => {
-            console.log(`MongoDB: Inserting document into ${collectionName}:`, document);
-            // Mock successful insert
-            return {
-              data: { 
-                insertedId: crypto.randomUUID(),
-                ...document
-              }
-            };
+          insertOne: async (document) => {
+            console.log(`Inserting document into ${collectionName}:`, document);
+            // Simulate database insertion
+            await new Promise(resolve => setTimeout(resolve, 150));
+            return { data: { insertedId: new ObjectId() } };
           },
-          updateOne: async (query: any, update: any) => {
-            console.log(`MongoDB: Updating document in ${collectionName} with query:`, query);
-            console.log(`MongoDB: Update operation:`, update);
-            // Mock successful update
-            return {
-              data: { 
-                matchedCount: 1,
-                modifiedCount: 1,
-                ...update.$set
-              }
-            };
+          updateOne: async (query, update) => {
+            console.log(`Updating document in ${collectionName}:`, { query, update });
+            // Simulate database update
+            await new Promise(resolve => setTimeout(resolve, 150));
+            return { data: { modifiedCount: 1 } };
           },
-          deleteOne: async (query: any) => {
-            console.log(`MongoDB: Deleting document from ${collectionName} with query:`, query);
-            // Mock successful delete
-            return {
-              data: { 
-                deletedCount: 1
-              }
-            };
+          deleteOne: async (query) => {
+            console.log(`Deleting document from ${collectionName} with query:`, query);
+            // Simulate database deletion
+            await new Promise(resolve => setTimeout(resolve, 150));
+            return { data: { deletedCount: 1 } };
+          },
+          createIndex: async (keys, options) => {
+            console.log(`Creating index in ${collectionName}:`, { keys, options });
+            return 'index-name';
+          },
+          toArray: async () => {
+            return [];
           }
-        };
+        }),
+        listCollections: async () => {
+          return {
+            data: [],
+            toArray: () => []
+          };
+        },
+        createCollection: async (name, options) => {
+          console.log(`Creating collection ${name}:`, options);
+          return { data: { name } };
+        }
       }
-    }
-  };
+    };
+    
+    connectionStatus = { status: 'connected', error: null };
+    console.log('Connected to MongoDB successfully');
+    
+    return { db: mongoClient.db };
+  } catch (error) {
+    const err = error as Error;
+    console.error('Failed to connect to MongoDB:', err);
+    connectionStatus = { status: 'disconnected', error: err };
+    throw err;
+  }
 }
 
-// Helper function to generate mock data based on collection name
-function getMockData(collectionName: string, query: any): any[] {
-  switch (collectionName) {
-    case 'restaurants':
-      return [
-        {
-          _id: '1',
-          nome: 'Restaurante Italiano',
-          descricao: 'O melhor da culinária italiana',
-          tipo_cozinha: 'Italiana',
-          endereco: 'Rua da Itália, 123',
-          cidade: 'São Paulo',
-          estado: 'SP',
-          proprietario_id: query.proprietario_id || 'user123',
-          banner_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop'
-        }
-      ];
-    case 'orders':
-      return [
-        {
-          _id: '1',
-          numero_pedido: 'ORD12345',
-          status: 'preparando',
-          cliente_id: query.cliente_id || 'user123',
-          restaurante_id: '1',
-          endereco_entrega: 'Rua dos Clientes, 456, São Paulo, SP',
-          total: 75.90
-        }
-      ];
-    case 'videos':
-      return [
-        {
-          _id: '1',
-          titulo: 'Preparando nossa pizza especial',
-          descricao: 'Veja como preparamos nossa pizza mais pedida',
-          video_url: 'https://example.com/video1.mp4',
-          thumbnail_url: 'https://example.com/thumbnail1.jpg',
-          restaurante_id: query.restaurante_id || '1',
-          views: 120,
-          likes: 45
-        }
-      ];
-    case 'users':
-    case 'profiles':
-      return [
-        {
-          _id: '1',
-          id: query.id || 'user123',
-          nome: 'João Silva',
-          email: 'joao@exemplo.com',
-          telefone: '(11) 98765-4321'
-        }
-      ];
-    case 'funcoes_usuario':
-      return [
-        {
-          _id: '1',
-          usuario_id: query.usuario_id || 'user123',
-          role_name: 'cliente'
-        }
-      ];
-    default:
-      return [];
+// Get database instance (creating connection if needed)
+export async function getDb() {
+  if (!mongoClient) {
+    await connectToDatabase();
   }
+  return mongoClient?.db;
+}
+
+// Add toArray method to promises that don't have it
+export function extendWithToArray<T>(promise: Promise<MongoResponse<T[]>>): Promise<MongoResponse<T[]> & { toArray: () => Promise<T[]> }> {
+  return promise.then(result => {
+    if (!result.toArray) {
+      (result as any).toArray = () => Promise.resolve(result.data);
+    }
+    return result as MongoResponse<T[]> & { toArray: () => Promise<T[]> };
+  });
 }

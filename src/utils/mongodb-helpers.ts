@@ -77,7 +77,7 @@ export function normalizeMongoData<T>(data: any): T {
   }
   
   // Se for um objeto
-  if (typeof data === 'object') {
+  if (typeof obj === 'object') {
     const result: any = { ...data };
     
     // Renomear _id para id se existir
@@ -91,4 +91,28 @@ export function normalizeMongoData<T>(data: any): T {
   }
   
   return data as T;
+}
+
+/**
+ * Helper function to handle MongoDB array results
+ */
+export function handleMongoArrayResponse<T>(response: any): T[] {
+  if (!response) return [];
+  
+  // If response has toArray method, use it
+  if (typeof response.toArray === 'function') {
+    return normalizeMongoData<T[]>(response.toArray());
+  }
+  
+  // If response has data property
+  if (response.data) {
+    return normalizeMongoData<T[]>(response.data);
+  }
+  
+  // If response is already an array
+  if (Array.isArray(response)) {
+    return normalizeMongoData<T[]>(response);
+  }
+  
+  return [];
 }

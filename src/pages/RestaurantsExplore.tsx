@@ -1,7 +1,6 @@
 
 import React from 'react';
 import RestaurantList from '@/components/restaurants/RestaurantList';
-import { Button } from '@/components/ui/button';
 
 const RestaurantsExplore = () => {
   return (

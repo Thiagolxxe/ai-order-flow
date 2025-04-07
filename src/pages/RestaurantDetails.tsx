@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const RestaurantDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { restaurant, isLoading, error } = useRestaurantDetails(id);
+  const { restaurant, isLoading, error } = useRestaurantDetails(id || '');
 
   if (isLoading) {
     return (
@@ -64,7 +64,7 @@ const RestaurantDetails = () => {
                 <li><span className="font-medium">Tipo de cozinha:</span> {restaurant.tipo_cozinha}</li>
                 <li><span className="font-medium">Endereço:</span> {restaurant.endereco}</li>
                 <li><span className="font-medium">Cidade/Estado:</span> {restaurant.cidade}/{restaurant.estado}</li>
-                <li><span className="font-medium">Avaliação:</span> {restaurant.avaliacao}/5</li>
+                <li><span className="font-medium">Avaliação:</span> {restaurant.avaliacao || 0}/5</li>
               </ul>
             </div>
             
