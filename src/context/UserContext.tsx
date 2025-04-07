@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabaseClient } from '@/integrations/supabase/client';
@@ -29,15 +28,7 @@ interface UserContextProps {
   updateUserData?: (data: Partial<User>) => void;
 }
 
-const UserContext = createContext<UserContextProps | undefined>(undefined);
-
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};
+export const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

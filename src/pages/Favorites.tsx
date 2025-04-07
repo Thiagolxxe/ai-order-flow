@@ -1,99 +1,127 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
-import { connectToDatabase } from '@/integrations/mongodb/client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, HeartOff } from 'lucide-react';
-import { useUser } from '@/hooks/useUser';
-import RestaurantCard from '@/components/restaurants/RestaurantCard';
-import { handleMongoArrayResponse } from '@/utils/mongodb-helpers';
 
-interface FavoriteRestaurant {
-  id: string;
-  restaurantId: string;
-  userId: string;
-  restaurantName: string;
-  restaurantLogo: string;
-}
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/useUser';
+import { RestaurantCard } from '@/components/restaurants/RestaurantCard';
+import { Loader } from 'lucide-react';
 
 const Favorites = () => {
-  const [favoriteRestaurants, setFavoriteRestaurants] = useState<FavoriteRestaurant[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useUser();
-  
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const loadFavorites = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      
+    // Simulated API call to get favorites
+    const fetchFavorites = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const { db } = await connectToDatabase();
+        // In a real app, this would be a call to your API
+        // const response = await apiService.getFavorites(user.id);
         
-        // Fetch user's favorite restaurants from MongoDB
-        const favorites = await db.collection('favoritos').find({ usuario_id: user.id }).toArray();
-        const formattedFavorites = handleMongoArrayResponse<FavoriteRestaurant>(favorites);
-        
-        setFavoriteRestaurants(formattedFavorites);
+        // For now, we'll use mock data
+        setTimeout(() => {
+          setFavorites([
+            {
+              id: '1',
+              name: 'Burguer King',
+              image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1800&q=80',
+              rating: 4.5,
+              deliveryTime: '30-45',
+              minimumOrder: 15,
+              deliveryFee: 5,
+              cuisineType: 'Fast Food',
+              address: 'Av. Paulista, 1000'
+            },
+            {
+              id: '2',
+              name: 'Sushi Yassu',
+              image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1800&q=80',
+              rating: 4.8,
+              deliveryTime: '45-60',
+              minimumOrder: 50,
+              deliveryFee: 8,
+              cuisineType: 'Japonesa',
+              address: 'Rua Augusta, 500'
+            },
+            {
+              id: '3',
+              name: 'Pizza Hut',
+              image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1800&q=80',
+              rating: 4.2,
+              deliveryTime: '30-40',
+              minimumOrder: 30,
+              deliveryFee: 6,
+              cuisineType: 'Italiana',
+              address: 'Av. Rebouças, 1200'
+            }
+          ]);
+          setLoading(false);
+        }, 1000);
       } catch (error) {
-        console.error('Erro ao carregar favoritos:', error);
-      } finally {
+        console.error('Error fetching favorites:', error);
         setLoading(false);
       }
     };
-    
-    loadFavorites();
+
+    if (user) {
+      fetchFavorites();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
-  
+
   if (loading) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card>
-          <CardContent className="p-6">
-            <Skeleton className="h-12 w-3/4 mb-4" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4" />
-          </CardContent>
-        </Card>
+        <h1 className="text-2xl font-bold mb-6">Seus Favoritos</h1>
+        <div className="flex justify-center items-center h-60">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
-  
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold mb-6">Seus Favoritos</h1>
+        <div className="bg-muted p-8 rounded-lg text-center">
+          <h2 className="text-xl font-semibold mb-2">Faça login para ver seus favoritos</h2>
+          <p className="text-muted-foreground mb-4">
+            Você precisa estar logado para salvar e visualizar seus restaurantes favoritos.
+          </p>
+          <a href="/login" className="text-primary underline">
+            Fazer login
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (favorites.length === 0) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold mb-6">Seus Favoritos</h1>
+        <div className="bg-muted p-8 rounded-lg text-center">
+          <h2 className="text-xl font-semibold mb-2">Nenhum favorito ainda</h2>
+          <p className="text-muted-foreground mb-4">
+            Você ainda não adicionou nenhum restaurante aos seus favoritos.
+          </p>
+          <a href="/restaurants" className="text-primary underline">
+            Explorar restaurantes
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Meus Restaurantes Favoritos</h1>
-      
-      {favoriteRestaurants.length === 0 ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <HeartOff className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-medium">Nenhum restaurante favorito encontrado</h3>
-              <p className="text-muted-foreground">Adicione restaurantes aos seus favoritos para vê-los aqui.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favoriteRestaurants.map(fav => (
-            <RestaurantCard
-              key={fav.id}
-              id={fav.restaurantId}
-              name={fav.restaurantName}
-              image={fav.restaurantLogo}
-              cuisine="Variada" // You might want to fetch the cuisine from the restaurant data
-              rating={4.2 + Math.random() * 0.8}
-              deliveryTime="30-40 min"
-              minOrder="R$25,00"
-              featured={Math.random() > 0.5}
-              isNew={false}
-            />
-          ))}
-        </div>
-      )}
+      <h1 className="text-2xl font-bold mb-6">Seus Favoritos</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {favorites.map((restaurant: any) => (
+          <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+        ))}
+      </div>
     </div>
   );
 };

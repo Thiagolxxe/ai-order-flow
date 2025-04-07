@@ -109,13 +109,13 @@ function App() {
                   <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
                   <Route path="/delivery/profile" element={<DeliveryProfile />} />
                   
-                  {/* Portuguese Route Redirects - Fixed */}
+                  {/* Portuguese Route Redirects */}
                   <Route path="/restaurantes" element={<Navigate to="/restaurants" replace />} />
-                  <Route path="/restaurante/:id" element={<Navigate to="/restaurant/:id" replace />} />
+                  <Route path="/restaurante/:id" element={<Navigate to={pathname => `/restaurant/${pathname.params.id}`} replace />} />
                   <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
                   <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
                   <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
-                  <Route path="/pedido/:id" element={<Navigate to="/order/:id" replace />} />
+                  <Route path="/pedido/:id" element={<Navigate to={pathname => `/order/${pathname.params.id}`} replace />} />
                   <Route path="/perfil" element={<Navigate to="/profile" replace />} />
                   <Route path="/carrinho" element={<Navigate to="/cart" replace />} />
                   <Route path="/finalizar" element={<Navigate to="/checkout" replace />} />
@@ -125,7 +125,7 @@ function App() {
                   <Route path="/notificacoes" element={<Navigate to="/notifications" replace />} />
                   <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
                   <Route path="/ajuda" element={<Navigate to="/help" replace />} />
-                  <Route path="/entrega/:id" element={<Navigate to="/tracking/:id" replace />} />
+                  <Route path="/entrega/:id" element={<Navigate to={pathname => `/tracking/${pathname.params.id}`} replace />} />
                   <Route path="/entregador/cadastro" element={<Navigate to="/delivery/signup" replace />} />
                   <Route path="/entregador/painel" element={<Navigate to="/delivery/dashboard" replace />} />
                   <Route path="/entregador/perfil" element={<Navigate to="/delivery/profile" replace />} />

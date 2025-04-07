@@ -8,8 +8,28 @@ const NavLinks = () => {
   const location = useLocation();
   
   const isActive = (path: string) => {
-    return location.pathname === path ||
-           (path !== '/' && location.pathname.startsWith(path));
+    // Check if current path is the same as the given path
+    if (location.pathname === path) {
+      return true;
+    }
+    
+    // Check for portuguese route equivalents
+    const portugueseMap: Record<string, string> = {
+      '/restaurants': '/restaurantes',
+      '/profile': '/perfil',
+      '/video-feed': '/videos',
+      '/promotions': '/promocoes',
+      '/orders': '/pedidos',
+      '/restaurant-signup': '/restaurante/cadastro'
+    };
+    
+    // If current path is a portuguese equivalent
+    if (portugueseMap[path] === location.pathname) {
+      return true;
+    }
+    
+    // Check if path is a prefix (except for root path)
+    return path !== '/' && location.pathname.startsWith(path);
   };
   
   const linkClasses = (path: string) => cn(
