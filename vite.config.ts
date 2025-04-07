@@ -32,5 +32,6 @@ export default defineConfig(({ mode }) => ({
   // Add Node.js polyfills for browser environment
   define: {
     'process.env': {},
+    global: 'window',
   },
 }));

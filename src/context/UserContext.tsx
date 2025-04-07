@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabaseClient } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -45,6 +46,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
     const loadSession = async () => {
@@ -75,6 +77,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Erro ao verificar função do usuário:', error);
           }
         }
+      } catch (error) {
+        console.error('Error loading session:', error);
       } finally {
         setIsLoading(false);
       }
@@ -115,7 +119,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       authListener?.subscription?.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
   
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
