@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { useUser } from '@/hooks/useUser';
-import { RestaurantCard } from '@/components/restaurants/RestaurantCard';
+import { useUser } from '@/context/UserContext';
+import RestaurantCard from '@/components/restaurants/RestaurantCard';
 import { Loader } from 'lucide-react';
 
 const Favorites = () => {

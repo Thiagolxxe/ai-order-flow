@@ -30,6 +30,15 @@ interface UserContextProps {
 
 export const UserContext = createContext<UserContextProps | undefined>(undefined);
 
+// Export the useUser hook directly from this file
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+};
+
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<{ access_token: string } | null>(null);

@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ui/theme-provider';
@@ -42,6 +42,13 @@ import DeliveryDashboard from '@/pages/delivery/DeliveryDashboard';
 import DeliveryProfile from '@/pages/delivery/DeliveryProfile';
 
 import './App.css';
+
+// Helper component for redirects with params
+const RedirectWithParams = ({ path }: { path: string }) => {
+  const params = useParams();
+  const targetPath = path.replace(':id', params.id || '');
+  return <Navigate to={targetPath} replace />;
+};
 
 // Initialize React Query client
 const queryClient = new QueryClient({
@@ -111,11 +118,11 @@ function App() {
                   
                   {/* Portuguese Route Redirects */}
                   <Route path="/restaurantes" element={<Navigate to="/restaurants" replace />} />
-                  <Route path="/restaurante/:id" element={<Navigate to={pathname => `/restaurant/${pathname.params.id}`} replace />} />
+                  <Route path="/restaurante/:id" element={<Navigate to={(params) => `/restaurant/${params.id}`} replace />} />
                   <Route path="/videos" element={<Navigate to="/video-feed" replace />} />
                   <Route path="/promocoes" element={<Navigate to="/promotions" replace />} />
                   <Route path="/pedidos" element={<Navigate to="/orders" replace />} />
-                  <Route path="/pedido/:id" element={<Navigate to={pathname => `/order/${pathname.params.id}`} replace />} />
+                  <Route path="/pedido/:id" element={<Navigate to={(params) => `/order/${params.id}`} replace />} />
                   <Route path="/perfil" element={<Navigate to="/profile" replace />} />
                   <Route path="/carrinho" element={<Navigate to="/cart" replace />} />
                   <Route path="/finalizar" element={<Navigate to="/checkout" replace />} />
@@ -125,7 +132,7 @@ function App() {
                   <Route path="/notificacoes" element={<Navigate to="/notifications" replace />} />
                   <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
                   <Route path="/ajuda" element={<Navigate to="/help" replace />} />
-                  <Route path="/entrega/:id" element={<Navigate to={pathname => `/tracking/${pathname.params.id}`} replace />} />
+                  <Route path="/entrega/:id" element={<Navigate to={(params) => `/tracking/${params.id}`} replace />} />
                   <Route path="/entregador/cadastro" element={<Navigate to="/delivery/signup" replace />} />
                   <Route path="/entregador/painel" element={<Navigate to="/delivery/dashboard" replace />} />
                   <Route path="/entregador/perfil" element={<Navigate to="/delivery/profile" replace />} />

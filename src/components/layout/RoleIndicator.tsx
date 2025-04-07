@@ -8,12 +8,11 @@ import {
 } from '@/assets/icons';
 
 interface RoleIndicatorProps {
-  userRole: string | null;
-  isAuthenticated: boolean;
+  role: string;
 }
 
-const RoleIndicator = ({ userRole, isAuthenticated }: RoleIndicatorProps) => {
-  if (!isAuthenticated) return null;
+const RoleIndicator = ({ role }: RoleIndicatorProps) => {
+  if (!role) return null;
   
   const roleIcons = {
     cliente: <UserIcon className="w-4 h-4" />,
@@ -33,15 +32,15 @@ const RoleIndicator = ({ userRole, isAuthenticated }: RoleIndicatorProps) => {
     entregador: 'bg-orange-100 text-orange-700',
   };
   
-  if (!userRole || !(userRole in roleColors)) return null;
+  if (!(role in roleColors)) return null;
   
   return (
     <div className={cn(
       'px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5',
-      roleColors[userRole as keyof typeof roleColors]
+      roleColors[role as keyof typeof roleColors]
     )}>
-      {roleIcons[userRole as keyof typeof roleIcons]}
-      <span className="capitalize">{roleLabels[userRole as keyof typeof roleLabels]}</span>
+      {roleIcons[role as keyof typeof roleIcons]}
+      <span className="capitalize">{roleLabels[role as keyof typeof roleLabels]}</span>
     </div>
   );
 };
