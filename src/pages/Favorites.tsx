@@ -4,9 +4,21 @@ import { useUser } from '@/context/UserContext';
 import RestaurantCard from '@/components/restaurants/RestaurantCard';
 import { Loader } from 'lucide-react';
 
+interface RestaurantData {
+  id: string;
+  name: string;
+  image: string;
+  rating: number;
+  deliveryTime: string;
+  minimumOrder: number;
+  deliveryFee: number;
+  cuisineType: string;
+  address: string;
+}
+
 const Favorites = () => {
   const { user } = useUser();
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState<RestaurantData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -118,8 +130,17 @@ const Favorites = () => {
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Seus Favoritos</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {favorites.map((restaurant: any) => (
-          <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+        {favorites.map((restaurant) => (
+          <RestaurantCard 
+            key={restaurant.id} 
+            id={restaurant.id}
+            name={restaurant.name}
+            image={restaurant.image}
+            cuisine={restaurant.cuisineType}
+            rating={restaurant.rating}
+            deliveryTime={restaurant.deliveryTime}
+            minOrder={`R$ ${restaurant.minimumOrder}`}
+          />
         ))}
       </div>
     </div>

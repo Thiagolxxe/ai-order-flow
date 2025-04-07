@@ -18,6 +18,7 @@ interface Video {
   likes?: number;
   criado_em: string;
   ativo: boolean;
+  restaurante_id: string; // Added this field to match the required interface
 }
 
 const VideoManagement = ({ restaurantId }: { restaurantId: string }) => {
@@ -128,7 +129,14 @@ const VideoManagement = ({ restaurantId }: { restaurantId: string }) => {
           setShowUploadForm(false);
           setSelectedVideo(null);
         }}
-        videoToEdit={selectedVideo}
+        videoToEdit={selectedVideo ? {
+          id: selectedVideo._id,
+          titulo: selectedVideo.titulo,
+          descricao: selectedVideo.descricao || '',
+          video_url: selectedVideo.video_url,
+          thumbnail_url: selectedVideo.thumbnail_url,
+          restaurante_id: selectedVideo.restaurante_id
+        } : undefined}
       />
     );
   }
