@@ -1,11 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import RestaurantCard from './RestaurantCard';
 import { cn } from '@/lib/utils';
 import { SearchIcon, RestaurantIcon } from '@/assets/icons';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseClient } from '@/integrations/supabase/client'; // Fixed import
 import { toast } from 'sonner';
+
+// Filter categories
+const cuisineFilters = [
+  'Todos',
+  'Americana',
+  'Japonesa',
+  'Italiana',
+  'Mexicana',
+  'Saudável',
+  'Indiana'
+];
 
 interface Restaurant {
   id: string;
@@ -20,17 +30,6 @@ interface Restaurant {
   featured?: boolean;
   isNew?: boolean;
 }
-
-// Filter categories
-const cuisineFilters = [
-  'Todos',
-  'Americana',
-  'Japonesa',
-  'Italiana',
-  'Mexicana',
-  'Saudável',
-  'Indiana'
-];
 
 interface RestaurantListProps {
   title?: string;
@@ -62,10 +61,9 @@ const RestaurantList = ({
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('restaurantes')
-          .select('*')
-          .toArray();
+          .select('*');
         
         if (error) {
           throw error;
@@ -153,14 +151,15 @@ const RestaurantList = ({
     .slice(0, maxItems);
   
   return (
+    
     <div className={cn('', className)}>
-      {/* Cabeçalho */}
+      {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">{title}</h2>
         {subtitle && <p className="text-foreground/70 mt-1">{subtitle}</p>}
       </div>
       
-      {/* Filtros e pesquisa */}
+      {/* Filters and search */}
       {(showFilters || showSearch) && (
         <div className="mb-6 flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0">
           {/* Filtros de culinária */}
@@ -199,7 +198,7 @@ const RestaurantList = ({
         </div>
       )}
       
-      {/* Grade de restaurantes */}
+      {/* Restaurant grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((_, index) => (
@@ -215,7 +214,7 @@ const RestaurantList = ({
               name={restaurant.nome}
               image={restaurant.logo_url}
               cuisine={restaurant.tipo_cozinha}
-              rating={4.5 + Math.random() * 0.5} // Exemplo: rating aleatório entre 4.5 e 5.0
+              rating={4.5 + Math.random() * 0.5} // Example: random rating between 4.5 and 5.0
               deliveryTime={`${restaurant.tempo_entrega_estimado-10}-${restaurant.tempo_entrega_estimado} min`}
               minOrder={`R$${restaurant.valor_pedido_minimo.toFixed(2).replace('.', ',')}`}
               featured={restaurant.featured}

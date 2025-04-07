@@ -1,186 +1,224 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Mail, LockKeyhole, User, ArrowRight } from 'lucide-react';
-import { useUser } from '@/context/UserContext';
+import { useUser } from '@/hooks/useUser';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const formSchema = z.object({
+  firstName: z.string().min(2, {
+    message: 'O nome deve ter pelo menos 2 caracteres.',
+  }),
+  lastName: z.string().min(2, {
+    message: 'O sobrenome deve ter pelo menos 2 caracteres.',
+  }),
+  email: z.string().email({
+    message: 'Por favor, insira um email válido.',
+  }),
+  password: z.string().min(8, {
+    message: 'A senha deve ter pelo menos 8 caracteres.',
+  }),
+  passwordConfirm: z.string().min(8, {
+    message: 'A senha deve ter pelo menos 8 caracteres.',
+  }),
+  terms: z.boolean().refine((value) => value === true, {
+    message: 'Você deve aceitar os termos e condições.',
+  }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 const Register = () => {
+  const { signUp } = useUser();
   const navigate = useNavigate();
-  const { signUp, isAuthenticated } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      passwordConfirm: '',
+      terms: false,
+    },
   });
 
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    // Basic validation
-    if (!formData.email || !formData.password || !formData.name) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
+  const onSubmit = async (data: FormValues) => {
+    if (data.password !== data.passwordConfirm) {
       toast.error('As senhas não coincidem');
-      setIsLoading(false);
       return;
     }
-
+    
+    setIsLoading(true);
+    
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        name: formData.name
-      });
-
+      // Properly format the credentials for signup
+      const credentials = {
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            nome: data.firstName,
+            sobrenome: data.lastName
+          }
+        }
+      };
+      
+      const { error } = await signUp(credentials);
+      
       if (error) {
-        throw new Error(error.message);
+        toast.error(error.message || 'Erro ao criar conta');
+      } else {
+        toast.success('Conta criada com sucesso!');
+        navigate('/');
       }
-
-      toast.success('Conta criada com sucesso!');
-      navigate('/');
     } catch (error: any) {
-      console.error('Error creating account:', error);
       toast.error(error.message || 'Erro ao criar conta');
     } finally {
       setIsLoading(false);
     }
   };
 
+  
   return (
-    <div className="container relative flex h-[100dvh] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <Link
-        to="/login"
-        className="absolute left-4 top-4 md:left-8 md:top-8 text-secondary hover:underline"
-      >
-        Voltar para login
-      </Link>
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-foreground lg:flex">
-        <div className="absolute inset-0 bg-zinc-900/20" />
-        <Link
-          to="/"
-          className="absolute left-4 top-4 md:left-8 md:top-8 text-lg font-bold"
-        >
-          DeliveryApp
-        </Link>
-        <div className="relative mt-20">
-          <div className="mb-4 flex items-center justify-center">
-            <User className="mr-2 h-4 w-4" />
-            Cadastro de novos usuários
-          </div>
-          <h1 className="text-2xl font-semibold">
-            Bem-vindo ao nosso sistema de entregas!
-          </h1>
-          <p className="mt-2 text-default">
-            Crie sua conta e aproveite os melhores restaurantes da cidade.
-          </p>
-        </div>
-      </div>
-      <div className="lg:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <Card>
-            <CardHeader className="space-y-0">
-              <CardTitle>Criar uma conta</CardTitle>
-              <CardDescription>
-                Entre com seu email abaixo para criar sua conta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nome completo</Label>
-                <div className="relative">
-                  <User className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
-                  <Input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Digite seu nome completo"
-                    className="pl-10"
-                    onChange={handleChange}
-                  />
-                </div>
+    
+    <div className="container mx-auto max-w-md py-8">
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Criar uma conta</CardTitle>
+          {/* <CardDescription>
+            Insira seu email abaixo para criar sua conta
+          </CardDescription> */}
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid gap-2">
+              {/* First Name */}
+              <div className="grid gap-1">
+                {/* <Label htmlFor="firstName">Nome</Label> */}
+                <Input
+                  id="firstName"
+                  placeholder="Nome"
+                  type="text"
+                  disabled={isLoading}
+                  {...register('firstName')}
+                />
+                {errors.firstName && (
+                  <p className="text-sm text-red-500">{errors.firstName.message}</p>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="pl-10"
-                    onChange={handleChange}
-                  />
-                </div>
+              
+              {/* Last Name */}
+              <div className="grid gap-1">
+                {/* <Label htmlFor="lastName">Sobrenome</Label> */}
+                <Input
+                  id="lastName"
+                  placeholder="Sobrenome"
+                  type="text"
+                  disabled={isLoading}
+                  {...register('lastName')}
+                />
+                {errors.lastName && (
+                  <p className="text-sm text-red-500">{errors.lastName.message}</p>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <LockKeyhole className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
-                  <Input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Senha"
-                    className="pl-10"
-                    onChange={handleChange}
-                  />
-                </div>
+              
+              {/* Email */}
+              <div className="grid gap-1">
+                {/* <Label htmlFor="email">Email</Label> */}
+                <Input
+                  id="email"
+                  placeholder="seu-email@exemplo.com"
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                <div className="relative">
-                  <LockKeyhole className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
-                  <Input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    placeholder="Confirmar senha"
-                    className="pl-10"
-                    onChange={handleChange}
-                  />
-                </div>
+              
+              {/* Password */}
+              <div className="grid gap-1">
+                {/* <Label htmlFor="password">Senha</Label> */}
+                <Input
+                  id="password"
+                  placeholder="Senha"
+                  type="password"
+                  disabled={isLoading}
+                  {...register('password')}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                )}
               </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button disabled={isLoading} onClick={handleSubmit}>
+              
+              {/* Confirm Password */}
+              <div className="grid gap-1">
+                {/* <Label htmlFor="passwordConfirm">Confirmar Senha</Label> */}
+                <Input
+                  id="passwordConfirm"
+                  placeholder="Confirmar Senha"
+                  type="password"
+                  disabled={isLoading}
+                  {...register('passwordConfirm')}
+                />
+                {errors.passwordConfirm && (
+                  <p className="text-sm text-red-500">{errors.passwordConfirm.message}</p>
+                )}
+              </div>
+              
+              {/* Terms and Conditions */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  disabled={isLoading}
+                  {...register('terms')}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed"
+                >
+                  Aceito os <Link to="/terms" className="underline underline-offset-2">termos e condições</Link>
+                </label>
+                {errors.terms && (
+                  <p className="text-sm text-red-500">{errors.terms.message}</p>
+                )}
+              </div>
+            </div>
+            
+            <CardFooter>
+              <Button disabled={isLoading} type="submit" className="w-full">
                 Criar conta
-                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Separator />
-              <div className="text-center text-sm">
-                Já tem uma conta?{' '}
-                <Link to="/login" className="text-primary underline">
-                  Faça login
-                </Link>
-              </div>
             </CardFooter>
-          </Card>
-        </div>
-      </div>
+          </form>
+        </CardContent>
+      </Card>
+      <Separator className="my-4" />
+      <p className="text-center text-sm text-muted-foreground">
+        Já tem uma conta?{' '}
+        <Link to="/login" className="underline underline-offset-2">
+          Entrar
+        </Link>
+      </p>
     </div>
+    
   );
 };
 

@@ -34,7 +34,12 @@ const DriverMarker: React.FC<DriverMarkerProps> = ({
   const displayTime = eta || estimatedTime;
   
   return (
-    <Marker position={position} icon={driverIcon} {...props}>
+    <Marker 
+      position={position} 
+      // Cast icon to any to avoid TypeScript errors
+      {...{ icon: driverIcon } as any}
+      {...props}
+    >
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

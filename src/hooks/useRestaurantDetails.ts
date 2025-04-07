@@ -15,6 +15,7 @@ export interface RestaurantDetailsData {
   estado: string;
   avaliacao: number;
   imagem_url: string;
+  banner_url?: string;
   horario_funcionamento?: {
     abertura: string;
     fechamento: string;
@@ -32,6 +33,13 @@ export interface RestaurantDetailsData {
   pedido_minimo?: number;
   metodos_pagamento?: string[];
   taxa_entrega?: number;
+  // Old interface fields for compatibility
+  name?: string;
+  address?: string;
+  cuisine?: string;
+  rating?: number;
+  imageUrl?: string;
+  deliveryPosition?: { lat: number; lng: number };
 }
 
 export function useRestaurantDetails(restaurantId: string) {
@@ -44,12 +52,24 @@ export function useRestaurantDetails(restaurantId: string) {
       const { db } = await connectToDatabase();
       const result = await db.collection('restaurantes').findOne({ _id: restaurantId });
 
-      if (!result.data) {
+      if (!result || !result.data) {
         throw new Error('Restaurante não encontrado');
       }
 
-      // Return the restaurant data
-      return result.data;
+      // Return the restaurant data with compatibility fields
+      const restaurantData = result.data;
+      return {
+        ...restaurantData,
+        // Add compatibility fields
+        name: restaurantData.nome,
+        address: `${restaurantData.endereco}, ${restaurantData.cidade} - ${restaurantData.estado}`,
+        cuisine: restaurantData.tipo_cozinha,
+        rating: restaurantData.avaliacao,
+        imageUrl: restaurantData.imagem_url,
+        deliveryPosition: restaurantData.latitude && restaurantData.longitude 
+          ? { lat: restaurantData.latitude, lng: restaurantData.longitude } 
+          : undefined
+      };
     } catch (error) {
       console.error('Erro ao buscar detalhes do restaurante:', error);
       throw new Error('Falha ao carregar dados do restaurante');

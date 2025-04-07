@@ -77,7 +77,7 @@ export function normalizeMongoData<T>(data: any): T {
   }
   
   // Se for um objeto
-  if (typeof obj === 'object') {
+  if (typeof data === 'object') {
     const result: any = { ...data };
     
     // Renomear _id para id se existir

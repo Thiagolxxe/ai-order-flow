@@ -1,88 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import React from 'react';
+import { useEffect, useState } from 'react';
 import { connectToDatabase } from '@/integrations/mongodb/client';
-import { supabaseClient } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Heart, Package, X } from 'lucide-react';
-import { RestaurantCard } from '@/components/restaurants/RestaurantCard';
-import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Heart, HeartOff } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import RestaurantCard from '@/components/restaurants/RestaurantCard';
+import { handleMongoArrayResponse } from '@/utils/mongodb-helpers';
+
+interface FavoriteRestaurant {
+  id: string;
+  restaurantId: string;
+  userId: string;
+  restaurantName: string;
+  restaurantLogo: string;
+}
 
 const Favorites = () => {
-  const { user } = useAuth();
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [favoriteRestaurants, setFavoriteRestaurants] = useState<FavoriteRestaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useUser();
   
   useEffect(() => {
-    const fetchFavorites = async () => {
+    const loadFavorites = async () => {
       if (!user) {
-        toast.error('Você precisa estar logado para ver seus favoritos.');
-        setIsLoading(false);
+        setLoading(false);
         return;
       }
       
       try {
-        setIsLoading(true);
+        setLoading(true);
         const { db } = await connectToDatabase();
-        const favoritesResult = await db.collection('favorites').find({ userId: user.id }).toArray();
         
-        if (favoritesResult.data) {
-          setFavorites(favoritesResult.data);
-        } else {
-          setFavorites([]);
-        }
+        // Fetch user's favorite restaurants from MongoDB
+        const favorites = await db.collection('favoritos').find({ usuario_id: user.id }).toArray();
+        const formattedFavorites = handleMongoArrayResponse<FavoriteRestaurant>(favorites);
+        
+        setFavoriteRestaurants(formattedFavorites);
       } catch (error) {
-        console.error('Error fetching favorites:', error);
-        toast.error('Falha ao carregar favoritos.');
-        setFavorites([]);
+        console.error('Erro ao carregar favoritos:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
     
-    fetchFavorites();
+    loadFavorites();
   }, [user]);
   
-  const handleRemoveFavorite = async (restaurantId: string) => {
-    if (!user) {
-      toast.error('Você precisa estar logado para remover um favorito.');
-      return;
-    }
-    
-    try {
-      const { db } = await connectToDatabase();
-      await db.collection('favorites').deleteOne({ userId: user.id, restaurantId: restaurantId });
-      
-      setFavorites(prevFavorites => prevFavorites.filter(fav => fav.restaurantId !== restaurantId));
-      toast.success('Restaurante removido dos favoritos.');
-    } catch (error) {
-      console.error('Error removing favorite:', error);
-      toast.error('Falha ao remover restaurante dos favoritos.');
-    }
-  };
-  
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="container py-8">
+      <div className="container mx-auto py-8 px-4">
         <Card>
           <CardContent className="p-6">
-            <p>Carregando seus favoritos...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return (
-      <div className="container py-8">
-        <Card>
-          <CardContent className="p-6">
-            <p>Você precisa estar logado para ver seus favoritos.</p>
-            <Button asChild>
-              <a href="/login">Fazer Login</a>
-            </Button>
+            <Skeleton className="h-12 w-3/4 mb-4" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4" />
           </CardContent>
         </Card>
       </div>
@@ -90,40 +63,34 @@ const Favorites = () => {
   }
   
   return (
-    <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-6">Seus Restaurantes Favoritos</h1>
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">Meus Restaurantes Favoritos</h1>
       
-      {favorites.length === 0 ? (
+      {favoriteRestaurants.length === 0 ? (
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-center flex-col space-y-4">
-              <Heart className="h-10 w-10 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">
-                Você ainda não adicionou nenhum restaurante aos seus favoritos.
-              </p>
-              <Button asChild>
-                <a href="/restaurants">Explorar Restaurantes</a>
-              </Button>
+            <div className="text-center">
+              <HeartOff className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+              <h3 className="text-lg font-medium">Nenhum restaurante favorito encontrado</h3>
+              <p className="text-muted-foreground">Adicione restaurantes aos seus favoritos para vê-los aqui.</p>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map(favorite => (
-            <RestaurantCard 
-              key={favorite.restaurantId} 
-              restaurant={favorite}
-            >
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={() => handleRemoveFavorite(favorite.restaurantId)}
-                className="absolute top-2 right-2"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Remover
-              </Button>
-            </RestaurantCard>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {favoriteRestaurants.map(fav => (
+            <RestaurantCard
+              key={fav.id}
+              id={fav.restaurantId}
+              name={fav.restaurantName}
+              image={fav.restaurantLogo}
+              cuisine="Variada" // You might want to fetch the cuisine from the restaurant data
+              rating={4.2 + Math.random() * 0.8}
+              deliveryTime="30-40 min"
+              minOrder="R$25,00"
+              featured={Math.random() > 0.5}
+              isNew={false}
+            />
           ))}
         </div>
       )}

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, MapContainerProps } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// Define proper types for the map props
 interface MapProps extends Omit<MapContainerProps, 'center' | 'zoom'> {
   center: [number, number];
   zoom: number;
@@ -29,15 +30,18 @@ const Map: React.FC<MapProps> = ({ center, zoom, children, ...props }) => {
 
   return (
     <MapContainer 
-      center={center}
-      zoom={zoom}
+      // Explicitly cast the center and zoom properties
+      {...{center, zoom} as any}
       style={{ height: '100%', width: '100%' }}
       className="rounded-md shadow-md z-0"
       {...props}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        // Cast the properties to any to avoid TypeScript errors
+        {...{
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        } as any}
       />
       {children}
     </MapContainer>

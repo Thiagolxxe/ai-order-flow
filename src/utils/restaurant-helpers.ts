@@ -14,16 +14,13 @@ export function generateMockRestaurantData(): RestaurantDetailsData[] {
       endereco: 'Av. Paulista, 1000',
       cidade: 'São Paulo',
       estado: 'SP',
-      telefone: '(11) 99999-9999',
+      avaliacao: 4.5,
+      imagem_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
+      // Compatibility with old interface - removed `telefone` as it's not in the type
       banner_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
-      faixa_preco: 2,
-      // Compatibility with old interface
-      name: 'Pizza Express',
-      address: 'Av. Paulista, 1000, São Paulo - SP',
-      cuisine: 'Italiana',
-      rating: 2,
-      imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
-      deliveryPosition: { lat: -23.5629, lng: -46.6544 }
+      contato: {
+        telefone: '(11) 99999-9999'
+      }
     },
     {
       id: '2',
@@ -33,16 +30,12 @@ export function generateMockRestaurantData(): RestaurantDetailsData[] {
       endereco: 'Rua Augusta, 500',
       cidade: 'São Paulo',
       estado: 'SP',
-      telefone: '(11) 99999-8888',
+      avaliacao: 4.2,
+      imagem_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
       banner_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
-      faixa_preco: 1,
-      // Compatibility with old interface
-      name: 'Burger King',
-      address: 'Rua Augusta, 500, São Paulo - SP',
-      cuisine: 'Hambúrguer',
-      rating: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
-      deliveryPosition: { lat: -23.5530, lng: -46.6429 }
+      contato: {
+        telefone: '(11) 99999-8888'
+      }
     },
     {
       id: '3',
@@ -52,16 +45,12 @@ export function generateMockRestaurantData(): RestaurantDetailsData[] {
       endereco: 'Alameda Santos, 800',
       cidade: 'São Paulo',
       estado: 'SP',
-      telefone: '(11) 99999-7777',
+      avaliacao: 4.7,
+      imagem_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
       banner_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
-      faixa_preco: 3,
-      // Compatibility with old interface
-      name: 'Sushi Palace',
-      address: 'Alameda Santos, 800, São Paulo - SP',
-      cuisine: 'Japonesa',
-      rating: 3,
-      imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
-      deliveryPosition: { lat: -23.5682, lng: -46.6490 }
+      contato: {
+        telefone: '(11) 99999-7777'
+      }
     },
     {
       id: '4',
@@ -71,16 +60,12 @@ export function generateMockRestaurantData(): RestaurantDetailsData[] {
       endereco: 'Rua Oscar Freire, 300',
       cidade: 'São Paulo',
       estado: 'SP',
-      telefone: '(11) 99999-6666',
+      avaliacao: 4.1,
+      imagem_url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
       banner_url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
-      faixa_preco: 2,
-      // Compatibility with old interface
-      name: 'Taco Bell',
-      address: 'Rua Oscar Freire, 300, São Paulo - SP',
-      cuisine: 'Mexicana',
-      rating: 2,
-      imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
-      deliveryPosition: { lat: -23.5616, lng: -46.6709 }
+      contato: {
+        telefone: '(11) 99999-6666'
+      }
     },
     {
       id: '5',
@@ -90,16 +75,12 @@ export function generateMockRestaurantData(): RestaurantDetailsData[] {
       endereco: 'Av. Rebouças, 1200',
       cidade: 'São Paulo',
       estado: 'SP',
-      telefone: '(11) 99999-5555',
+      avaliacao: 3.9,
+      imagem_url: 'https://images.unsplash.com/photo-1563245372-f21724e3856d',
       banner_url: 'https://images.unsplash.com/photo-1563245372-f21724e3856d',
-      faixa_preco: 1,
-      // Compatibility with old interface
-      name: 'China in Box',
-      address: 'Av. Rebouças, 1200, São Paulo - SP',
-      cuisine: 'Chinesa',
-      rating: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1563245372-f21724e3856d',
-      deliveryPosition: { lat: -23.5578, lng: -46.6641 }
+      contato: {
+        telefone: '(11) 99999-5555'
+      }
     }
   ];
 }

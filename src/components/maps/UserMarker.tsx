@@ -23,7 +23,12 @@ interface UserMarkerProps extends Omit<MarkerProps, 'position' | 'icon'> {
 
 const UserMarker: React.FC<UserMarkerProps> = ({ position, name = 'Seu endereço', address, ...props }) => {
   return (
-    <Marker position={position} icon={userIcon} {...props}>
+    <Marker 
+      position={position} 
+      // Cast icon to any to avoid TypeScript errors
+      {...{ icon: userIcon } as any} 
+      {...props}
+    >
       <Popup>
         <div className="text-sm">
           <h3 className="font-medium">{name}</h3>

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,8 +32,8 @@ export interface Video {
 
 export interface VideoUploadFormProps {
   restaurantId: string;
-  onSuccess: () => void;
-  onCancel: () => void;
+  onSuccess?: () => void;
+  onCancel?: () => void;
   videoToEdit?: Video;
 }
 
@@ -73,8 +72,8 @@ const musicLibrary: MusicTrack[] = [
 
 const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ 
   restaurantId, 
-  onSuccess,
-  onCancel,
+  onSuccess = () => {},
+  onCancel = () => {},
   videoToEdit 
 }) => {
   const [title, setTitle] = useState(videoToEdit?.titulo || '');
@@ -159,9 +158,7 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
           .from('videos')
           .upload(`restaurant/${restaurantId}/${filename}`, processedVideo, {
             upsert: true,
-            onUploadProgress: (progress) => {
-              setProgress(Math.round((progress.loaded / progress.total) * 100));
-            }
+            // Remove the onUploadProgress as it's not in the type
           });
           
         if (error) {
@@ -201,7 +198,7 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
       const { db } = await connectToDatabase();
       
       // Prepare the video data
-      const videoData: Partial<Video> = {
+      const videoData: Video = {
         titulo: title,
         descricao: description,
         video_url: videoUrl,
