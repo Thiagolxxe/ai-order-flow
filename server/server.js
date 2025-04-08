@@ -6,12 +6,28 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { createCollectionsAndIndexes } = require('./db/init');
+const rateLimit = require('express-rate-limit');
+const Joi = require('joi');
+const helmet = require('helmet');
 require('dotenv').config();
 
 // Inicializar Express
 const app = express();
-app.use(express.json());
-app.use(cors());
+
+// Aplicar Helmet para configurar cabeçalhos HTTP seguros
+app.use(helmet());
+
+app.use(express.json({ limit: '1mb' }));
+
+// Configuração de CORS mais restritiva
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : 'http://localhost:8080',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 86400 // 24 horas em segundos
+};
+app.use(cors(corsOptions));
 
 // String de conexão MongoDB
 const uri = process.env.MONGODB_URI;
@@ -27,6 +43,27 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
+// Configurar rate limiting para todas as requisições
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // limite de 100 requisições por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições, tente novamente mais tarde' }
+});
+
+// Aplicar rate limiting global
+app.use(globalLimiter);
+
+// Configurar rate limiting específico para autenticação (mais restritivo)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // limite de 5 tentativas por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas de login, tente novamente mais tarde' }
+});
+
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -39,6 +76,83 @@ const authenticateToken = (req, res, next) => {
     req.user = user;
     next();
   });
+};
+
+// Validação com Joi
+const schemas = {
+  login: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Email inválido',
+      'any.required': 'Email é obrigatório'
+    }),
+    password: Joi.string().min(6).required().messages({
+      'string.min': 'Senha deve ter pelo menos 6 caracteres',
+      'any.required': 'Senha é obrigatória'
+    })
+  }),
+  registration: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Email inválido',
+      'any.required': 'Email é obrigatório'
+    }),
+    password: Joi.string().min(6).required().messages({
+      'string.min': 'Senha deve ter pelo menos 6 caracteres',
+      'any.required': 'Senha é obrigatória'
+    }),
+    nome: Joi.string().min(2).messages({
+      'string.min': 'Nome deve ter pelo menos 2 caracteres'
+    }),
+    sobrenome: Joi.string().min(2).messages({
+      'string.min': 'Sobrenome deve ter pelo menos 2 caracteres'
+    })
+  }),
+  restaurant: Joi.object({
+    nome: Joi.string().min(3).required().messages({
+      'string.min': 'O nome do restaurante deve ter pelo menos 3 caracteres',
+      'any.required': 'Nome é obrigatório'
+    }),
+    tipo_cozinha: Joi.string().min(2).required().messages({
+      'string.min': 'O tipo de cozinha deve ter pelo menos 2 caracteres',
+      'any.required': 'Tipo de cozinha é obrigatório'
+    }),
+    descricao: Joi.string().allow('').optional(),
+    telefone: Joi.string().min(10).required().messages({
+      'string.min': 'Telefone deve ter pelo menos 10 dígitos',
+      'any.required': 'Telefone é obrigatório'
+    }),
+    endereco: Joi.string().min(5).required().messages({
+      'string.min': 'Endereço deve ter pelo menos 5 caracteres',
+      'any.required': 'Endereço é obrigatório'
+    }),
+    cidade: Joi.string().min(2).required().messages({
+      'string.min': 'Cidade deve ter pelo menos 2 caracteres',
+      'any.required': 'Cidade é obrigatória'
+    }),
+    estado: Joi.string().length(2).required().messages({
+      'string.length': 'Estado deve ser a sigla com 2 caracteres',
+      'any.required': 'Estado é obrigatório'
+    }),
+    cep: Joi.string().min(8).required().messages({
+      'string.min': 'CEP deve ter pelo menos 8 dígitos',
+      'any.required': 'CEP é obrigatório'
+    }),
+    faixa_preco: Joi.number().min(1).max(5).required().messages({
+      'number.min': 'Faixa de preço deve ser entre 1 e 5',
+      'number.max': 'Faixa de preço deve ser entre 1 e 5',
+      'any.required': 'Faixa de preço é obrigatória'
+    })
+  })
+};
+
+// Middleware de validação
+const validateBody = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    next();
+  };
 };
 
 // Criar cliente MongoDB
@@ -69,7 +183,7 @@ async function connectToMongoDB() {
 }
 
 // Rotas de autenticação
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, validateBody(schemas.registration), async (req, res) => {
   try {
     const db = client.db("delivery_app");
     const { email, password, nome, sobrenome } = req.body;
@@ -141,7 +255,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, validateBody(schemas.login), async (req, res) => {
   try {
     const db = client.db("delivery_app");
     const { email, password } = req.body;
@@ -183,7 +297,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Rotas para restaurantes
-app.post('/api/restaurants', authenticateToken, async (req, res) => {
+app.post('/api/restaurants', authenticateToken, validateBody(schemas.restaurant), async (req, res) => {
   try {
     const db = client.db("delivery_app");
     const userId = req.user.id;
