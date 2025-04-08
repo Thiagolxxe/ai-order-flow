@@ -14,7 +14,18 @@ app.use(express.json());
 app.use(cors());
 
 // String de conexão MongoDB
-const uri = process.env.MONGODB_URI || "mongodb+srv://Deliverai:b0C2Qg6LblURU1LK@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  console.error('MONGODB_URI environment variable is required');
+  process.exit(1);
+}
+
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('JWT_SECRET environment variable is required');
+  process.exit(1);
+}
 
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
@@ -23,7 +34,7 @@ const authenticateToken = (req, res, next) => {
   
   if (!token) return res.status(401).json({ error: 'Token de acesso não fornecido' });
   
-  jwt.verify(token, process.env.JWT_SECRET || 'secret_key_development_only', (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ error: 'Token inválido' });
     req.user = user;
     next();
@@ -106,7 +117,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Gerar token JWT
     const token = jwt.sign(
       { id: userId.toString(), email },
-      process.env.JWT_SECRET || 'secret_key_development_only',
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
     
@@ -150,7 +161,7 @@ app.post('/api/auth/login', async (req, res) => {
     // Gerar token JWT
     const token = jwt.sign(
       { id: user._id.toString(), email: user.email },
-      process.env.JWT_SECRET || 'secret_key_development_only',
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
     
