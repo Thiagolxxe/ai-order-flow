@@ -7,14 +7,15 @@ import { MOCK_VIDEOS } from './video-feed/mock-data';
 import { useVideoNavigation } from './video-feed/useVideoNavigation';
 import { useVideoInteractions } from './video-feed/useVideoInteractions';
 import { useChatInteraction } from './video-feed/useChatInteraction';
-import { connectToDatabase } from '@/integrations/mongodb/client';
+import { apiService } from '@/services/apiService';
+import { createPaginationParams } from '@/utils/paginationUtils';
+import { useQuery } from '@tanstack/react-query';
 
 export type { Video } from './video-feed/types';
 
 export const useVideoFeed = () => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const feedContainerRef = useRef<HTMLDivElement>(null);
   
   // Video state management
@@ -30,45 +31,47 @@ export const useVideoFeed = () => {
   // Active video
   const activeVideo = videos[activeVideoIndex] || null;
 
-  // Fetch videos from database
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        setIsLoading(true);
-        const { db } = await connectToDatabase();
-        const results = await db.collection('videos').find({ ativo: true });
-        
-        if (results.data && results.data.length > 0) {
-          // Map database video format to app video format
-          const mappedVideos: Video[] = results.data.map(video => ({
-            id: video._id,
-            restaurantId: video.restaurante_id,
-            restaurantName: video.restaurante_nome || "Restaurante",
-            dishName: video.titulo,
-            price: video.preco || 0,
-            videoUrl: video.video_url,
-            thumbnailUrl: video.thumbnail_url || "",
-            likes: video.likes || 0,
-            description: video.descricao || "",
-          }));
-          
-          setVideos(mappedVideos);
-        } else {
-          // Fallback to mock data if no videos found
-          console.log("No videos found in database, using mock data");
-          setVideos(MOCK_VIDEOS);
-        }
-      } catch (error) {
-        console.error("Error fetching videos:", error);
-        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
-        setVideos(MOCK_VIDEOS);
-      } finally {
-        setIsLoading(false);
+  // Fetch videos from API
+  const { isLoading, error } = useQuery({
+    queryKey: ['videos'],
+    queryFn: async () => {
+      const params = createPaginationParams(1, 20);
+      const { data, error } = await apiService.videos.getAll(params);
+      
+      if (error) {
+        throw new Error(error.message);
       }
-    };
-    
-    fetchVideos();
-  }, []);
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data && data.length > 0) {
+        // Map API video format to app video format
+        const mappedVideos: Video[] = data.map(video => ({
+          id: video.id || video._id,
+          restaurantId: video.restaurantId || video.restaurante_id,
+          restaurantName: video.restaurantName || video.restaurante_nome || "Restaurante",
+          dishName: video.dishName || video.titulo,
+          price: video.price || video.preco || 0,
+          videoUrl: video.videoUrl || video.video_url,
+          thumbnailUrl: video.thumbnailUrl || video.thumbnail_url || "",
+          likes: video.likes || 0,
+          description: video.description || video.descricao || "",
+        }));
+        
+        setVideos(mappedVideos);
+      } else {
+        // Fallback to mock data if no videos found
+        console.log("No videos found, using mock data");
+        setVideos(MOCK_VIDEOS);
+      }
+    },
+    onError: (err: Error) => {
+      console.error("Error fetching videos:", err);
+      toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+      setVideos(MOCK_VIDEOS);
+    }
+  });
   
   // State updaters
   const setActiveVideoIndex = useCallback((index: number) => {

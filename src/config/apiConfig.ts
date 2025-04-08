@@ -29,7 +29,8 @@ export const apiConfig = {
       search: 'restaurants/search',
       featured: 'restaurants/featured',
       nearby: 'restaurants/nearby',
-      menu: (id: string) => `restaurants/${id}/menu`
+      menu: (id: string) => `restaurants/${id}/menu`,
+      videos: (id: string) => `restaurants/${id}/videos`
     },
     users: {
       profile: 'users/profile',
@@ -56,6 +57,16 @@ export const apiConfig = {
       base: 'addresses',
       getByUser: 'addresses/user'
     },
+    videos: {
+      base: 'videos',
+      trending: 'videos/trending',
+      byRestaurant: (id: string) => `restaurants/${id}/videos`,
+      getById: (id: string) => `videos/${id}`
+    },
     connection: 'check-connection'
+  },
+  pagination: {
+    defaultLimit: 10,
+    maxLimit: 50
   }
 };

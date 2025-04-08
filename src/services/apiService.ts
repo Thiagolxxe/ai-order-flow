@@ -560,5 +560,70 @@ export const apiService = {
         };
       }
     }
+  },
+  
+  // Videos operations (new)
+  videos: {
+    getAll: async (params: any = {}) => {
+      try {
+        const { data, error } = await httpClient.get(
+          `${apiConfig.endpoints.videos.base}`,
+          { params }
+        );
+        
+        if (error) {
+          return { error };
+        }
+        
+        return { data };
+      } catch (error: any) {
+        console.error('Get videos error:', error);
+        return { error: { message: 'Falha ao buscar vídeos' } };
+      }
+    },
+    
+    getById: async (id: string) => {
+      try {
+        const { data, error } = await httpClient.get(
+          `${apiConfig.endpoints.videos.getById(id)}`
+        );
+        
+        if (error) {
+          return { error };
+        }
+        
+        return { data };
+      } catch (error: any) {
+        console.error('Get video error:', error);
+        return { error: { message: 'Falha ao buscar vídeo' } };
+      }
+    },
+    
+    create: async (videoData: any) => {
+      try {
+        const { data, error } = await httpClient.post(
+          `${apiConfig.endpoints.videos.base}`,
+          videoData
+        );
+        
+        if (error) {
+          return { 
+            success: false, 
+            error
+          };
+        }
+        
+        return { 
+          success: true,
+          data
+        };
+      } catch (error: any) {
+        console.error('Create video error:', error);
+        return { 
+          success: false, 
+          error: { message: error.message || 'Falha ao criar vídeo' }
+        };
+      }
+    }
   }
 };
