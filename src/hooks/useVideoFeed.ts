@@ -31,7 +31,7 @@ export const useVideoFeed = () => {
   // Active video
   const activeVideo = videos[activeVideoIndex] || null;
 
-  // Fetch videos from API
+  // Fetch videos from API using React Query
   const { isLoading, error } = useQuery({
     queryKey: ['videos'],
     queryFn: async () => {
@@ -44,7 +44,15 @@ export const useVideoFeed = () => {
       
       return data;
     },
-    onSuccess: (data) => {
+    // Use onSettled instead of separate onSuccess and onError callbacks
+    onSettled: (data, error) => {
+      if (error) {
+        console.error("Error fetching videos:", error);
+        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+        setVideos(MOCK_VIDEOS);
+        return;
+      }
+      
       if (data && data.length > 0) {
         // Map API video format to app video format
         const mappedVideos: Video[] = data.map(video => ({
@@ -65,11 +73,6 @@ export const useVideoFeed = () => {
         console.log("No videos found, using mock data");
         setVideos(MOCK_VIDEOS);
       }
-    },
-    onError: (err: Error) => {
-      console.error("Error fetching videos:", err);
-      toast.error("Erro ao carregar vídeos, usando dados de exemplo");
-      setVideos(MOCK_VIDEOS);
     }
   });
   
