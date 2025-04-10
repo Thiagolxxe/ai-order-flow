@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabaseClient } from '@/integrations/supabase/client';
@@ -87,11 +86,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: authListener } = supabaseClient.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN') {
-          setUser(session?.user as User || null);
-          setSession({ access_token: session?.access_token || '' });
-          
-          // Check user role when signing in
           if (session?.user) {
+            setUser(session?.user as User || null);
+            setSession({ access_token: session?.access_token || '' });
+            
+            // Check user role when signing in
             try {
               const { db } = await connectToDatabase();
               const userRolesResult = await db.collection('funcoes_usuario').findOne({
@@ -121,28 +120,67 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // First try to authenticate with Supabase
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
-        toast.error(error.message);
-        console.error('Erro ao fazer login:', error);
-        return { error };
+        console.error('Erro ao fazer login com Supabase:', error);
+        
+        // If Supabase fails, try to authenticate with server API
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Falha na autenticação');
+          }
+          
+          const userData = await response.json();
+          setUser(userData.user as User);
+          setSession({ access_token: userData.session.access_token });
+          
+          // Check user role
+          try {
+            const { db } = await connectToDatabase();
+            const userRolesResult = await db.collection('user_roles').findOne({
+              userId: userData.user.id
+            });
+            
+            if (userRolesResult) {
+              setRole(userRolesResult.role);
+            }
+          } catch (error) {
+            console.error('Erro ao verificar função do usuário:', error);
+          }
+          
+          localStorage.setItem('userData', JSON.stringify(userData.user));
+          return {};
+        } catch (serverError: any) {
+          return { error: serverError };
+        }
       } else {
+        // Supabase login successful
         setUser(data.user as User);
         setSession({ access_token: data.session.access_token });
         
-        // Check user role when signing in
+        // Check user role in MongoDB
         try {
           const { db } = await connectToDatabase();
-          const userRolesResult = await db.collection('funcoes_usuario').findOne({
-            usuario_id: data.user.id
+          const userRolesResult = await db.collection('user_roles').findOne({
+            userId: data.user.id
           });
           
-          if (userRolesResult && userRolesResult.data) {
-            setRole(userRolesResult.data.role_name);
+          if (userRolesResult) {
+            setRole(userRolesResult.role);
           }
         } catch (error) {
           console.error('Erro ao verificar função do usuário:', error);
@@ -151,9 +189,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('userData', JSON.stringify(data.user));
         toast.success('Login realizado com sucesso!');
         
-        // Instead of using navigate directly, we'll return success and let the component handle navigation
         return {};
       }
+    } catch (error: any) {
+      console.error('Erro geral ao tentar login:', error);
+      return { error };
     } finally {
       setIsLoading(false);
     }

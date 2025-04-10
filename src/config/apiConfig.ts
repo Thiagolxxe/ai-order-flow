@@ -1,72 +1,48 @@
 
-/**
- * Configuração central da API
- */
-
-// URL base da API
-export const API_BASE_URL = 'http://localhost:5000/api';
-
-// Timeout padrão para requisições (em ms)
-export const API_TIMEOUT = 30000;
-
-// Nome da chave no localStorage para a sessão
+// API Configuration
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const API_TIMEOUT = 30000; // 30 seconds
 export const SESSION_STORAGE_KEY = 'deliveryapp_session';
 
-// Objeto de configuração exportado
 export const apiConfig = {
-  baseUrl: API_BASE_URL,
-  timeout: API_TIMEOUT,
   endpoints: {
     auth: {
-      login: 'auth/login',
-      register: 'auth/register',
-      refreshToken: 'auth/refresh-token',
-      logout: 'auth/logout'
+      register: '/api/auth/register',
+      login: '/api/auth/login',
+      logout: '/api/auth/logout',
+      refreshToken: '/api/auth/refresh-token'
     },
     restaurants: {
-      base: 'restaurants',
-      getById: (id: string) => `restaurants/${id}`,
-      search: 'restaurants/search',
-      featured: 'restaurants/featured',
-      nearby: 'restaurants/nearby',
-      menu: (id: string) => `restaurants/${id}/menu`,
-      videos: (id: string) => `restaurants/${id}/videos`
-    },
-    users: {
-      profile: 'users/profile',
-      updateProfile: 'users/profile',
-      addresses: 'users/addresses'
+      base: '/api/restaurants',
+      featured: '/api/restaurants/featured',
+      nearby: '/api/restaurants/nearby',
+      getById: (id: string) => `/api/restaurants/${id}`
     },
     delivery: {
-      register: 'delivery/register',
-      profile: 'delivery/profile',
-      active: 'delivery/active'
+      register: '/api/delivery/register',
+      profile: '/api/delivery/profile'
     },
-    orders: {
-      create: 'orders',
-      getByUser: 'orders/user',
-      getById: (id: string) => `orders/${id}`,
-      updateStatus: (id: string) => `orders/${id}/status`
+    users: {
+      profile: '/api/users/profile',
+      updateProfile: '/api/users/profile'
     },
     notifications: {
-      base: 'notifications',
-      markAsRead: (id: string) => `notifications/${id}/read`,
-      unread: 'notifications/unread'
+      base: '/api/notifications',
+      unread: '/api/notifications/unread',
+      markAsRead: (id: string) => `/api/notifications/${id}`
     },
     addresses: {
-      base: 'addresses',
-      getByUser: 'addresses/user'
+      base: '/api/addresses'
+    },
+    orders: {
+      create: '/api/orders',
+      getByUser: '/api/orders/user',
+      getById: (id: string) => `/api/orders/${id}`,
+      updateStatus: (id: string) => `/api/orders/${id}/status`
     },
     videos: {
-      base: 'videos',
-      trending: 'videos/trending',
-      byRestaurant: (id: string) => `restaurants/${id}/videos`,
-      getById: (id: string) => `videos/${id}`
-    },
-    connection: 'check-connection'
-  },
-  pagination: {
-    defaultLimit: 10,
-    maxLimit: 50
+      base: '/api/videos',
+      getById: (id: string) => `/api/videos/${id}`
+    }
   }
 };
