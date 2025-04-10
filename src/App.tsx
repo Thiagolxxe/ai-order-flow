@@ -20,6 +20,10 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Terms = lazy(() => import('@/pages/Terms'));
+const Promotions = lazy(() => import('@/pages/Promotions'));
+const OrderHistory = lazy(() => import('@/pages/OrderHistory'));
+const UserProfile = lazy(() => import('@/pages/UserProfile'));
+const RestaurantSignup = lazy(() => import('@/pages/RestaurantSignup'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -72,6 +76,31 @@ const App = () => {
               <Route path="/register" element={
                 <SuspenseLoader>
                   <Register />
+                </SuspenseLoader>
+              } />
+              
+              {/* Added routes for menu items */}
+              <Route path="/promotions" element={
+                <SuspenseLoader>
+                  <Promotions />
+                </SuspenseLoader>
+              } />
+              
+              <Route path="/orders" element={
+                <SuspenseLoader>
+                  <OrderHistory />
+                </SuspenseLoader>
+              } />
+              
+              <Route path="/profile" element={
+                <SuspenseLoader>
+                  <UserProfile />
+                </SuspenseLoader>
+              } />
+              
+              <Route path="/restaurant-signup" element={
+                <SuspenseLoader>
+                  <RestaurantSignup />
                 </SuspenseLoader>
               } />
               

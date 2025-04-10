@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Form } from '@/components/ui/form';
 
+// Define form schema with Zod
 const formSchema = z.object({
   firstName: z.string().min(2, {
     message: 'O nome deve ter pelo menos 2 caracteres.',
@@ -49,7 +50,7 @@ const Register = () => {
       email: '',
       password: '',
       passwordConfirm: '',
-      terms: false,
+      terms: false as unknown as true, // This is a TypeScript hack to make the initial value false while satisfying the type
     },
   });
 

@@ -17,7 +17,7 @@ const NavLinks = () => {
     const portugueseMap: Record<string, string> = {
       '/restaurants': '/restaurantes',
       '/profile': '/perfil',
-      '/video-feed': '/videos',
+      '/videos': '/video-feed',
       '/promotions': '/promocoes',
       '/orders': '/pedidos',
       '/restaurant-signup': '/restaurante/cadastro'
@@ -47,12 +47,12 @@ const NavLinks = () => {
       <Link to="/restaurants" className={linkClasses('/restaurants')}>
         Restaurantes
       </Link>
-      <Link to="/video-feed" className={cn(
-        linkClasses('/video-feed'),
+      <Link to="/videos" className={cn(
+        linkClasses('/videos'),
         "flex items-center gap-1",
-        isActive('/video-feed') ? "text-primary" : "text-muted-foreground hover:text-primary"
+        isActive('/videos') ? "text-primary" : "text-muted-foreground hover:text-primary"
       )}>
-        <Flame size={18} className={isActive('/video-feed') ? "text-primary animate-pulse" : ""} />
+        <Flame size={18} className={isActive('/videos') ? "text-primary animate-pulse" : ""} />
         Vídeos
       </Link>
       <Link to="/promotions" className={linkClasses('/promotions')}>
