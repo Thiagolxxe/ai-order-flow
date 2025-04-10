@@ -19,6 +19,7 @@ const RestaurantDetails = lazy(() => import('@/pages/RestaurantDetails'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const Terms = lazy(() => import('@/pages/Terms'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -74,8 +75,19 @@ const App = () => {
                 </SuspenseLoader>
               } />
               
+              {/* Legal pages */}
+              <Route path="/terms" element={
+                <SuspenseLoader>
+                  <Terms />
+                </SuspenseLoader>
+              } />
+              
               {/* 404 route */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={
+                <SuspenseLoader>
+                  <NotFound />
+                </SuspenseLoader>
+              } />
             </Routes>
             
             <Toaster />

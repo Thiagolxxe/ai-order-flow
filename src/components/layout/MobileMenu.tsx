@@ -10,7 +10,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { Menu, User, Settings, HelpCircle, LogOut, Store, Home, ShoppingBag, Video, Flame } from 'lucide-react';
+import { Menu, User, Settings, HelpCircle, LogOut, Store, Home, ShoppingBag, Video, Flame, FileText } from 'lucide-react';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -40,6 +40,10 @@ const MobileMenu = ({ isOpen, onOpenChange, userRole, isAuthenticated }: MobileM
     { href: "/settings", label: "Configurações", icon: <Settings className="h-5 w-5" /> },
     { href: "/help", label: "Ajuda", icon: <HelpCircle className="h-5 w-5" /> },
     { href: "/logout", label: "Sair", icon: <LogOut className="h-5 w-5" /> },
+  ];
+
+  const legalLinks = [
+    { href: "/terms", label: "Termos e Condições", icon: <FileText className="h-5 w-5" /> },
   ];
 
   return (
@@ -106,8 +110,24 @@ const MobileMenu = ({ isOpen, onOpenChange, userRole, isAuthenticated }: MobileM
                     <span className="ml-3">{link.label}</span>
                   </Link>
                 ))}
+                <Separator className="my-2" />
               </>
             )}
+            
+            {/* Legal Links */}
+            {legalLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "flex items-center py-3 px-4 hover:bg-accent/50 transition-colors",
+                  link.href === pathname && "bg-accent/50 font-medium"
+                )}
+              >
+                {link.icon}
+                <span className="ml-3">{link.label}</span>
+              </Link>
+            ))}
           </nav>
         </div>
       </SheetContent>
