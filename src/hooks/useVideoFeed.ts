@@ -44,11 +44,17 @@ export const useVideoFeed = () => {
       
       return data;
     },
-    // Handle success in onSuccess callback
-    onSuccess: (data) => {
+    onSettled: (data: any, error: Error | null) => {
+      if (error) {
+        console.error("Error fetching videos:", error);
+        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+        setVideos(MOCK_VIDEOS);
+        return;
+      }
+      
       if (data && data.length > 0) {
         // Map API video format to app video format
-        const mappedVideos: Video[] = data.map(video => ({
+        const mappedVideos: Video[] = data.map((video: any) => ({
           id: video.id || video._id,
           restaurantId: video.restaurantId || video.restaurante_id,
           restaurantName: video.restaurantName || video.restaurante_nome || "Restaurante",
@@ -66,12 +72,6 @@ export const useVideoFeed = () => {
         console.log("No videos found, using mock data");
         setVideos(MOCK_VIDEOS);
       }
-    },
-    // Handle error in onError callback
-    onError: (error) => {
-      console.error("Error fetching videos:", error);
-      toast.error("Erro ao carregar vídeos, usando dados de exemplo");
-      setVideos(MOCK_VIDEOS);
     }
   });
   
