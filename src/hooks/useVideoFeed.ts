@@ -44,15 +44,8 @@ export const useVideoFeed = () => {
       
       return data;
     },
-    // Use onSettled instead of separate onSuccess and onError callbacks
-    onSettled: (data, error) => {
-      if (error) {
-        console.error("Error fetching videos:", error);
-        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
-        setVideos(MOCK_VIDEOS);
-        return;
-      }
-      
+    // Handle success in onSuccess callback
+    onSuccess: (data) => {
       if (data && data.length > 0) {
         // Map API video format to app video format
         const mappedVideos: Video[] = data.map(video => ({
@@ -73,6 +66,12 @@ export const useVideoFeed = () => {
         console.log("No videos found, using mock data");
         setVideos(MOCK_VIDEOS);
       }
+    },
+    // Handle error in onError callback
+    onError: (error) => {
+      console.error("Error fetching videos:", error);
+      toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+      setVideos(MOCK_VIDEOS);
     }
   });
   

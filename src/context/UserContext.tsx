@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabaseClient } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -45,8 +44,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
   
   useEffect(() => {
     const loadSession = async () => {
@@ -153,7 +150,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         localStorage.setItem('userData', JSON.stringify(data.user));
         toast.success('Login realizado com sucesso!');
-        navigate('/');
+        
+        // Instead of using navigate directly, we'll return success and let the component handle navigation
         return {};
       }
     } finally {
@@ -176,7 +174,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         localStorage.setItem('userData', JSON.stringify(data.user));
         toast.success('Conta criada com sucesso!');
-        navigate('/');
+        
+        // Instead of using navigate directly, we'll return success and let the component handle navigation
         return {};
       }
     } finally {
@@ -197,7 +196,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRole(null);
         localStorage.removeItem('userData');
         toast.success('Logout realizado com sucesso!');
-        navigate('/login');
+        
+        // The component will handle navigation after logout
+        // We won't use navigate here
       }
     } finally {
       setIsLoading(false);

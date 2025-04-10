@@ -34,8 +34,8 @@ const App = () => {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <UserProvider>
-          <Router>
+        <Router>
+          <UserProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               
@@ -76,9 +76,9 @@ const App = () => {
             </Routes>
             
             <Toaster />
-          </Router>
-        </UserProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+          </UserProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </Router>
       </QueryClientProvider>
     </ThemeProvider>
   );
