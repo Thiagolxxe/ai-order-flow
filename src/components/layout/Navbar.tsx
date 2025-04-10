@@ -7,6 +7,8 @@ import NavLogo from './NavLogo';
 import NavLinks from './NavLinks';
 import UserActions from './UserActions';
 import MobileMenu from './MobileMenu';
+import { Menu as MenuIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,6 +46,16 @@ const Navbar = () => {
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
+        {/* Mobile menu button */}
+        <Button 
+          variant="ghost" 
+          className="md:hidden"
+          size="icon"
+          onClick={() => setIsMobileMenuOpen(true)}
+        >
+          <MenuIcon className="h-6 w-6" />
+        </Button>
+        
         {/* Logo */}
         <NavLogo />
         
@@ -64,7 +76,8 @@ const Navbar = () => {
       {/* Mobile menu */}
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
-        userRole={userRole || null} 
+        onOpenChange={setIsMobileMenuOpen}
+        userRole={userRole} 
         isAuthenticated={isAuthenticated} 
       />
     </header>

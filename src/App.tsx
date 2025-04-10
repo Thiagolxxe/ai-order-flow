@@ -9,6 +9,8 @@ import Index from '@/pages/Index';
 import { UserProvider } from '@/context/UserContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import Navbar from '@/components/layout/Navbar';
+import GeminiChatAssistant from '@/components/gemini-chat/GeminiChatAssistant';
 
 // Lazy loaded components
 const VideoFeed = lazy(() => import('@/pages/VideoFeed'));
@@ -36,6 +38,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <Router>
           <UserProvider>
+            <Navbar />
             <Routes>
               <Route path="/" element={<Index />} />
               
@@ -76,6 +79,7 @@ const App = () => {
             </Routes>
             
             <Toaster />
+            <GeminiChatAssistant />
           </UserProvider>
           <ReactQueryDevtools initialIsOpen={false} />
         </Router>

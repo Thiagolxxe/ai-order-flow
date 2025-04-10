@@ -44,33 +44,35 @@ export const useVideoFeed = () => {
       
       return data;
     },
-    onSettled: (data: any, error: Error | null) => {
-      if (error) {
-        console.error("Error fetching videos:", error);
-        toast.error("Erro ao carregar vídeos, usando dados de exemplo");
-        setVideos(MOCK_VIDEOS);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        // Map API video format to app video format
-        const mappedVideos: Video[] = data.map((video: any) => ({
-          id: video.id || video._id,
-          restaurantId: video.restaurantId || video.restaurante_id,
-          restaurantName: video.restaurantName || video.restaurante_nome || "Restaurante",
-          dishName: video.dishName || video.titulo,
-          price: video.price || video.preco || 0,
-          videoUrl: video.videoUrl || video.video_url,
-          thumbnailUrl: video.thumbnailUrl || video.thumbnail_url || "",
-          likes: video.likes || 0,
-          description: video.description || video.descricao || "",
-        }));
+    meta: {
+      onSettled: (data: any, error: Error | null) => {
+        if (error) {
+          console.error("Error fetching videos:", error);
+          toast.error("Erro ao carregar vídeos, usando dados de exemplo");
+          setVideos(MOCK_VIDEOS);
+          return;
+        }
         
-        setVideos(mappedVideos);
-      } else {
-        // Fallback to mock data if no videos found
-        console.log("No videos found, using mock data");
-        setVideos(MOCK_VIDEOS);
+        if (data && data.length > 0) {
+          // Map API video format to app video format
+          const mappedVideos: Video[] = data.map((video: any) => ({
+            id: video.id || video._id,
+            restaurantId: video.restaurantId || video.restaurante_id,
+            restaurantName: video.restaurantName || video.restaurante_nome || "Restaurante",
+            dishName: video.dishName || video.titulo,
+            price: video.price || video.preco || 0,
+            videoUrl: video.videoUrl || video.video_url,
+            thumbnailUrl: video.thumbnailUrl || video.thumbnail_url || "",
+            likes: video.likes || 0,
+            description: video.description || video.descricao || "",
+          }));
+          
+          setVideos(mappedVideos);
+        } else {
+          // Fallback to mock data if no videos found
+          console.log("No videos found, using mock data");
+          setVideos(MOCK_VIDEOS);
+        }
       }
     }
   });
