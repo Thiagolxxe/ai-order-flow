@@ -23,7 +23,7 @@ interface CheckoutItem {
   name: string;
   price: number;
   quantity: number;
-  image?: string;
+  image: string; // Mudado de opcional para obrigatório
 }
 
 interface CheckoutData {
@@ -57,7 +57,7 @@ export const useCheckoutData = (id?: string) => {
       setLoading(true);
       try {
         // In a real implementation, this would fetch data from MongoDB Atlas
-        console.log("Loading checkout data...");
+        console.log("Carregando dados do checkout...");
         
         // Simulate checkout data based on restaurant ID
         const mockVideo = MOCK_VIDEOS.find(video => video.id === id || video.restaurantId === id);
@@ -69,7 +69,7 @@ export const useCheckoutData = (id?: string) => {
               name: mockVideo.dishName,
               price: mockVideo.price,
               quantity: 1,
-              image: mockVideo.thumbnailUrl
+              image: mockVideo.thumbnailUrl || 'https://source.unsplash.com/random/300x200/?food' // Garantindo que image nunca é undefined
             }],
             restaurantId: mockVideo.restaurantId,
             restaurantName: mockVideo.restaurantName,
@@ -94,7 +94,7 @@ export const useCheckoutData = (id?: string) => {
             state: 'SC',
             zipcode: '88000-000',
             isDefault: true,
-            label: 'Home' // Added to match required type
+            label: 'Casa' // Added to match required type
           },
           {
             id: '2',
@@ -104,7 +104,7 @@ export const useCheckoutData = (id?: string) => {
             city: 'Florianópolis',
             state: 'SC',
             zipcode: '88010-100',
-            label: 'Work' // Added to match required type
+            label: 'Trabalho' // Added to match required type
           }
         ];
         
@@ -116,8 +116,8 @@ export const useCheckoutData = (id?: string) => {
         }
         
       } catch (err: any) {
-        console.error("Error loading checkout data:", err);
-        setError("Failed to load order data");
+        console.error("Erro ao carregar dados do checkout:", err);
+        setError("Falha ao carregar dados do pedido");
       } finally {
         setLoading(false);
       }
@@ -132,17 +132,17 @@ export const useCheckoutData = (id?: string) => {
       setIsProcessing(true);
       setError(null);
       
-      console.log("Processing checkout:", checkoutData);
+      console.log("Processando checkout:", checkoutData);
       
       // In a real implementation, this would be sent to MongoDB Atlas
       // Simulate a successful processing response
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success('Order placed successfully!');
+      toast.success('Pedido realizado com sucesso!');
       return { success: true, data: { orderId: 'order_' + Date.now() } };
     } catch (err: any) {
-      setError(err.message || 'Error processing order');
-      toast.error('Failed to process order');
+      setError(err.message || 'Erro ao processar pedido');
+      toast.error('Falha ao processar pedido');
       return { success: false };
     } finally {
       setIsProcessing(false);

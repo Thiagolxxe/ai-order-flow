@@ -10,6 +10,19 @@ import { connectToDatabase } from '@/integrations/mongodb/client';
 import { toast } from 'sonner';
 import { normalizeMongoData } from '@/utils/mongodb-helpers';
 
+// Definindo a interface do RestaurantCard para garantir compatibilidade
+interface RestaurantCardProps {
+  id: string;
+  name: string;
+  cuisine: string;
+  rating: number;
+  image: string; // Alterado de imageUrl para image (obrigatório)
+  deliveryTime?: string;
+  deliveryFee?: number;
+  distance?: string;
+  minOrder: number; // Adicionando propriedade obrigatória
+}
+
 interface Restaurant {
   id: string;
   name: string;
@@ -19,6 +32,7 @@ interface Restaurant {
   deliveryTime?: string;
   deliveryFee?: number;
   distance?: string;
+  minOrder?: number;
 }
 
 interface RestaurantListProps {
@@ -65,12 +79,13 @@ export default function RestaurantList({
           deliveryTime: rest.deliveryTime || `${Math.floor(Math.random() * 30) + 15}-${Math.floor(Math.random() * 20) + 30} min`,
           deliveryFee: rest.deliveryFee || Math.floor(Math.random() * 8) + 3,
           distance: rest.distance || `${(Math.random() * 5).toFixed(1)} km`,
+          minOrder: rest.minOrder || Math.floor(Math.random() * 10) + 10,
         }));
         
         setRestaurants(normalizeMongoData<Restaurant[]>(transformedData));
         setFilteredRestaurants(normalizeMongoData<Restaurant[]>(transformedData));
       } catch (error) {
-        console.error('Error fetching restaurants:', error);
+        console.error('Erro ao buscar restaurantes:', error);
         toast.error('Erro ao carregar restaurantes');
         
         // Fallback data for development
@@ -83,6 +98,7 @@ export default function RestaurantList({
           deliveryTime: `${Math.floor(Math.random() * 30) + 15}-${Math.floor(Math.random() * 20) + 30} min`,
           deliveryFee: Math.floor(Math.random() * 8) + 3,
           distance: `${(Math.random() * 5).toFixed(1)} km`,
+          minOrder: Math.floor(Math.random() * 10) + 10,
         }));
         
         setRestaurants(fallbackData);
@@ -167,7 +183,18 @@ export default function RestaurantList({
       ) : restaurantsToShow.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {restaurantsToShow.map((restaurant) => (
-            <RestaurantCard key={restaurant.id} {...restaurant} />
+            <RestaurantCard 
+              key={restaurant.id} 
+              id={restaurant.id}
+              name={restaurant.name}
+              cuisine={restaurant.cuisine}
+              rating={restaurant.rating}
+              image={restaurant.imageUrl || 'https://source.unsplash.com/random/300x200/?restaurant'} // Convertendo imageUrl para image
+              deliveryTime={restaurant.deliveryTime}
+              deliveryFee={restaurant.deliveryFee}
+              distance={restaurant.distance}
+              minOrder={restaurant.minOrder || 10} // Fornecendo um valor padrão se não existir
+            />
           ))}
         </div>
       ) : (
