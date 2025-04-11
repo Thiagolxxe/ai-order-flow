@@ -89,6 +89,8 @@ export const httpClient = {
         return this.getMockResponse(endpoint, method, options.body);
       }
 
+      console.log(`Making ${method} request to: ${finalUrl}`);
+      
       const response = await fetch(finalUrl, {
         method,
         headers,
@@ -212,6 +214,34 @@ export const httpClient = {
         },
         error: null,
         status: 201
+      };
+    }
+    
+    // Health check endpoint
+    if (endpoint.includes('/api/check-connection') && method === 'GET') {
+      return {
+        data: { status: 'ok', message: 'Demo mode: API connection simulated successfully' },
+        error: null,
+        status: 200
+      };
+    }
+    
+    // Restaurants endpoint
+    if (endpoint.includes('/api/restaurants') && method === 'GET') {
+      return {
+        data: {
+          restaurants: Array.from({ length: 8 }, (_, i) => ({
+            id: `demo-rest-${i}`,
+            name: `Restaurante Demo ${i + 1}`,
+            cuisine: ['Italiana', 'Japonesa', 'Brasileira', 'Fast Food'][i % 4],
+            rating: Math.floor(Math.random() * 5) + 1,
+            imageUrl: `https://source.unsplash.com/random/300x200/?restaurant,${i}`,
+            deliveryTime: `${Math.floor(Math.random() * 30) + 15}-${Math.floor(Math.random() * 20) + 30} min`,
+            deliveryFee: Math.floor(Math.random() * 8) + 3,
+          }))
+        },
+        error: null,
+        status: 200
       };
     }
     

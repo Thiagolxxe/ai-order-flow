@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { Database, AlertCircle, CheckCircle, Server, RefreshCw, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { API_BASE_URL } from '@/config/apiConfig';
+import { API_BASE_URL, apiConfig } from '@/config/apiConfig';
+import { httpClient } from '@/utils/httpClient';
 
 export const MongoDBStatusChecker: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
@@ -18,14 +19,14 @@ export const MongoDBStatusChecker: React.FC = () => {
       setStatus('connecting');
       setError(null);
       
-      // Tenta conectar ao MongoDB Atlas
+      // Try to connect to MongoDB Atlas
       await connectToDatabase();
       
-      // Se chegou aqui, a conexão foi bem-sucedida
+      // If we got here, the connection was successful
       setStatus('connected');
       toast.success('Conexão com MongoDB Atlas estabelecida com sucesso!');
       
-      // Agora vamos verificar a conexão com a API
+      // Now check the API connection
       checkApiConnection();
     } catch (err: any) {
       console.error('Erro ao conectar ao MongoDB Atlas:', err);
@@ -40,26 +41,19 @@ export const MongoDBStatusChecker: React.FC = () => {
       setApiStatus('checking');
       setApiError(null);
       
-      // Tenta conectar à API no Render (ou onde estiver configurada)
-      const apiUrl = `${API_BASE_URL}/api/check-connection`;
+      // Try to connect to the API on Render
+      const apiUrl = `${API_BASE_URL}${apiConfig.endpoints.system.healthCheck}`;
       console.log(`Tentando conectar à API em: ${apiUrl}`);
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Adicionando timeout para a requisição
-        signal: AbortSignal.timeout(5000) // 5 segundos de timeout
-      }).catch(error => {
-        throw new Error('Não foi possível conectar ao servidor da API. Verifique se o servidor está em execução.');
-      });
+      // Use our httpClient to properly handle errors
+      const { data, error } = await httpClient.get(apiConfig.endpoints.system.healthCheck);
       
-      if (!response.ok) {
-        throw new Error(`Erro ao verificar API: ${response.status} ${response.statusText}`);
+      if (error) {
+        throw new Error(`Erro ao verificar API: ${error.message}`);
       }
       
       setApiStatus('connected');
+      toast.success('Conexão com API estabelecida com sucesso!');
     } catch (err: any) {
       console.error('Erro ao conectar à API:', err);
       setApiStatus('error');
@@ -164,7 +158,7 @@ export const MongoDBStatusChecker: React.FC = () => {
         </Alert>
       )}
       
-      {/* Informações adicionais quando MongoDB conectou mas a API falhou */}
+      {/* Additional information when MongoDB connected but API failed */}
       {status === 'connected' && apiStatus === 'error' && (
         <Alert variant="default" className="bg-blue-50 border-blue-200">
           <Database className="h-4 w-4 text-blue-600 mr-2" />
@@ -198,7 +192,7 @@ export const MongoDBStatusChecker: React.FC = () => {
         </Alert>
       )}
       
-      {/* Informações adicionais quando ambos falharem */}
+      {/* Additional information when both failed */}
       {status === 'error' && apiStatus === 'error' && (
         <Alert variant="default" className="bg-blue-50 border-blue-200">
           <Database className="h-4 w-4 text-blue-600 mr-2" />

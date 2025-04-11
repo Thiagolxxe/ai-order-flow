@@ -8,6 +8,8 @@ import { RefreshCw, Database, Server } from 'lucide-react';
 import RestaurantList from '@/components/restaurants/RestaurantList';
 import HeroSection from '@/components/ui/HeroSection';
 import { toast } from 'sonner';
+import { httpClient } from '@/utils/httpClient';
+import { API_BASE_URL, apiConfig } from '@/config/apiConfig';
 
 export default function Index() {
   const [isTestingBackend, setIsTestingBackend] = useState(false);
@@ -25,18 +27,42 @@ export default function Index() {
       // First, verify MongoDB connection
       await connectToDatabase();
       
-      // Test database operations by fetching 1 restaurant
+      // Test database operations by fetching restaurants
       const { db } = await connectToDatabase();
       const collection = db.collection('restaurants');
       const result = await collection.find({}).toArray();
       
       console.log('Database test result:', result);
       
-      setBackendTestResult({
-        success: true,
-        message: 'Conexão com o backend bem-sucedida',
-        details: `Operações testadas: MongoDB Atlas, Busca de dados. ${result && result.length ? `Restaurantes encontrados: ${result.length}` : 'Nenhum restaurante encontrado.'}`
-      });
+      // Try to connect to API on Render to verify full connectivity
+      const apiUrl = `${API_BASE_URL}${apiConfig.endpoints.system.healthCheck}`;
+      console.log(`Testando conexão com a API em: ${apiUrl}`);
+      
+      try {
+        const { data, error, status } = await httpClient.get(apiConfig.endpoints.system.healthCheck);
+        console.log('API test response:', { data, status });
+        
+        if (error) {
+          setBackendTestResult({
+            success: true,
+            message: 'Conexão com o banco de dados bem-sucedida, mas API indisponível',
+            details: `Operações de MongoDB Atlas testadas com sucesso. ${result && result.length ? `Restaurantes encontrados: ${result.length}` : 'Nenhum restaurante encontrado.'} A API no Render não está disponível, usando modo de demonstração.`
+          });
+        } else {
+          setBackendTestResult({
+            success: true,
+            message: 'Conexão com o backend completa bem-sucedida',
+            details: `Operações testadas: MongoDB Atlas, Busca de dados e conexão com API no Render. ${result && result.length ? `Restaurantes encontrados: ${result.length}` : 'Nenhum restaurante encontrado.'}`
+          });
+        }
+      } catch (apiError) {
+        console.error('API connection error:', apiError);
+        setBackendTestResult({
+          success: true,
+          message: 'Conexão com o banco de dados bem-sucedida, mas API indisponível',
+          details: `Operações de MongoDB Atlas testadas com sucesso. ${result && result.length ? `Restaurantes encontrados: ${result.length}` : 'Nenhum restaurante encontrado.'} A API no Render não está disponível, usando modo de demonstração.`
+        });
+      }
       
       toast.success('Teste de backend concluído com sucesso!');
     } catch (error) {
@@ -98,7 +124,7 @@ export default function Index() {
           )}
           
           <p className="text-muted-foreground mt-2 text-sm">
-            Este teste verifica a conexão com o MongoDB Atlas e a operação de busca no banco de dados.
+            Este teste verifica a conexão com o MongoDB Atlas, a operação de busca no banco de dados e a disponibilidade da API no Render.
           </p>
         </div>
         

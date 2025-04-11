@@ -10,6 +10,7 @@ import { Loader2, Info, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { connectToDatabase } from '@/integrations/mongodb/client';
+import { API_BASE_URL } from '@/config/apiConfig';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -56,7 +57,7 @@ const Login = () => {
 
     try {
       if (!email || !password) {
-        throw new Error('Email and password are required');
+        throw new Error('Email e senha são obrigatórios');
       }
 
       // Test MongoDB connection before attempting to authenticate
@@ -66,10 +67,10 @@ const Login = () => {
       } catch (connectionError) {
         console.error('Failed to connect to MongoDB Atlas:', connectionError);
         setApiError(true);
-        throw new Error('Could not connect to MongoDB Atlas. Please check your internet connection.');
+        throw new Error('Não foi possível conectar ao MongoDB Atlas. Verifique sua conexão com a internet.');
       }
 
-      // Authenticate with MongoDB
+      // Authenticate with MongoDB and Render backend
       const { error } = await signIn(email, password);
       
       if (error) {
@@ -80,16 +81,16 @@ const Login = () => {
             error.message?.includes('ECONNREFUSED') ||
             error.message?.includes('NetworkError')) {
           setApiError(true);
-          throw new Error('Could not connect to the server. Make sure your MongoDB Atlas cluster is configured correctly and accessible.');
+          throw new Error(`Não foi possível conectar ao servidor ${API_BASE_URL}. Verifique se o serviço no Render está ativo.`);
         }
-        throw new Error(error.message || 'Invalid credentials');
+        throw new Error(error.message || 'Credenciais inválidas');
       }
       
-      toast.success('Login successful');
+      toast.success('Login realizado com sucesso');
       navigate(redirectTo);
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-      toast.error(err.message || 'Authentication failed');
+      setError(err.message || 'Falha na autenticação');
+      toast.error(err.message || 'Falha na autenticação');
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ const Login = () => {
               <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  O servidor não está respondendo. Verifique sua conexão com a internet ou se o MongoDB Atlas está disponível.
+                  O servidor não está respondendo. Verifique se o serviço no Render está ativo em: {API_BASE_URL}
                 </AlertDescription>
               </Alert>
             )}

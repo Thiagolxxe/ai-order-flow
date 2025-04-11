@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { apiService } from '@/services/apiService';
 import { SESSION_STORAGE_KEY, API_BASE_URL } from '@/config/apiConfig';
+import { httpClient } from '@/utils/httpClient';
 
 interface User {
   id: string;
@@ -116,33 +117,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
       
-      // Authenticate with MongoDB server API
+      // Authenticate with Render API
       try {
-        const apiUrl = `${API_BASE_URL}/api/auth/login`;
-        console.log('Attempting to connect to:', apiUrl);
+        console.log('Attempting to connect to:', API_BASE_URL);
         
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
+        // Use httpClient to handle authentication
+        const { data, error } = await httpClient.post('api/auth/login', {
+          email, 
+          password
         });
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Authentication failed');
+        if (error) {
+          throw new Error(error.message || 'Authentication failed');
         }
         
-        const userData = await response.json();
-        setUser(userData.user as User);
-        setSession({ access_token: userData.session.access_token });
+        setUser(data.user as User);
+        setSession({ access_token: data.session.access_token });
         
         // Try to check user role from MongoDB Atlas
         try {
           const { db } = await connectToDatabase();
           const userRolesResult = await db.collection('user_roles').findOne({
-            userId: userData.user.id
+            userId: data.user.id
           });
           
           if (userRolesResult) {
@@ -155,8 +151,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Save session to localStorage
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
           session: {
-            user: userData.user,
-            access_token: userData.session.access_token
+            user: data.user,
+            access_token: data.session.access_token
           },
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
         }));
@@ -191,34 +187,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       // Register with MongoDB server API
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-          nome: credentials.options?.data?.nome || '',
-          sobrenome: credentials.options?.data?.sobrenome || ''
-        }),
+      const { data, error } = await httpClient.post('api/auth/register', {
+        email: credentials.email,
+        password: credentials.password,
+        nome: credentials.options?.data?.nome || '',
+        sobrenome: credentials.options?.data?.sobrenome || ''
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error || 'Erro ao criar conta');
-        return { error: errorData };
+      if (error) {
+        toast.error(error.message || 'Erro ao criar conta');
+        return { error };
       }
       
-      const userData = await response.json();
-      setUser(userData.user as User);
-      setSession({ access_token: userData.session.access_token });
+      setUser(data.user as User);
+      setSession({ access_token: data.session.access_token });
       
       // Save session to localStorage
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
         session: {
-          user: userData.user,
-          access_token: userData.session.access_token
+          user: data.user,
+          access_token: data.session.access_token
         },
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
       }));

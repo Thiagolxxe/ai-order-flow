@@ -1,12 +1,14 @@
 
+// API configuration constants
 export const SESSION_STORAGE_KEY = 'deliveryapp_session';
 
-// API configuration
+// API timeout in milliseconds
 export const API_TIMEOUT = 15000; // 15 seconds
 
-// Use Render URL ou fallback para modo demo
+// Primary Render backend URL (or fallback to demo mode)
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://deliverai.onrender.com';
 
+// Configure all API endpoints
 export const apiConfig = {
   baseURL: API_BASE_URL,
   endpoints: {
@@ -47,6 +49,11 @@ export const apiConfig = {
     videos: {
       base: '/api/videos',
       getById: (id: string) => `/api/videos/${id}`
+    },
+    // New connection check endpoint
+    system: {
+      healthCheck: '/api/check-connection',
+      status: '/api/status'
     }
   }
 };
