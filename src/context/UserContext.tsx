@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { connectToDatabase } from '@/integrations/mongodb/client';
@@ -72,7 +71,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session.user as User);
           setSession({ access_token: session.access_token });
           
-          // Try to check user role, but don't fail if it can't connect
+          // Try to check user role from MongoDB Atlas
           try {
             const { db } = await connectToDatabase();
             const userRolesResult = await db.collection('user_roles').findOne({
@@ -83,7 +82,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setRole(userRolesResult.role);
             }
           } catch (error) {
-            console.error('Erro ao verificar função do usuário:', error);
+            console.error('Error checking user role from MongoDB Atlas:', error);
             // Don't fail the whole application if we can't check roles
           }
         } catch (e) {
@@ -103,6 +102,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // First, verify MongoDB Atlas connection
+      try {
+        await connectToDatabase();
+        console.log('MongoDB Atlas connection verified before authentication attempt');
+      } catch (connectionError) {
+        console.error('MongoDB Atlas connection failed:', connectionError);
+        return { 
+          error: { 
+            message: 'Failed to connect to MongoDB Atlas. Please check your internet connection and Atlas configuration.' 
+          } 
+        };
+      }
+      
       // Authenticate with MongoDB server API
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`;
@@ -118,14 +130,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Falha na autenticação');
+          throw new Error(errorData.error || 'Authentication failed');
         }
         
         const userData = await response.json();
         setUser(userData.user as User);
         setSession({ access_token: userData.session.access_token });
         
-        // Try to check user role, but don't fail if it can't connect
+        // Try to check user role from MongoDB Atlas
         try {
           const { db } = await connectToDatabase();
           const userRolesResult = await db.collection('user_roles').findOne({
@@ -136,7 +148,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setRole(userRolesResult.role);
           }
         } catch (error) {
-          console.error('Erro ao verificar função do usuário:', error);
+          console.error('Error checking user role:', error);
         }
         
         // Save session to localStorage
@@ -148,17 +160,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
         }));
         
-        toast.success('Login realizado com sucesso!');
+        toast.success('Login successful!');
         return {};
       } catch (serverError: any) {
         console.error('Server connection error:', serverError);
-        // Add enhanced error for connection issues
+        
+        // Enhanced error for connection issues
         if (serverError instanceof TypeError && 
            (serverError.message === 'Failed to fetch' || 
             serverError.message.includes('NetworkError'))) {
           return { 
             error: { 
-              message: 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o servidor está disponível.',
+              message: 'Cannot connect to the server. Verify your MongoDB Atlas cluster configuration and network connectivity.',
               code: 'CONNECTION_ERROR'
             } 
           };
@@ -166,7 +179,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: serverError };
       }
     } catch (error: any) {
-      console.error('Erro geral ao tentar login:', error);
+      console.error('General error during login attempt:', error);
       return { error };
     } finally {
       setIsLoading(false);

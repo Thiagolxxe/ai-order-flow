@@ -31,9 +31,9 @@ const Login = () => {
       try {
         await connectToDatabase();
         setMongodbStatus('connected');
-        console.log('Conexão com MongoDB Atlas verificada com sucesso');
+        console.log('MongoDB Atlas connection verified successfully');
       } catch (error) {
-        console.error('Erro ao conectar com MongoDB Atlas:', error);
+        console.error('Error connecting to MongoDB Atlas:', error);
         setMongodbStatus('error');
       }
     };
@@ -56,17 +56,17 @@ const Login = () => {
 
     try {
       if (!email || !password) {
-        throw new Error('E-mail e senha são obrigatórios');
+        throw new Error('Email and password are required');
       }
 
       // Test MongoDB connection before attempting to authenticate
       try {
         await connectToDatabase();
-        console.log('Conexão com MongoDB Atlas verificada antes da autenticação');
+        console.log('MongoDB Atlas connection verified before authentication');
       } catch (connectionError) {
-        console.error('Falha na conexão com MongoDB Atlas:', connectionError);
+        console.error('Failed to connect to MongoDB Atlas:', connectionError);
         setApiError(true);
-        throw new Error('Não foi possível conectar ao MongoDB Atlas. Verifique sua conexão com a internet.');
+        throw new Error('Could not connect to MongoDB Atlas. Please check your internet connection.');
       }
 
       // Authenticate with MongoDB
@@ -80,16 +80,16 @@ const Login = () => {
             error.message?.includes('ECONNREFUSED') ||
             error.message?.includes('NetworkError')) {
           setApiError(true);
-          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o MongoDB Atlas está disponível.');
+          throw new Error('Could not connect to the server. Make sure your MongoDB Atlas cluster is configured correctly and accessible.');
         }
-        throw new Error(error.message || 'Credenciais inválidas');
+        throw new Error(error.message || 'Invalid credentials');
       }
       
-      toast.success('Login realizado com sucesso');
+      toast.success('Login successful');
       navigate(redirectTo);
     } catch (err: any) {
-      setError(err.message || 'Falha na autenticação');
-      toast.error(err.message || 'Falha na autenticação');
+      setError(err.message || 'Authentication failed');
+      toast.error(err.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }

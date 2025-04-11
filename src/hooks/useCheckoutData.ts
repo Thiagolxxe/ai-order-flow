@@ -15,6 +15,7 @@ interface Address {
   state: string;
   zipcode: string;
   isDefault?: boolean;
+  label: string; // Added to match required type
 }
 
 interface CheckoutItem {
@@ -32,6 +33,8 @@ interface CheckoutData {
   subtotal: number;
   deliveryFee: number;
   total: number;
+  discount: number; // Added to match required type
+  discountValue: number; // Added to match required type
 }
 
 // Checkout data management hook
@@ -43,7 +46,7 @@ export const useCheckoutData = (id?: string) => {
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Carregar dados do checkout
+  // Load checkout data
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -53,11 +56,10 @@ export const useCheckoutData = (id?: string) => {
     const loadCheckoutData = async () => {
       setLoading(true);
       try {
-        // Simulação de carregamento de dados do checkout
-        // Em uma implementação real, isso viria do MongoDB Atlas
-        console.log("Carregando dados do checkout...");
+        // In a real implementation, this would fetch data from MongoDB Atlas
+        console.log("Loading checkout data...");
         
-        // Simular dados do checkout baseado no restaurante do id
+        // Simulate checkout data based on restaurant ID
         const mockVideo = MOCK_VIDEOS.find(video => video.id === id || video.restaurantId === id);
         
         if (mockVideo) {
@@ -73,13 +75,15 @@ export const useCheckoutData = (id?: string) => {
             restaurantName: mockVideo.restaurantName,
             subtotal: mockVideo.price,
             deliveryFee: 8.90,
-            total: mockVideo.price + 8.90
+            total: mockVideo.price + 8.90,
+            discount: 0, // Added to match required type
+            discountValue: 0 // Added to match required type
           };
           
           setCheckoutData(mockCheckoutData);
         }
         
-        // Simulação de endereços do usuário
+        // Simulate user addresses
         const mockAddresses: Address[] = [
           {
             id: '1',
@@ -89,7 +93,8 @@ export const useCheckoutData = (id?: string) => {
             city: 'Florianópolis',
             state: 'SC',
             zipcode: '88000-000',
-            isDefault: true
+            isDefault: true,
+            label: 'Home' // Added to match required type
           },
           {
             id: '2',
@@ -98,20 +103,21 @@ export const useCheckoutData = (id?: string) => {
             neighborhood: 'Centro',
             city: 'Florianópolis',
             state: 'SC',
-            zipcode: '88010-100'
+            zipcode: '88010-100',
+            label: 'Work' // Added to match required type
           }
         ];
         
         setAddresses(mockAddresses);
-        // Selecionar o endereço padrão
+        // Select default address
         const defaultAddress = mockAddresses.find(addr => addr.isDefault);
         if (defaultAddress) {
           setSelectedAddress(defaultAddress.id);
         }
         
       } catch (err: any) {
-        console.error("Erro ao carregar dados do checkout:", err);
-        setError("Falha ao carregar dados do pedido");
+        console.error("Error loading checkout data:", err);
+        setError("Failed to load order data");
       } finally {
         setLoading(false);
       }
@@ -126,17 +132,17 @@ export const useCheckoutData = (id?: string) => {
       setIsProcessing(true);
       setError(null);
       
-      console.log("Processando checkout:", checkoutData);
+      console.log("Processing checkout:", checkoutData);
       
-      // Em uma implementação real, isso seria enviado para o MongoDB Atlas
-      // Simular uma resposta de processamento bem-sucedida
+      // In a real implementation, this would be sent to MongoDB Atlas
+      // Simulate a successful processing response
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success('Pedido realizado com sucesso!');
+      toast.success('Order placed successfully!');
       return { success: true, data: { orderId: 'order_' + Date.now() } };
     } catch (err: any) {
-      setError(err.message || 'Erro ao processar pedido');
-      toast.error('Falha ao processar pedido');
+      setError(err.message || 'Error processing order');
+      toast.error('Failed to process order');
       return { success: false };
     } finally {
       setIsProcessing(false);

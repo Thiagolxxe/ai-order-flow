@@ -20,10 +20,10 @@ const MongoDBConnectionStatus: React.FC = () => {
     try {
       setStatus(prev => ({ ...prev, checking: true }));
       await connectToDatabase();
-      toast.success('Reconectado ao MongoDB Atlas com sucesso!');
+      toast.success('Successfully reconnected to MongoDB Atlas!');
     } catch (error) {
-      toast.error('Falha ao reconectar ao MongoDB Atlas');
-      console.error('Erro ao reconectar:', error);
+      toast.error('Failed to reconnect to MongoDB Atlas');
+      console.error('Error reconnecting:', error);
     }
   };
 
@@ -54,7 +54,7 @@ const MongoDBConnectionStatus: React.FC = () => {
       <div className="fixed bottom-4 left-4 bg-destructive text-destructive-foreground px-3 py-2 rounded-md shadow-md flex items-center text-sm">
         <AlertCircle className="h-4 w-4 mr-2" />
         <span>
-          MongoDB Atlas: Desconectado
+          MongoDB Atlas: Disconnected
           {status.lastAttempt && (
             <span className="ml-1 opacity-70 text-xs">
               ({new Date(status.lastAttempt).toLocaleTimeString()})
@@ -64,7 +64,7 @@ const MongoDBConnectionStatus: React.FC = () => {
         <button
           className="ml-2 p-1 hover:bg-destructive-foreground/10 rounded"
           onClick={handleReconnect}
-          title="Reconectar"
+          title="Reconnect"
         >
           <RotateCw className="h-3 w-3" />
         </button>
@@ -76,10 +76,10 @@ const MongoDBConnectionStatus: React.FC = () => {
     return (
       <div className="fixed bottom-4 left-4 bg-yellow-500 text-white px-3 py-2 rounded-md shadow-md flex items-center text-sm">
         <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-        Conectando ao MongoDB Atlas...
+        Connecting to MongoDB Atlas...
         {status.retryCount > 0 && (
           <span className="ml-1 text-xs">
-            (Tentativa {status.retryCount})
+            (Attempt {status.retryCount})
           </span>
         )}
       </div>
@@ -90,7 +90,7 @@ const MongoDBConnectionStatus: React.FC = () => {
     return (
       <div className="fixed bottom-4 left-4 bg-green-500 text-white px-3 py-2 rounded-md shadow-md flex items-center text-sm">
         <Database className="h-4 w-4 mr-2" />
-        MongoDB Atlas: Conectado
+        MongoDB Atlas: Connected
       </div>
     );
   }

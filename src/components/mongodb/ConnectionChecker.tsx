@@ -17,20 +17,20 @@ const MongoDBConnectionChecker: React.FC = () => {
         await connectToDatabase();
         
         // If we got here, connection was successful
-        console.log('Conexão com MongoDB Atlas bem-sucedida!');
-        toast.success('Conexão com MongoDB Atlas estabelecida com sucesso!');
+        console.log('MongoDB Atlas connection successful!');
+        toast.success('MongoDB Atlas connection established successfully!');
       } catch (error) {
-        console.error('Falha na conexão com MongoDB Atlas:', error);
+        console.error('Failed to connect to MongoDB Atlas:', error);
         
         if (retryCount < MAX_RETRIES) {
           // Try again after delay
           setRetryCount(prev => prev + 1);
-          const delayTime = 2000 * (retryCount + 1); // Aumenta o tempo de espera a cada tentativa
+          const delayTime = 2000 * (retryCount + 1); // Increase wait time with each attempt
           
-          console.log(`Tentando reconectar ao MongoDB Atlas em ${delayTime/1000} segundos...`);
+          console.log(`Attempting to reconnect to MongoDB Atlas in ${delayTime/1000} seconds...`);
           setTimeout(() => checkConnection(), delayTime);
         } else {
-          toast.error('Falha na conexão com MongoDB Atlas. Verifique as configurações de conexão e tente novamente.');
+          toast.error('Failed to connect to MongoDB Atlas. Check your connection settings and try again.');
         }
       } finally {
         setIsChecking(false);

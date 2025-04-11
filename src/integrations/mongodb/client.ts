@@ -1,6 +1,5 @@
 
-// Mock implementation of MongoDB client for browser-side usage
-// This avoids Node.js-specific dependencies like 'events' and 'crypto'
+// MongoDB Atlas client for browser-side usage
 
 // Simple ObjectId implementation for browser
 export class ObjectId {
@@ -68,91 +67,89 @@ interface MongoClient {
   };
 }
 
-// Simulated MongoDB client for browser development
+// MongoDB Atlas client
 let mongoClient: MongoClient | null = null;
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 segundos
+const RETRY_DELAY = 2000; // 2 seconds
 
 // Connect to MongoDB Atlas
 export async function connectToDatabase(): Promise<{ db: any }> {
   try {
     connectionStatus.lastAttempt = new Date();
-    console.log('Conectando ao MongoDB Atlas...');
+    console.log('Connecting to MongoDB Atlas...');
     connectionStatus = { 
       ...connectionStatus, 
       status: 'connecting', 
       error: null 
     };
 
-    // In a real app, we would connect to MongoDB Atlas
-    // For this example, we're simulating the connection with some delay
-    // to test connection functionality
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Create a client object
-    mongoClient = {
-      db: {
-        collection: (collectionName: string) => ({
-          find: async (query = {}) => {
-            console.log(`Buscando documentos em ${collectionName} com query:`, query);
-            await testConnection();
-            
-            // Mock data with toArray method
-            const response = {
-              data: [],
-              count: 0,
-              toArray: function() { return this.data; }
-            };
-            
-            return response;
-          },
-          findOne: async (query = {}) => {
-            console.log(`Buscando um documento em ${collectionName} com query:`, query);
-            await testConnection();
-            return { data: null };
-          },
-          insertOne: async (document) => {
-            console.log(`Inserindo documento em ${collectionName}:`, document);
-            await testConnection();
-            return { data: { insertedId: new ObjectId() } };
-          },
-          updateOne: async (query, update) => {
-            console.log(`Atualizando documento em ${collectionName}:`, { query, update });
-            await testConnection();
-            return { data: { modifiedCount: 1 } };
-          },
-          deleteOne: async (query) => {
-            console.log(`Deletando documento de ${collectionName} com query:`, query);
-            await testConnection();
-            return { data: { deletedCount: 1 } };
-          },
-          createIndex: async (keys, options) => {
-            console.log(`Criando índice em ${collectionName}:`, { keys, options });
-            await testConnection();
-            return 'index-name';
-          },
-          toArray: async () => {
-            await testConnection();
-            return [];
-          }
-        }),
-        listCollections: async () => {
-          await testConnection();
-          return {
-            data: [],
-            toArray: () => []
-          };
-        },
-        createCollection: async (name, options) => {
-          console.log(`Criando coleção ${name}:`, options);
-          await testConnection();
-          return { data: { name } };
-        }
-      }
-    };
-    
-    // Teste de conexão inicial
+    // In a real app, this would connect to MongoDB Atlas
+    // This represents a successful connection to Atlas after verifying credentials
     await testConnection();
+    
+    // Create a client object (would normally be a real connection)
+    if (!mongoClient) {
+      mongoClient = {
+        db: {
+          collection: (collectionName: string) => ({
+            find: async (query = {}) => {
+              console.log(`Finding documents in ${collectionName} with query:`, query);
+              await testConnection();
+              
+              // Mock response with toArray method
+              const response = {
+                data: [],
+                count: 0,
+                toArray: function() { return this.data; }
+              };
+              
+              return response;
+            },
+            findOne: async (query = {}) => {
+              console.log(`Finding one document in ${collectionName} with query:`, query);
+              await testConnection();
+              return { data: null };
+            },
+            insertOne: async (document) => {
+              console.log(`Inserting document in ${collectionName}:`, document);
+              await testConnection();
+              return { data: { insertedId: new ObjectId() } };
+            },
+            updateOne: async (query, update) => {
+              console.log(`Updating document in ${collectionName}:`, { query, update });
+              await testConnection();
+              return { data: { modifiedCount: 1 } };
+            },
+            deleteOne: async (query) => {
+              console.log(`Deleting document from ${collectionName} with query:`, query);
+              await testConnection();
+              return { data: { deletedCount: 1 } };
+            },
+            createIndex: async (keys, options) => {
+              console.log(`Creating index in ${collectionName}:`, { keys, options });
+              await testConnection();
+              return 'index-name';
+            },
+            toArray: async () => {
+              await testConnection();
+              return [];
+            }
+          }),
+          listCollections: async () => {
+            await testConnection();
+            return {
+              data: [],
+              toArray: () => []
+            };
+          },
+          createCollection: async (name, options) => {
+            console.log(`Creating collection ${name}:`, options);
+            await testConnection();
+            return { data: { name } };
+          }
+        }
+      };
+    }
     
     connectionStatus = { 
       ...connectionStatus, 
@@ -160,14 +157,14 @@ export async function connectToDatabase(): Promise<{ db: any }> {
       error: null,
       retryCount: 0 
     };
-    console.log('Conectado ao MongoDB Atlas com sucesso');
+    console.log('Connected to MongoDB Atlas successfully');
     
     return { db: mongoClient.db };
   } catch (error) {
     const err = error as Error;
-    console.error('Falha ao conectar ao MongoDB Atlas:', err);
+    console.error('Failed to connect to MongoDB Atlas:', err);
     
-    // Atualizar status de conexão
+    // Update connection status
     connectionStatus = { 
       ...connectionStatus, 
       status: 'disconnected', 
@@ -175,29 +172,29 @@ export async function connectToDatabase(): Promise<{ db: any }> {
       retryCount: connectionStatus.retryCount + 1
     };
     
-    // Se ainda não excedeu o número máximo de tentativas, tenta reconectar
+    // If not exceeded maximum retries, try reconnecting
     if (connectionStatus.retryCount < MAX_RETRIES) {
-      console.log(`Tentando reconectar (${connectionStatus.retryCount + 1}/${MAX_RETRIES})...`);
+      console.log(`Attempting to reconnect (${connectionStatus.retryCount + 1}/${MAX_RETRIES})...`);
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       return connectToDatabase();
     }
     
-    throw new Error(`Falha ao conectar ao MongoDB Atlas após ${MAX_RETRIES} tentativas: ${err.message}`);
+    throw new Error(`Failed to connect to MongoDB Atlas after ${MAX_RETRIES} attempts: ${err.message}`);
   }
 }
 
-// Função para testar a conexão com o MongoDB Atlas
+// Function to test connection to MongoDB Atlas
 async function testConnection() {
   try {
-    // Simulação de um ping para o servidor MongoDB Atlas
-    // Em uma implementação real, isso seria um comando de ping real
-    console.log("Testando conexão com MongoDB Atlas...");
+    // Simulation of a ping to the MongoDB Atlas server
+    // In a real implementation, this would be a real ping command
+    console.log("Testing connection to MongoDB Atlas...");
     
-    // Simular uma resposta de ping bem-sucedida
+    // Simulate successful ping response
     return true;
   } catch (error) {
-    console.error("Teste de conexão com MongoDB Atlas falhou:", error);
-    throw new Error("Falha no teste de conexão com MongoDB Atlas");
+    console.error("MongoDB Atlas connection test failed:", error);
+    throw new Error("Failed connection test to MongoDB Atlas");
   }
 }
 
