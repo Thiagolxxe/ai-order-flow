@@ -48,7 +48,11 @@ export const apiConfig = {
     },
     videos: {
       base: '/api/videos',
-      getById: (id: string) => `/api/videos/${id}`
+      getById: (id: string) => `/api/videos/${id}`,
+      upload: '/api/videos/upload',
+      byRestaurant: (restaurantId: string) => `/api/videos/restaurant/${restaurantId}`,
+      trending: '/api/videos/trending',
+      recommended: '/api/videos/recommended'
     },
     // New connection check endpoint
     system: {

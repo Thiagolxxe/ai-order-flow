@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { API_BASE_URL } from '@/config/apiConfig';
-import { ConnectionDiagnostics } from '@/components/mongodb/ConnectionDiagnostics';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -22,7 +21,6 @@ const Login = () => {
   const [corsError, setCorsError] = useState<boolean>(false);
   const [authError, setAuthError] = useState<boolean>(false);
   const [mongodbStatus, setMongodbStatus] = useState<'connecting' | 'connected' | 'error' | null>(null);
-  const [showDemoCredentials, setShowDemoCredentials] = useState<boolean>(false);
   
   const { signIn, isAuthenticated } = useUser();
   const navigate = useNavigate();
@@ -93,7 +91,7 @@ const Login = () => {
             setCorsError(true);
           }
           
-          throw new Error(`Não foi possível conectar ao servidor ${API_BASE_URL}. Verifique se o serviço no Render está ativo.`);
+          throw new Error(`Não foi possível conectar ao servidor ${API_BASE_URL}. Verifique se o serviço está ativo.`);
         }
         
         // Authentication error (invalid credentials)
@@ -117,12 +115,6 @@ const Login = () => {
     }
   };
 
-  const handleDemoLogin = () => {
-    setEmail('demo@example.com');
-    setPassword('password123');
-    setShowDemoCredentials(false);
-  };
-
   return (
     <div className="container flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md">
@@ -140,58 +132,6 @@ const Login = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Erro de autenticação</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <ConnectionDiagnostics 
-              mongoStatus={mongodbStatus || 'idle'} 
-              apiStatus={apiError ? 'error' : 'idle'}
-              corsError={corsError}
-              authError={authError}
-            />
-            
-            {authError && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Credenciais inválidas</AlertTitle>
-                <AlertDescription>
-                  Email ou senha incorretos. Verifique suas credenciais e tente novamente.
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-sm mt-1 text-white underline"
-                    onClick={() => setShowDemoCredentials(!showDemoCredentials)}
-                  >
-                    {showDemoCredentials ? 'Ocultar credenciais de demonstração' : 'Usar credenciais de demonstração?'}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {showDemoCredentials && (
-              <Alert className="mb-4 bg-blue-100 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="text-blue-700">Credenciais de demonstração</AlertTitle>
-                <AlertDescription className="text-blue-600">
-                  Email: demo@example.com<br />
-                  Senha: password123
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="mt-2 bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                    onClick={handleDemoLogin}
-                  >
-                    Preencher automaticamente
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {apiError && !corsError && !authError && (
-              <Alert variant="destructive" className="mb-4">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  O servidor não está respondendo. Verifique se o serviço no Render está ativo em: {API_BASE_URL}
-                </AlertDescription>
               </Alert>
             )}
             

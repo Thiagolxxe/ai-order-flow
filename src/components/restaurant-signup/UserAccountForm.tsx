@@ -7,6 +7,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RestaurantFormValues } from '@/pages/RestaurantSignup';
@@ -36,6 +37,7 @@ const UserAccountForm = <
               <FormControl>
                 <Input type="email" placeholder="seu@email.com" {...field} />
               </FormControl>
+              <FormDescription>Este será o seu email de acesso</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -50,6 +52,7 @@ const UserAccountForm = <
               <FormControl>
                 <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
               </FormControl>
+              <FormDescription>Mínimo de 6 caracteres</FormDescription>
               <FormMessage />
             </FormItem>
           )}

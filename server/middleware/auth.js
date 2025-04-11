@@ -1,5 +1,6 @@
 
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 /**
  * Middleware to verify JWT token
@@ -19,11 +20,14 @@ const authenticateToken = (req, res, next) => {
     return res.status(500).json({ error: 'Erro de configuração do servidor' });
   }
   
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Token inválido' });
-    req.user = user;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return res.status(403).json({ error: 'Token inválido ou expirado' });
+  }
 };
 
 /**
@@ -64,7 +68,29 @@ const checkRole = (roles) => {
   };
 };
 
+/**
+ * Helper function to hash a password
+ * @param {string} password - Plain text password to hash
+ * @returns {Promise<string>} - Hashed password
+ */
+const hashPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+};
+
+/**
+ * Helper function to compare a password with a hash
+ * @param {string} password - Plain text password to check
+ * @param {string} hash - Hashed password to compare against
+ * @returns {Promise<boolean>} - True if password matches hash
+ */
+const comparePassword = async (password, hash) => {
+  return bcrypt.compare(password, hash);
+};
+
 module.exports = {
   authenticateToken,
-  checkRole
+  checkRole,
+  hashPassword,
+  comparePassword
 };

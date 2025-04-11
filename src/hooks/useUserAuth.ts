@@ -1,9 +1,10 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { User, Session } from '@/types/user';
-import { connectToDatabase } from '@/integrations/mongodb/client';
+import { apiService } from '@/services/apiService';
 import { httpClient } from '@/utils/httpClient';
-import { SESSION_STORAGE_KEY, API_BASE_URL } from '@/config/apiConfig';
+import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
 
 /**
  * Hook for user authentication functionality
@@ -20,107 +21,44 @@ export const useUserAuth = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Handle demo user
-      if (email === 'demo@example.com' && password === 'password123') {
-        const demoUser = {
-          id: 'demo-user-id',
-          email: 'demo@example.com',
-          user_metadata: {
-            nome: 'Usuário',
-            sobrenome: 'Demo'
-          }
-        };
-        
-        setUser(demoUser as User);
-        setSession({ access_token: 'demo-token-' + Math.random().toString(36).substring(2) });
-        setRole('cliente');
-        
-        // Save session to localStorage
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
-          session: {
-            user: demoUser,
-            access_token: 'demo-token-' + Math.random().toString(36).substring(2)
-          },
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        }));
-        
-        toast.success('Login com usuário de demonstração realizado com sucesso!');
-        return {};
+      // Validate input
+      if (!email || !password) {
+        toast.error('Email e senha são obrigatórios');
+        return { error: { message: 'Email e senha são obrigatórios' } };
       }
       
-      // First, verify MongoDB Atlas connection
-      try {
-        await connectToDatabase();
-        console.log('MongoDB Atlas connection verified before authentication attempt');
-      } catch (connectionError) {
-        console.error('MongoDB Atlas connection failed:', connectionError);
-        return { 
-          error: { 
-            message: 'Failed to connect to MongoDB Atlas. Please check your internet connection and Atlas configuration.' 
-          } 
-        };
+      console.log('Attempting to connect to server for authentication...');
+      
+      // Use the authService for login
+      const { data, error } = await apiService.auth.signIn({ email, password });
+      
+      if (error) {
+        console.error('Authentication error:', error);
+        toast.error(error.message || 'Falha na autenticação');
+        return { error };
       }
       
-      // Authenticate with Render API
-      try {
-        console.log('Attempting to connect to:', API_BASE_URL);
-        
-        // Use httpClient to handle authentication
-        const { data, error } = await httpClient.post('api/auth/login', {
-          email, 
-          password
-        });
-        
-        if (error) {
-          throw new Error(error.message || 'Authentication failed');
-        }
-        
-        setUser(data.user as User);
-        setSession({ access_token: data.session.access_token });
-        
-        // Try to check user role from MongoDB Atlas
-        try {
-          const { db } = await connectToDatabase();
-          const userRolesResult = await db.collection('user_roles').findOne({
-            userId: data.user.id
-          });
-          
-          if (userRolesResult) {
-            setRole(userRolesResult.role);
-          }
-        } catch (error) {
-          console.error('Error checking user role:', error);
-        }
-        
-        // Save session to localStorage
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
-          session: {
-            user: data.user,
-            access_token: data.session.access_token
-          },
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        }));
-        
-        toast.success('Login successful!');
-        return {};
-      } catch (serverError: any) {
-        console.error('Server connection error:', serverError);
-        
-        // Enhanced error for connection issues
-        if (serverError instanceof TypeError && 
-           (serverError.message === 'Failed to fetch' || 
-            serverError.message.includes('NetworkError'))) {
-          return { 
-            error: { 
-              message: `Cannot connect to the server at ${API_BASE_URL}. Verify your server configuration and network connectivity.`,
-              code: 'CONNECTION_ERROR'
-            } 
-          };
-        }
-        return { error: serverError };
+      if (!data || !data.session) {
+        console.error('No session data returned from server');
+        toast.error('Erro no serviço de autenticação');
+        return { error: { message: 'Erro no serviço de autenticação' } };
       }
+      
+      // Update state with user info and session
+      setUser(data.session.user as User);
+      setSession({ access_token: data.session.access_token });
+      
+      // Try to get user role
+      if (data.session.role) {
+        setRole(data.session.role);
+      }
+      
+      toast.success('Login realizado com sucesso!');
+      return { data };
+      
     } catch (error: any) {
-      console.error('General error during login attempt:', error);
+      console.error('Sign in error:', error);
+      toast.error(error.message || 'Falha na autenticação');
       return { error };
     } finally {
       setIsLoading(false);
@@ -133,34 +71,43 @@ export const useUserAuth = () => {
   const signUp = async (credentials: any) => {
     setIsLoading(true);
     try {
-      // Register with MongoDB server API
-      const { data, error } = await httpClient.post('api/auth/register', {
-        email: credentials.email,
-        password: credentials.password,
-        nome: credentials.options?.data?.nome || '',
-        sobrenome: credentials.options?.data?.sobrenome || ''
-      });
+      // Validate input
+      if (!credentials.email || !credentials.password) {
+        toast.error('Email e senha são obrigatórios');
+        return { error: { message: 'Email e senha são obrigatórios' } };
+      }
+      
+      // Use the authService for registration
+      const { data, error } = await apiService.auth.signUp(credentials);
       
       if (error) {
+        console.error('Registration error:', error);
         toast.error(error.message || 'Erro ao criar conta');
         return { error };
       }
       
-      setUser(data.user as User);
+      if (!data || !data.session) {
+        console.error('No session data returned from server');
+        toast.error('Erro no serviço de registro');
+        return { error: { message: 'Erro no serviço de registro' } };
+      }
+      
+      // Update state with user info and session
+      setUser(data.session.user as User);
       setSession({ access_token: data.session.access_token });
       
-      // Save session to localStorage
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
-        session: {
-          user: data.user,
-          access_token: data.session.access_token
-        },
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      }));
+      // Set default role for new users
+      if (data.session.role) {
+        setRole(data.session.role);
+      } else {
+        setRole('cliente');
+      }
       
       toast.success('Conta criada com sucesso!');
-      return {};
+      return { data };
+      
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast.error(error.message || 'Erro ao criar conta');
       return { error };
     } finally {
@@ -174,15 +121,18 @@ export const useUserAuth = () => {
   const signOut = async () => {
     setIsLoading(true);
     try {
-      // No need to call any API, just remove local session
+      // Call the auth service to logout
+      await apiService.auth.signOut();
+      
+      // Clear state
       setUser(null);
       setSession(null);
       setRole(null);
-      localStorage.removeItem(SESSION_STORAGE_KEY);
+      
       toast.success('Logout realizado com sucesso!');
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast.error(error.message || 'Erro ao fazer logout');
-      console.error('Erro ao fazer logout:', error);
     } finally {
       setIsLoading(false);
     }

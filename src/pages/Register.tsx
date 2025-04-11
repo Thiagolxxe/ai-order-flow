@@ -12,6 +12,8 @@ import { useUser } from '@/context/UserContext';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Form } from '@/components/ui/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -33,6 +35,9 @@ const formSchema = z.object({
   terms: z.literal(true, {
     errorMap: () => ({ message: 'Você deve aceitar os termos e condições.' }),
   }),
+}).refine((data) => data.password === data.passwordConfirm, {
+  message: "As senhas não coincidem",
+  path: ["passwordConfirm"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -41,6 +46,7 @@ const Register = () => {
   const { signUp } = useUser();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -55,15 +61,11 @@ const Register = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
-    if (data.password !== data.passwordConfirm) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-    
+    setError(null);
     setIsLoading(true);
     
     try {
-      // Format credentials for MongoDB registration
+      // Format credentials for registration
       const credentials = {
         email: data.email,
         password: data.password,
@@ -75,15 +77,19 @@ const Register = () => {
         }
       };
       
+      console.log('Submitting registration data:', { ...credentials, password: '[REDACTED]' });
+      
       const { error } = await signUp(credentials);
       
       if (error) {
+        setError(error.message || 'Erro ao criar conta');
         toast.error(error.message || 'Erro ao criar conta');
       } else {
         toast.success('Conta criada com sucesso!');
         navigate('/');
       }
     } catch (error: any) {
+      setError(error.message || 'Erro ao criar conta');
       toast.error(error.message || 'Erro ao criar conta');
     } finally {
       setIsLoading(false);
@@ -96,7 +102,15 @@ const Register = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">Criar uma conta</CardTitle>
         </CardHeader>
+        
         <CardContent className="grid gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <div className="grid gap-2">
@@ -105,6 +119,7 @@ const Register = () => {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Nome</FormLabel>
                       <FormControl>
                         <Input
                           id="firstName"
@@ -124,6 +139,7 @@ const Register = () => {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Sobrenome</FormLabel>
                       <FormControl>
                         <Input
                           id="lastName"
@@ -143,6 +159,7 @@ const Register = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
                           id="email"
@@ -165,6 +182,7 @@ const Register = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Senha</FormLabel>
                       <FormControl>
                         <Input
                           id="password"
@@ -184,6 +202,7 @@ const Register = () => {
                   name="passwordConfirm"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Confirmar Senha</FormLabel>
                       <FormControl>
                         <Input
                           id="passwordConfirm"
@@ -222,7 +241,14 @@ const Register = () => {
               </div>
               
               <Button disabled={isLoading} type="submit" className="w-full">
-                Criar conta
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Criar conta'
+                )}
               </Button>
             </form>
           </Form>
