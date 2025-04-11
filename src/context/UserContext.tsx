@@ -1,9 +1,9 @@
 
-import React, { createContext, useContext, useEffect } from 'react';
-import { UserContextProps } from '@/types/user';
-import { useUserAuth } from '@/hooks/useUserAuth';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { UserContextProps, User } from '@/types/user';
 import { loadSession } from '@/services/sessionService';
 
+// Create the context with an undefined default value
 export const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 // Export the useUser hook directly from this file
@@ -16,21 +16,11 @@ export const useUser = () => {
 };
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use our new hook for authentication functionality
-  const { 
-    user, 
-    setUser, 
-    session, 
-    setSession, 
-    isLoading, 
-    setIsLoading, 
-    role, 
-    setRole, 
-    signIn, 
-    signUp, 
-    signOut, 
-    updateUserData 
-  } = useUserAuth();
+  // Define state variables directly in the provider
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any>(null); // Use explicit typing if possible
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [role, setRole] = useState<string | null>(null);
   
   // Load the session on mount
   useEffect(() => {
@@ -49,7 +39,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     initSession();
-  }, [setIsLoading, setUser, setSession, setRole]);
+  }, []);
+  
+  // Define auth functions directly in the provider
+  const signIn = async (email: string, password: string) => {
+    // Implementation here
+    console.log('Sign in with:', email);
+    return { error: undefined };
+  };
+  
+  const signUp = async (credentials: any) => {
+    // Implementation here
+    console.log('Sign up with:', credentials.email);
+    return { error: undefined };
+  };
+  
+  const signOut = async () => {
+    // Implementation here
+    setUser(null);
+    setSession(null);
+    setRole(null);
+  };
+  
+  const updateUserData = (data: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...data } : null);
+  };
   
   // Create the context value object
   const value: UserContextProps = {

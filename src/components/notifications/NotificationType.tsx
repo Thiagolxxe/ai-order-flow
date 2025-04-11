@@ -5,12 +5,10 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Check, Bell, Info, AlertTriangle, AlertCircle } from 'lucide-react';
-import { Notification as NotificationApiType } from '@/services/api/types';
+import { Notification } from '@/services/api/types';
 
-// Export NotificationType interface to make it accessible for other components
-export interface NotificationType extends Omit<NotificationApiType, 'criado_em'> {
-  criado_em: Date;
-}
+// Export NotificationType for use in other components
+export type NotificationType = Notification;
 
 interface NotificationItemProps {
   notification: NotificationType;
@@ -32,7 +30,8 @@ const getIconByType = (type: string) => {
 };
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMarkAsRead }) => {
-  const timeAgo = formatDistanceToNow(new Date(notification.criado_em), {
+  // Support both English and Portuguese field names
+  const timeAgo = formatDistanceToNow(new Date(notification.createdAt || notification.criado_em || new Date()), {
     addSuffix: true,
     locale: ptBR,
   });
@@ -51,31 +50,38 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMar
     }
   };
 
+  // Handle both naming conventions
+  const notificationType = notification.type || notification.tipo || 'info';
+  const notificationTitle = notification.title || notification.titulo || '';
+  const notificationMessage = notification.message || notification.mensagem || '';
+  const notificationRead = notification.read || notification.lida || false;
+  const notificationId = notification.id || notification._id || '';
+
   return (
     <div className="py-4 flex flex-col sm:flex-row items-start gap-3 group hover:bg-muted/50 p-3 rounded-md transition-colors">
       <div className="flex-shrink-0 mt-1">
-        {getIconByType(notification.tipo)}
+        {getIconByType(notificationType)}
       </div>
       
       <div className="flex-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-          <h4 className="font-medium text-base">{notification.titulo}</h4>
+          <h4 className="font-medium text-base">{notificationTitle}</h4>
           <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
         
-        <p className="text-sm text-muted-foreground mb-2">{notification.mensagem}</p>
+        <p className="text-sm text-muted-foreground mb-2">{notificationMessage}</p>
         
         <div className="flex items-center justify-between mt-1">
-          <Badge variant={getBadgeVariant(notification.tipo) as any} className="text-xs">
-            {notification.tipo}
+          <Badge variant={getBadgeVariant(notificationType) as any} className="text-xs">
+            {notificationType}
           </Badge>
           
-          {!notification.lida && (
+          {!notificationRead && (
             <Button 
               variant="ghost" 
               size="sm" 
               className="text-xs flex items-center gap-1 h-7"
-              onClick={() => onMarkAsRead(notification._id)}
+              onClick={() => onMarkAsRead(notificationId)}
             >
               <Check className="h-3.5 w-3.5" />
               Marcar como lida

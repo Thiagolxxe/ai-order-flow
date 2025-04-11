@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,15 +23,25 @@ import {
 } from 'lucide-react';
 import { UserProfile as UserProfileType, Address } from '@/services/api/types';
 
+interface ProfileData {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  // Legacy field support
+  name?: string;
+}
+
 const UserProfile = () => {
   const { user, updateUserData } = useUser();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [profile, setProfile] = useState<UserProfileType>({
-    name: '',
+  const [profile, setProfile] = useState<ProfileData>({
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    name: ''
   });
   const [addresses, setAddresses] = useState<Address[]>([]);
 
@@ -41,10 +52,10 @@ const UserProfile = () => {
         if (user) {
           // Set initial data from current user
           setProfile({
-            name: user.name || '',
             email: user.email || '',
             phone: user.phone || '',
-            address: user.address || ''
+            address: user.address || '',
+            name: user.name || ''
           });
           
           // Fetch additional user data
@@ -60,15 +71,31 @@ const UserProfile = () => {
             setProfile(prevProfile => ({
               ...prevProfile,
               ...(userData || {}),
-              email: user.email // Keep email from auth
+              // Support for both naming conventions
+              firstName: userData.firstName || userData.user_metadata?.nome || '',
+              lastName: userData.lastName || userData.user_metadata?.sobrenome || '',
+              name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+              email: user.email, // Keep email from auth
+              phone: userData.phone || prevProfile.phone,
+              address: userData.address || prevProfile.address
             }));
           }
           
           // Fetch user addresses
           const addressesResponse = await apiService.addresses.getAll();
           if (addressesResponse.data) {
-            // Type assertion to Address[]
-            setAddresses(addressesResponse.data as Address[]);
+            // Type assertion to Address[] and normalize field names
+            const addressData = (addressesResponse.data as Address[]).map(addr => ({
+              ...addr,
+              // Support for both field naming conventions
+              street: addr.street || addr.endereco || '',
+              city: addr.city || addr.cidade || '',
+              state: addr.state || addr.estado || '',
+              zipCode: addr.zipCode || addr.cep || '',
+              // Add label for UI display
+              label: addr.label || (addr.isDefault ? 'Endereço Principal' : 'Endereço')
+            }));
+            setAddresses(addressData);
           }
         }
       } catch (error) {
@@ -145,7 +172,7 @@ const UserProfile = () => {
             <CardContent className="pt-6 flex flex-col items-center text-center">
               <Avatar className="h-24 w-24 mb-4">
                 <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+                <AvatarFallback>{getInitials(profile.name || '')}</AvatarFallback>
               </Avatar>
               <h2 className="text-xl font-bold">{profile.name || 'Usuário'}</h2>
               <p className="text-sm text-muted-foreground">{profile.email}</p>
@@ -208,7 +235,7 @@ const UserProfile = () => {
                           id="name"
                           name="name"
                           placeholder="Seu nome"
-                          value={profile.name}
+                          value={profile.name || ''}
                           onChange={handleInputChange}
                         />
                       </div>
@@ -236,7 +263,7 @@ const UserProfile = () => {
                             id="phone"
                             name="phone"
                             placeholder="(11) 99999-9999"
-                            value={profile.phone}
+                            value={profile.phone || ''}
                             onChange={handleInputChange}
                           />
                         </div>
@@ -250,7 +277,7 @@ const UserProfile = () => {
                             id="address"
                             name="address"
                             placeholder="Seu endereço"
-                            value={profile.address}
+                            value={profile.address || ''}
                             onChange={handleInputChange}
                           />
                         </div>
@@ -301,9 +328,9 @@ const UserProfile = () => {
                             <div className="flex justify-between items-center">
                               <div>
                                 <p className="font-medium">{address.label || 'Endereço'}</p>
-                                <p className="text-sm text-muted-foreground">{address.endereco}</p>
+                                <p className="text-sm text-muted-foreground">{address.street || address.endereco}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.cidade}, {address.estado} - {address.cep}
+                                  {address.city || address.cidade}, {address.state || address.estado} - {address.zipCode || address.cep}
                                 </p>
                               </div>
                               <Button variant="outline" size="sm">

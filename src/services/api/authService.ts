@@ -77,6 +77,12 @@ const stopTokenRefresh = () => {
   }
 };
 
+interface ApiResponse<T> {
+  data?: T;
+  error?: { message: string; code?: string };
+  success?: boolean;
+}
+
 export const authService = {
   signUp: async (params: AuthSignUpParams): Promise<ApiResult<{ session?: UserSession }>> => {
     try {
@@ -102,13 +108,16 @@ export const authService = {
       console.log('Registrando usuário:', { email, ...userData, password: '[REDACTED]' });
       
       // Criar novo usuário
-      const { data, error, success } = await httpClient.post(apiConfig.endpoints.auth.register, {
+      const response: ApiResponse<{ session?: UserSession }> = await httpClient.post(apiConfig.endpoints.auth.register, {
         email,
         password,
         nome: userData.options?.data?.nome || '',
         sobrenome: userData.options?.data?.sobrenome || '',
         ...userData
       });
+      
+      const { data, error } = response;
+      const success = response.success !== undefined ? response.success : !error;
       
       if (error) {
         console.error('Erro no registro:', error);
@@ -289,7 +298,9 @@ export const authService = {
       }
       
       // Buscar papel do usuário do servidor
-      const { data, error } = await httpClient.get(apiConfig.endpoints.users.roles);
+      const response: ApiResponse<{ roles?: string[] }> = await httpClient.get(apiConfig.endpoints.users.roles);
+      const { data, error } = response;
+      const success = response.success !== undefined ? response.success : !error;
       
       if (error || !data) {
         console.error('Erro ao verificar papéis do usuário:', error);

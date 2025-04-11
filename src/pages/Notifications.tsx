@@ -6,7 +6,7 @@ import NotificationItem, { NotificationType } from '@/components/notifications/N
 import { apiService } from '@/services/apiService';
 import { useUser } from '@/context/UserContext';
 import { toast } from 'sonner';
-import { Notification } from '@/services/api/types';
+import { Notification, PaginatedResponse } from '@/services/api/types';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
@@ -19,24 +19,38 @@ const Notifications = () => {
       
       try {
         setLoading(true);
-        const { data, error } = await apiService.notifications.getByUserId();
+        const { data, error } = await apiService.notifications.getByUserId(user.id);
         
         if (error) {
           throw new Error(error.message);
         }
         
-        // Cast data to Notification[] before sorting
-        const notificationsData = data as Notification[];
+        // Cast data to appropriate type and extract notifications array
+        let notificationsArray: Notification[] = [];
+        
+        if (data) {
+          // Handle both PaginatedResponse and direct array return types
+          if ('items' in (data as PaginatedResponse<Notification>)) {
+            notificationsArray = (data as PaginatedResponse<Notification>).items;
+          } else if (Array.isArray(data)) {
+            notificationsArray = data as Notification[];
+          }
+        }
         
         // Sort notifications by date (newest first)
-        const sortedNotifications = notificationsData.sort((a, b) => {
-          return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
+        const sortedNotifications = notificationsArray.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.criado_em || 0);
+          const dateB = new Date(b.createdAt || b.criado_em || 0);
+          return dateB.getTime() - dateA.getTime();
         });
         
-        // Convert to NotificationType[] by ensuring criado_em is a Date
+        // Convert to NotificationType[]
         const typedNotifications: NotificationType[] = sortedNotifications.map(notification => ({
           ...notification,
-          criado_em: new Date(notification.criado_em)
+          id: notification.id || notification._id || `temp-${Math.random()}`,
+          createdAt: notification.createdAt instanceof Date ? 
+            notification.createdAt : 
+            new Date(notification.createdAt || notification.criado_em || Date.now())
         }));
         
         setNotifications(typedNotifications);
@@ -69,8 +83,8 @@ const Notifications = () => {
       // Update local state
       setNotifications(prev => 
         prev.map(notif => 
-          notif._id === notificationId 
-            ? { ...notif, lida: true } 
+          (notif.id === notificationId || notif._id === notificationId)
+            ? { ...notif, read: true, lida: true } 
             : notif
         )
       );
@@ -86,31 +100,49 @@ const Notifications = () => {
   const getMockNotifications = (userId: string): NotificationType[] => {
     return [
       {
+        id: '1',
         _id: '1',
+        title: 'Seu pedido foi confirmado!',
         titulo: 'Seu pedido foi confirmado!',
+        message: 'O restaurante confirmou seu pedido #12345 e já está preparando.',
         mensagem: 'O restaurante confirmou seu pedido #12345 e já está preparando.',
+        type: 'success',
         tipo: 'success',
+        read: false,
         lida: false,
+        userId: userId,
         usuario_id: userId,
-        criado_em: new Date(Date.now() - 15 * 60000) // 15 minutes ago
+        createdAt: new Date(Date.now() - 15 * 60000) // 15 minutes ago
       },
       {
+        id: '2',
         _id: '2',
+        title: 'Entregador a caminho',
         titulo: 'Entregador a caminho',
+        message: 'João está a caminho para entregar seu pedido.',
         mensagem: 'João está a caminho para entregar seu pedido.',
+        type: 'info',
         tipo: 'info',
+        read: true,
         lida: true,
+        userId: userId,
         usuario_id: userId,
-        criado_em: new Date(Date.now() - 2 * 60 * 60000) // 2 hours ago
+        createdAt: new Date(Date.now() - 2 * 60 * 60000) // 2 hours ago
       },
       {
+        id: '3',
         _id: '3',
+        title: 'Novo cupom disponível!',
         titulo: 'Novo cupom disponível!',
+        message: 'Use o código BEMVINDO20 para obter 20% de desconto em seu próximo pedido.',
         mensagem: 'Use o código BEMVINDO20 para obter 20% de desconto em seu próximo pedido.',
+        type: 'info',
         tipo: 'info',
+        read: false,
         lida: false,
+        userId: userId,
         usuario_id: userId,
-        criado_em: new Date(Date.now() - 24 * 60 * 60000) // 24 hours ago
+        createdAt: new Date(Date.now() - 24 * 60 * 60000) // 24 hours ago
       }
     ];
   };
@@ -131,7 +163,7 @@ const Notifications = () => {
             <div className="divide-y">
               {notifications.map((notification) => (
                 <NotificationItem 
-                  key={notification._id} 
+                  key={notification.id || notification._id} 
                   notification={notification} 
                   onMarkAsRead={handleMarkAsRead}
                 />

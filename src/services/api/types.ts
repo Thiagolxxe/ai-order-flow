@@ -48,12 +48,19 @@ export interface PaginatedResponse<T> {
 
 export interface Notification {
   id: string;
+  _id?: string; // Support for legacy MongoDB ID format
   title: string;
+  titulo?: string; // Support for Portuguese naming
   message: string;
+  mensagem?: string; // Support for Portuguese naming
   type: 'info' | 'warning' | 'error' | 'success';
+  tipo?: 'info' | 'warning' | 'error' | 'success'; // Support for Portuguese naming
   read: boolean;
+  lida?: boolean; // Support for Portuguese naming
   createdAt: Date;
+  criado_em?: Date; // Support for Portuguese naming
   userId: string;
+  usuario_id?: string; // Support for Portuguese naming
 }
 
 export interface UserProfile {
@@ -66,19 +73,32 @@ export interface UserProfile {
   role?: string;
   createdAt: Date;
   addresses?: Address[];
+  // Support for legacy fields
+  name?: string;
+  address?: string;
+  user_metadata?: {
+    nome?: string;
+    sobrenome?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Address {
   id: string;
   street: string;
+  endereco?: string; // Support for Portuguese naming
   number: string;
   complement?: string;
   neighborhood: string;
   city: string;
+  cidade?: string; // Support for Portuguese naming
   state: string;
+  estado?: string; // Support for Portuguese naming
   zipCode: string;
+  cep?: string; // Support for Portuguese naming
   isDefault?: boolean;
   userId: string;
+  label?: string; // Added for UI display purposes
 }
 
 export interface VideoComment {
@@ -177,3 +197,4 @@ export interface SocialShareMetadata {
   qrCodeUrl?: string;
   utm?: Record<string, string>;
 }
+

@@ -41,12 +41,15 @@ const NotificationIndicator = () => {
           notificationsData = [];
         }
         
-        // Convert to NotificationType[] by ensuring criado_em is a Date
+        // Convert to NotificationType[] by ensuring correct date format
         const typedNotifications: NotificationType[] = notificationsData.map((notification: any) => ({
           ...notification,
-          _id: notification._id || notification.id || `temp-${Math.random()}`,
-          criado_em: notification.criado_em instanceof Date ? 
-            notification.criado_em : new Date(notification.criado_em || Date.now())
+          id: notification.id || notification._id || `temp-${Math.random()}`,
+          createdAt: notification.createdAt instanceof Date ? 
+            notification.createdAt : 
+            notification.criado_em instanceof Date ? 
+              notification.criado_em : 
+              new Date(notification.createdAt || notification.criado_em || Date.now())
         }));
         
         setUnreadCount(typedNotifications.length);
@@ -73,8 +76,8 @@ const NotificationIndicator = () => {
       if (success) {
         setRecentNotifications(prev => 
           prev.map(notif => 
-            notif._id === notificationId 
-              ? { ...notif, lida: true } 
+            (notif.id === notificationId || notif._id === notificationId)
+              ? { ...notif, read: true, lida: true } 
               : notif
           )
         );
@@ -122,28 +125,36 @@ const NotificationIndicator = () => {
           </div>
         ) : recentNotifications.length > 0 ? (
           <div className="max-h-[300px] overflow-y-auto">
-            {recentNotifications.map(notification => (
-              <div key={notification._id} className="p-3 border-b hover:bg-muted/50 transition-colors">
-                <div className="flex items-start gap-2">
-                  <p className="text-sm font-medium line-clamp-1">
-                    {notification.titulo}
+            {recentNotifications.map(notification => {
+              // Support for both field naming conventions
+              const notificationId = notification.id || notification._id || '';
+              const notificationTitle = notification.title || notification.titulo || '';
+              const notificationMessage = notification.message || notification.mensagem || '';
+              const notificationRead = notification.read || notification.lida || false;
+              
+              return (
+                <div key={notificationId} className="p-3 border-b hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start gap-2">
+                    <p className="text-sm font-medium line-clamp-1">
+                      {notificationTitle}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {notificationMessage}
                   </p>
+                  {!notificationRead && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="mt-2 h-7 text-xs"
+                      onClick={() => handleMarkAsRead(notificationId)}
+                    >
+                      Marcar como lida
+                    </Button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {notification.mensagem}
-                </p>
-                {!notification.lida && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-2 h-7 text-xs"
-                    onClick={() => handleMarkAsRead(notification._id)}
-                  >
-                    Marcar como lida
-                  </Button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="p-6 text-center">

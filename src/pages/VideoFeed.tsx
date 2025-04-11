@@ -7,6 +7,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 
+// Type definition for Navigator with NetworkInformation
+interface ExtendedNavigator extends Navigator {
+  connection?: {
+    effectiveType?: string;
+    addEventListener?: (type: string, listener: EventListener) => void;
+    removeEventListener?: (type: string, listener: EventListener) => void;
+  };
+}
+
 const VideoFeed = () => {
   const {
     activeVideoIndex,
@@ -37,8 +46,11 @@ const VideoFeed = () => {
   
   // Show adaptive streaming notice
   useEffect(() => {
-    const connection = navigator.connection as any;
-    if (connection && connection.effectiveType === '2g' || connection?.effectiveType === '3g') {
+    // Safely access the connection property from navigator with type assertion
+    const extendedNavigator = navigator as ExtendedNavigator;
+    const connection = extendedNavigator.connection;
+    
+    if (connection && (connection.effectiveType === '2g' || connection.effectiveType === '3g')) {
       setTimeout(() => {
         toast.info("Qualidade de vídeo ajustada para sua conexão atual", {
           duration: 3000,
