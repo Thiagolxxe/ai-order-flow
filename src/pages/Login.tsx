@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, Database } from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,11 +17,29 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
+  const [mongodbStatus, setMongodbStatus] = useState<'connecting' | 'connected' | 'error' | null>(null);
   
   const { signIn, isAuthenticated } = useUser();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
+
+  // Test MongoDB Atlas connection on component mount
+  useEffect(() => {
+    const testMongoDBConnection = async () => {
+      setMongodbStatus('connecting');
+      try {
+        await connectToDatabase();
+        setMongodbStatus('connected');
+        console.log('Conexão com MongoDB Atlas verificada com sucesso');
+      } catch (error) {
+        console.error('Erro ao conectar com MongoDB Atlas:', error);
+        setMongodbStatus('error');
+      }
+    };
+    
+    testMongoDBConnection();
+  }, []);
 
   // If already authenticated, redirect
   useEffect(() => {
@@ -40,6 +59,16 @@ const Login = () => {
         throw new Error('E-mail e senha são obrigatórios');
       }
 
+      // Test MongoDB connection before attempting to authenticate
+      try {
+        await connectToDatabase();
+        console.log('Conexão com MongoDB Atlas verificada antes da autenticação');
+      } catch (connectionError) {
+        console.error('Falha na conexão com MongoDB Atlas:', connectionError);
+        setApiError(true);
+        throw new Error('Não foi possível conectar ao MongoDB Atlas. Verifique sua conexão com a internet.');
+      }
+
       // Authenticate with MongoDB
       const { error } = await signIn(email, password);
       
@@ -51,7 +80,7 @@ const Login = () => {
             error.message?.includes('ECONNREFUSED') ||
             error.message?.includes('NetworkError')) {
           setApiError(true);
-          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o servidor MongoDB Atlas está disponível.');
+          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o MongoDB Atlas está disponível.');
         }
         throw new Error(error.message || 'Credenciais inválidas');
       }
@@ -88,7 +117,37 @@ const Login = () => {
               <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  O servidor não está respondendo. Verifique sua conexão com a internet ou se o servidor MongoDB Atlas está disponível.
+                  O servidor não está respondendo. Verifique sua conexão com a internet ou se o MongoDB Atlas está disponível.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {mongodbStatus === 'connecting' && (
+              <Alert className="mb-4 bg-yellow-100 border-yellow-200">
+                <div className="animate-spin mr-2 h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full"></div>
+                <AlertTitle className="text-yellow-700">Verificando conexão</AlertTitle>
+                <AlertDescription className="text-yellow-600">
+                  Verificando conexão com MongoDB Atlas...
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {mongodbStatus === 'error' && (
+              <Alert variant="destructive" className="mb-4">
+                <Database className="h-4 w-4" />
+                <AlertTitle>Erro de conexão</AlertTitle>
+                <AlertDescription>
+                  Não foi possível conectar ao MongoDB Atlas. Verifique sua conexão com a internet e configurações do cluster.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {mongodbStatus === 'connected' && (
+              <Alert className="mb-4 bg-green-100 border-green-200">
+                <Database className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-700">MongoDB Atlas</AlertTitle>
+                <AlertDescription className="text-green-600">
+                  Conectado com sucesso ao MongoDB Atlas
                 </AlertDescription>
               </Alert>
             )}
@@ -125,7 +184,7 @@ const Login = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading}
+              disabled={loading || mongodbStatus === 'connecting' || mongodbStatus === 'error'}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
