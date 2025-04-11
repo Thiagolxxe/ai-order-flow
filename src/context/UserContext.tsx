@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { supabaseClient } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
+import { apiService } from '@/services/apiService';
+import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
 
 interface User {
   id: string;
@@ -48,30 +50,44 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadSession = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabaseClient.auth.getSession();
+        // Try to load session from localStorage
+        const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
         
-        if (error) {
-          console.error('Erro ao carregar sessão:', error);
+        if (!sessionStr) {
+          setIsLoading(false);
           return;
         }
         
-        if (data?.session) {
-          setUser(data.session.user as User);
-          setSession({ access_token: data.session.access_token });
+        try {
+          const sessionData = JSON.parse(sessionStr);
+          const { session, expires_at } = sessionData;
+          
+          // Check if session expired
+          if (expires_at && new Date(expires_at) < new Date()) {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+            setIsLoading(false);
+            return;
+          }
+          
+          setUser(session.user as User);
+          setSession({ access_token: session.access_token });
           
           // Check user role
           try {
             const { db } = await connectToDatabase();
-            const userRolesResult = await db.collection('funcoes_usuario').findOne({
-              usuario_id: data.session.user.id
+            const userRolesResult = await db.collection('user_roles').findOne({
+              userId: session.user.id
             });
             
-            if (userRolesResult && userRolesResult.data) {
-              setRole(userRolesResult.data.role_name);
+            if (userRolesResult) {
+              setRole(userRolesResult.role);
             }
           } catch (error) {
             console.error('Erro ao verificar função do usuário:', error);
           }
+        } catch (e) {
+          console.error('Error parsing session:', e);
+          localStorage.removeItem(SESSION_STORAGE_KEY);
         }
       } catch (error) {
         console.error('Error loading session:', error);
@@ -81,102 +97,35 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     loadSession();
-    
-    // Listen for authentication state changes
-    const { data: authListener } = supabaseClient.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN') {
-          if (session?.user) {
-            setUser(session?.user as User || null);
-            setSession({ access_token: session?.access_token || '' });
-            
-            // Check user role when signing in
-            try {
-              const { db } = await connectToDatabase();
-              const userRolesResult = await db.collection('funcoes_usuario').findOne({
-                usuario_id: session.user.id
-              });
-              
-              if (userRolesResult && userRolesResult.data) {
-                setRole(userRolesResult.data.role_name);
-              }
-            } catch (error) {
-              console.error('Erro ao verificar função do usuário:', error);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setSession(null);
-          setRole(null);
-        }
-      }
-    );
-    
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
   }, []);
   
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // First try to authenticate with Supabase
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        console.error('Erro ao fazer login com Supabase:', error);
+      // Authenticate with MongoDB server API
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
         
-        // If Supabase fails, try to authenticate with server API
-        try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Falha na autenticação');
-          }
-          
-          const userData = await response.json();
-          setUser(userData.user as User);
-          setSession({ access_token: userData.session.access_token });
-          
-          // Check user role
-          try {
-            const { db } = await connectToDatabase();
-            const userRolesResult = await db.collection('user_roles').findOne({
-              userId: userData.user.id
-            });
-            
-            if (userRolesResult) {
-              setRole(userRolesResult.role);
-            }
-          } catch (error) {
-            console.error('Erro ao verificar função do usuário:', error);
-          }
-          
-          localStorage.setItem('userData', JSON.stringify(userData.user));
-          return {};
-        } catch (serverError: any) {
-          return { error: serverError };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Falha na autenticação');
         }
-      } else {
-        // Supabase login successful
-        setUser(data.user as User);
-        setSession({ access_token: data.session.access_token });
         
-        // Check user role in MongoDB
+        const userData = await response.json();
+        setUser(userData.user as User);
+        setSession({ access_token: userData.session.access_token });
+        
+        // Check user role
         try {
           const { db } = await connectToDatabase();
           const userRolesResult = await db.collection('user_roles').findOne({
-            userId: data.user.id
+            userId: userData.user.id
           });
           
           if (userRolesResult) {
@@ -186,10 +135,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Erro ao verificar função do usuário:', error);
         }
         
-        localStorage.setItem('userData', JSON.stringify(data.user));
-        toast.success('Login realizado com sucesso!');
+        // Save session to localStorage
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          session: {
+            user: userData.user,
+            access_token: userData.session.access_token
+          },
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+        }));
         
+        toast.success('Login realizado com sucesso!');
         return {};
+      } catch (serverError: any) {
+        return { error: serverError };
       }
     } catch (error: any) {
       console.error('Erro geral ao tentar login:', error);
@@ -202,22 +160,44 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (credentials: any) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabaseClient.auth.signUp(credentials);
-      if (error) {
-        toast.error(error.message);
-        console.error('Erro ao criar conta:', error);
-        return { error };
-      } else {
-        setUser(data.user as User);
-        if (data.session) {
-          setSession({ access_token: data.session.access_token });
-        }
-        localStorage.setItem('userData', JSON.stringify(data.user));
-        toast.success('Conta criada com sucesso!');
-        
-        // Instead of using navigate directly, we'll return success and let the component handle navigation
-        return {};
+      // Register with MongoDB server API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+          nome: credentials.options?.data?.nome || '',
+          sobrenome: credentials.options?.data?.sobrenome || ''
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Erro ao criar conta');
+        return { error: errorData };
       }
+      
+      const userData = await response.json();
+      setUser(userData.user as User);
+      setSession({ access_token: userData.session.access_token });
+      
+      // Save session to localStorage
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+        session: {
+          user: userData.user,
+          access_token: userData.session.access_token
+        },
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      }));
+      
+      toast.success('Conta criada com sucesso!');
+      return {};
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao criar conta');
+      return { error };
     } finally {
       setIsLoading(false);
     }
@@ -226,20 +206,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        toast.error(error.message);
-        console.error('Erro ao fazer logout:', error);
-      } else {
-        setUser(null);
-        setSession(null);
-        setRole(null);
-        localStorage.removeItem('userData');
-        toast.success('Logout realizado com sucesso!');
-        
-        // The component will handle navigation after logout
-        // We won't use navigate here
-      }
+      // No need to call any API, just remove local session
+      setUser(null);
+      setSession(null);
+      setRole(null);
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      toast.success('Logout realizado com sucesso!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao fazer logout');
+      console.error('Erro ao fazer logout:', error);
     } finally {
       setIsLoading(false);
     }

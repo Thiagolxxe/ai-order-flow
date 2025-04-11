@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -38,27 +37,11 @@ const Login = () => {
         throw new Error('E-mail e senha são obrigatórios');
       }
 
-      // Check if the user exists in Supabase
-      const { data: supabaseUser, error: supabaseError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (supabaseError) {
-        console.error('Erro ao fazer login:', supabaseError);
-        
-        // If user doesn't exist in Supabase but might exist in MongoDB, try server login
-        const { error } = await signIn(email, password);
-        
-        if (error) {
-          throw new Error(error.message || 'Credenciais inválidas');
-        }
-      } else {
-        // If Supabase login was successful, update context
-        const { error } = await signIn(email, password);
-        if (error) {
-          console.warn('User exists in Supabase but had issues with context:', error);
-        }
+      // Authenticate with MongoDB
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        throw new Error(error.message || 'Credenciais inválidas');
       }
       
       toast.success('Login realizado com sucesso');

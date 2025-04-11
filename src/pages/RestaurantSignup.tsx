@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeftIcon, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeftIcon, Loader2 } from 'lucide-react';
 import { createRestaurant } from '@/services/restaurantService';
 import { toast } from '@/components/ui/use-toast';
 import { authService } from '@/services/authService';
+import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -55,10 +57,15 @@ const RestaurantSignup = () => {
   // Check for existing session
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await authService.getSession();
-      if (data.session) {
-        console.log("User already logged in:", data.session.user.id);
-        // User is already logged in, we'll use this session when creating the restaurant
+      const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (sessionStr) {
+        try {
+          const sessionData = JSON.parse(sessionStr);
+          console.log("User already logged in:", sessionData.session.user.id);
+          // User is already logged in, we'll use this session when creating the restaurant
+        } catch (e) {
+          console.error('Error parsing session:', e);
+        }
       }
     };
     

@@ -63,7 +63,7 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Properly format the credentials for signup
+      // Format credentials for MongoDB registration
       const credentials = {
         email: data.email,
         password: data.password,

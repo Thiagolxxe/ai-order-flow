@@ -1,67 +1,87 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 
 /**
- * Utility to synchronize user data between Supabase and MongoDB
+ * Utility to synchronize user data between systems
  */
 export const authSync = {
   /**
-   * Creates a user in Supabase if they exist in MongoDB but not in Supabase
+   * Creates a user in the system if they don't exist
    */
-  async createSupabaseUserFromMongoDB(email: string, password: string) {
+  async createUserIfNotExists(email: string, password: string, userData?: any) {
     try {
       // Check if user exists in MongoDB
       const { db } = await connectToDatabase();
       const user = await db.collection('users').findOne({ email });
       
-      if (!user) {
-        return { success: false, error: 'User not found in MongoDB' };
+      if (user) {
+        return { success: true, user };
       }
       
-      // Try to create the user in Supabase
-      const { data, error } = await supabase.auth.signUp({
+      // User doesn't exist, create them
+      const hashedPassword = password; // In a real app, this would be hashed
+      
+      const newUser = {
         email,
-        password,
-        options: {
-          data: {
-            nome: user.user_metadata?.nome || '',
-            sobrenome: user.user_metadata?.sobrenome || '',
-          }
-        }
-      });
+        password: hashedPassword,
+        user_metadata: userData || {},
+        created_at: new Date()
+      };
       
-      if (error) {
-        console.error('Error creating Supabase user:', error);
-        return { success: false, error };
-      }
+      const result = await db.collection('users').insertOne(newUser);
       
-      return { success: true, data };
+      return { 
+        success: true, 
+        user: { 
+          id: result.insertedId.toString(),
+          email,
+          ...newUser
+        } 
+      };
     } catch (error) {
-      console.error('Error in createSupabaseUserFromMongoDB:', error);
+      console.error('Error in createUserIfNotExists:', error);
       return { success: false, error };
     }
   },
   
   /**
-   * Checks if a user exists in MongoDB and updates Supabase user if needed
+   * Verifies user credentials
    */
-  async ensureUserSynchronized(userId: string) {
+  async verifyCredentials(email: string, password: string) {
     try {
       const { db } = await connectToDatabase();
       
-      // Check MongoDB for user
-      const mongoUser = await db.collection('users').findOne({ _id: userId });
+      // Find user
+      const user = await db.collection('users').findOne({ email });
       
-      if (!mongoUser) {
-        console.warn('User exists in Supabase but not in MongoDB');
-        return { synchronized: false };
+      if (!user) {
+        return { 
+          verified: false, 
+          error: 'User not found' 
+        };
       }
       
-      return { synchronized: true, user: mongoUser };
+      // In a real app, we would compare hashed passwords
+      // This is just a simplified example
+      const passwordMatches = user.password === password;
+      
+      if (!passwordMatches) {
+        return { 
+          verified: false, 
+          error: 'Invalid password' 
+        };
+      }
+      
+      return { 
+        verified: true, 
+        user 
+      };
     } catch (error) {
-      console.error('Error checking user synchronization:', error);
-      return { synchronized: false, error };
+      console.error('Error checking credentials:', error);
+      return { 
+        verified: false, 
+        error 
+      };
     }
   }
 };
