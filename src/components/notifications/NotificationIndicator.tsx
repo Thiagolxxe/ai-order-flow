@@ -20,6 +20,7 @@ const NotificationIndicator = () => {
   const { user } = useUser();
 
   useEffect(() => {
+    // Only fetch notifications if user is logged in
     if (!user?.id) return;
 
     const fetchUnreadNotifications = async () => {
@@ -32,18 +33,24 @@ const NotificationIndicator = () => {
           return;
         }
         
-        const notificationsData = data as any[];
+        // Ensure we have an array of notifications
+        let notificationsData = Array.isArray(data) ? data : (data as any)?.notifications || [];
         
-        if (Array.isArray(notificationsData)) {
-          // Convert to NotificationType[] by ensuring criado_em is a Date
-          const typedNotifications: NotificationType[] = notificationsData.map(notification => ({
-            ...notification,
-            criado_em: new Date(notification.criado_em)
-          }));
-          
-          setUnreadCount(typedNotifications.length);
-          setRecentNotifications(typedNotifications.slice(0, 3)); // Only show 3 most recent
+        if (!Array.isArray(notificationsData)) {
+          console.warn('Notifications data is not an array:', notificationsData);
+          notificationsData = [];
         }
+        
+        // Convert to NotificationType[] by ensuring criado_em is a Date
+        const typedNotifications: NotificationType[] = notificationsData.map((notification: any) => ({
+          ...notification,
+          _id: notification._id || notification.id || `temp-${Math.random()}`,
+          criado_em: notification.criado_em instanceof Date ? 
+            notification.criado_em : new Date(notification.criado_em || Date.now())
+        }));
+        
+        setUnreadCount(typedNotifications.length);
+        setRecentNotifications(typedNotifications.slice(0, 3)); // Only show 3 most recent
       } catch (error) {
         console.error('Error fetching unread notifications:', error);
       } finally {
