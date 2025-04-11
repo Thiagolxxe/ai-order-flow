@@ -1,4 +1,3 @@
-
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -35,20 +34,31 @@ export const useVideoFeed = () => {
   const { isLoading, error } = useQuery({
     queryKey: ['videos'],
     queryFn: async () => {
-      const params = createPaginationParams(1, 20);
-      const { data, error } = await apiService.videos.getAll(params);
-      
-      if (error) {
-        throw new Error(error.message);
+      try {
+        console.log('Fetching videos from API...');
+        const params = createPaginationParams(1, 20);
+        const { data, error } = await apiService.videos.getAll(params);
+        
+        if (error) {
+          console.error('API returned error:', error);
+          throw new Error(error.message || 'Error fetching videos');
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error in query function:', err);
+        // Fallback to mock data on error
+        setVideos(MOCK_VIDEOS);
+        toast.error("Usando dados de exemplo devido a um erro de conexão", {
+          description: "Não foi possível conectar ao servidor de vídeos"
+        });
+        return { items: [] };
       }
-      
-      return data;
     },
     meta: {
       onSettled: (data: any, error: Error | null) => {
         if (error) {
           console.error("Error fetching videos:", error);
-          toast.error("Erro ao carregar vídeos, usando dados de exemplo");
           setVideos(MOCK_VIDEOS);
           return;
         }
@@ -74,7 +84,9 @@ export const useVideoFeed = () => {
           setVideos(MOCK_VIDEOS);
         }
       }
-    }
+    },
+    retry: 1, // Only retry once to avoid too many failed requests
+    retryDelay: 1000 // Wait 1 second before retrying
   });
   
   // State updaters

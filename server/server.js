@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongodb');
@@ -199,6 +198,12 @@ async function connectToMongoDB() {
     process.exit(1);
   }
 }
+
+// Import API routes
+const apiRoutes = require('./routes/index');
+
+// Apply API routes
+app.use('/api', apiRoutes);
 
 // Rotas de autenticação
 app.post('/api/auth/register', authLimiter, validateBody(schemas.registration), async (req, res) => {
@@ -545,6 +550,11 @@ app.get('/', (req, res) => {
     cors: {
       origin: req.headers.origin || 'unknown',
       method: req.method
+    },
+    apiEndpoints: {
+      videos: '/api/videos',
+      auth: '/api/auth',
+      restaurants: '/api/restaurants'
     }
   });
 });
@@ -571,4 +581,3 @@ process.on('SIGINT', async () => {
   console.log('Conexão com MongoDB fechada');
   process.exit(0);
 });
-

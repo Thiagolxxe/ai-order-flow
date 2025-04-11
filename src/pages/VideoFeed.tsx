@@ -6,6 +6,8 @@ import { useVideoFeed } from '@/hooks/useVideoFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 // Type definition for Navigator with NetworkInformation
 interface ExtendedNavigator extends Navigator {
@@ -59,6 +61,10 @@ const VideoFeed = () => {
     }
   }, []);
   
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+  
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -76,9 +82,24 @@ const VideoFeed = () => {
   if (errorState) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-white text-center p-4">
+        <div className="text-white text-center p-4 max-w-md">
           <h2 className="text-xl font-bold mb-2">Erro ao carregar vídeos</h2>
-          <p>{errorState}</p>
+          <p className="mb-4">{errorState}</p>
+          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (videos.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-white text-center p-4 max-w-md">
+          <h2 className="text-xl font-bold mb-2">Nenhum vídeo encontrado</h2>
+          <p className="mb-4">Estamos mostrando vídeos de exemplo enquanto trabalhamos para trazer mais conteúdo.</p>
         </div>
       </div>
     );
