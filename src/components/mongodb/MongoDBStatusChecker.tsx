@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Database, AlertCircle, CheckCircle, Server, RefreshCw, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from '@/config/apiConfig';
 
 export const MongoDBStatusChecker: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
@@ -39,8 +40,8 @@ export const MongoDBStatusChecker: React.FC = () => {
       setApiStatus('checking');
       setApiError(null);
       
-      // Tenta conectar à API local
-      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/check-connection`;
+      // Tenta conectar à API no Render (ou onde estiver configurada)
+      const apiUrl = `${API_BASE_URL}/api/check-connection`;
       console.log(`Tentando conectar à API em: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -135,15 +136,15 @@ export const MongoDBStatusChecker: React.FC = () => {
                   <div>
                     <p className="mb-2">{apiError || 'Não foi possível conectar ao servidor da API'}</p>
                     <p className="text-sm mb-2">
-                      O aplicativo não consegue se conectar ao servidor da API (http://localhost:5000). 
+                      O aplicativo não consegue se conectar ao servidor da API ({API_BASE_URL}).
                       <strong> Este é o motivo do erro "Cannot connect to the server" no login.</strong>
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-sm text-yellow-800 mt-2">
-                      <p><strong>Nota:</strong> Você está tentando conectar ao API server local, mas ele não está em execução.</p>
+                      <p><strong>Nota:</strong> Verifique o status do seu serviço no Render:</p>
                       <ul className="list-disc pl-5 mt-1">
-                        <li>Verifique se você iniciou o servidor Express na pasta server/ com <code>npm start</code></li>
-                        <li>Confirme que o servidor está rodando na porta 5000</li>
-                        <li>Se você está usando o serviço hospedado, o erro é esperado (modo de demonstração será usado)</li>
+                        <li>Confirme que seu servidor Express está rodando no Render</li>
+                        <li>Verifique se a URL configurada está correta: {API_BASE_URL}</li>
+                        <li>Se a API estiver indisponível, o modo de demonstração será usado</li>
                       </ul>
                     </div>
                     <Button 
@@ -169,16 +170,16 @@ export const MongoDBStatusChecker: React.FC = () => {
           <Database className="h-4 w-4 text-blue-600 mr-2" />
           <AlertTitle className="text-blue-700">Diagnóstico do problema</AlertTitle>
           <AlertDescription className="text-blue-600">
-            <p className="mb-2">A conexão com MongoDB Atlas foi bem-sucedida, mas o servidor API local não está disponível.</p>
+            <p className="mb-2">A conexão com MongoDB Atlas foi bem-sucedida, mas o servidor API no Render não está disponível.</p>
             <p className="text-sm mb-2">
               O erro <strong>"Cannot connect to the server"</strong> na tela de login ocorre porque a aplicação está tentando
-              autenticar através do servidor API local (http://localhost:5000), mas este servidor não está respondendo.
+              autenticar através do servidor API no Render ({API_BASE_URL}), mas este servidor não está respondendo.
             </p>
             <div className="bg-white/50 border border-blue-100 rounded p-2 text-sm mt-2">
               <p className="font-medium">Soluções possíveis:</p>
               <ol className="list-decimal pl-5 mt-1">
-                <li>Inicie o servidor Express na pasta server/ com <code>npm start</code></li>
-                <li>Configure uma variável de ambiente <code>VITE_API_URL</code> apontando para um servidor válido</li>
+                <li>Verifique se o serviço no Render está ativo e funcionando</li>
+                <li>Configure a variável de ambiente <code>VITE_API_URL</code> com a URL correta do seu backend</li>
                 <li>Utilize o modo de demonstração com dados simulados (já configurado como fallback)</li>
               </ol>
             </div>
@@ -203,7 +204,7 @@ export const MongoDBStatusChecker: React.FC = () => {
           <Database className="h-4 w-4 text-blue-600 mr-2" />
           <AlertTitle className="text-blue-700">Informações de depuração</AlertTitle>
           <AlertDescription className="text-blue-600">
-            <p className="mb-2">O aplicativo está enfrentando problemas de conexão com o MongoDB Atlas e com o servidor da API.</p>
+            <p className="mb-2">O aplicativo está enfrentando problemas de conexão com o MongoDB Atlas e com o servidor da API no Render.</p>
             <p className="text-sm">
               Para autenticação, o aplicativo usará o modo de demonstração. As operações de banco de dados
               serão simuladas localmente. O aplicativo funcionará, mas com funcionalidade limitada.

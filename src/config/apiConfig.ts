@@ -1,7 +1,10 @@
+
 export const SESSION_STORAGE_KEY = 'deliveryapp_session';
 
 // API configuration
 export const API_TIMEOUT = 15000; // 15 seconds
+
+// Use Render URL ou fallback para modo demo
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://deliverai.onrender.com';
 
 export const apiConfig = {

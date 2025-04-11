@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { apiService } from '@/services/apiService';
-import { SESSION_STORAGE_KEY } from '@/config/apiConfig';
+import { SESSION_STORAGE_KEY, API_BASE_URL } from '@/config/apiConfig';
 
 interface User {
   id: string;
@@ -117,7 +118,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Authenticate with MongoDB server API
       try {
-        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`;
+        const apiUrl = `${API_BASE_URL}/api/auth/login`;
         console.log('Attempting to connect to:', apiUrl);
         
         const response = await fetch(apiUrl, {
@@ -171,7 +172,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             serverError.message.includes('NetworkError'))) {
           return { 
             error: { 
-              message: 'Cannot connect to the server. Verify your MongoDB Atlas cluster configuration and network connectivity.',
+              message: `Cannot connect to the server at ${API_BASE_URL}. Verify your server configuration and network connectivity.`,
               code: 'CONNECTION_ERROR'
             } 
           };
@@ -190,7 +191,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       // Register with MongoDB server API
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
