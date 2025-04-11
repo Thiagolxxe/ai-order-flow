@@ -1,5 +1,6 @@
 
 import { connectToDatabase } from '@/integrations/mongodb/client';
+import * as bcrypt from 'bcryptjs';
 
 /**
  * Utility to synchronize user data between systems
@@ -19,6 +20,7 @@ export const authSync = {
       }
       
       // User doesn't exist, create them
+      // In a real app, we would use bcrypt but for the mock client we'll just simulate it
       const hashedPassword = password; // In a real app, this would be hashed
       
       const newUser = {
@@ -61,7 +63,7 @@ export const authSync = {
         };
       }
       
-      // In a real app, we would compare hashed passwords
+      // In a real app, we would compare hashed passwords with bcrypt
       // This is just a simplified example
       const passwordMatches = user.password === password;
       

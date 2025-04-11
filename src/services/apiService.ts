@@ -1,3 +1,4 @@
+
 /**
  * Serviço centralizado para comunicação com a API
  */

@@ -1,5 +1,6 @@
 
 import { UserSession } from '@/utils/authUtils';
+import { connectToDatabase } from '@/integrations/mongodb/client';
 
 /**
  * Authentication service
@@ -37,24 +38,45 @@ export const authService = {
    */
   signUp: async (email: string, password: string, userData?: any) => {
     try {
-      // Here you would implement actual signup logic
-      // This is a stub implementation for now
-      console.log('Sign up called with:', { email, userData });
+      const { db } = await connectToDatabase();
       
-      const mockUser = { id: 'mock-user-id', email };
-      const mockSession: UserSession = { 
-        id: 'mock-user-id',
+      // Check if user exists
+      const existingUser = await db.collection('users').findOne({ email });
+      if (existingUser) {
+        return {
+          data: null,
+          error: { message: 'Email já registrado' }
+        };
+      }
+      
+      // Create user
+      const userToCreate = {
         email,
-        user: { ...mockUser, ...userData },
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token',
+        password, // Na implementação real seria um hash da senha
+        user_metadata: userData || {},
+        created_at: new Date()
+      };
+      
+      const result = await db.collection('users').insertOne(userToCreate);
+      
+      const user = {
+        id: result.insertedId.toString(),
+        email,
+        ...userToCreate
+      };
+      
+      const session = { 
+        id: user.id,
+        email,
+        user,
+        access_token: 'mock-token-' + Math.random().toString(36).substring(2),
         role: 'user'
       };
       
       return {
         data: {
-          user: mockUser,
-          session: mockSession
+          user,
+          session
         },
         error: null
       };
@@ -71,24 +93,44 @@ export const authService = {
    */
   signIn: async (email: string, password: string) => {
     try {
-      // Here you would implement actual signin logic
-      // This is a stub implementation for now
-      console.log('Sign in called with:', { email });
+      const { db } = await connectToDatabase();
       
-      const mockUser = { id: 'mock-user-id', email };
-      const mockSession: UserSession = {
-        id: 'mock-user-id',
-        email,
-        user: mockUser,
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token',
+      // Find user
+      const user = await db.collection('users').findOne({ email });
+      
+      if (!user) {
+        return {
+          data: null,
+          error: { message: 'Credenciais inválidas' }
+        };
+      }
+      
+      // Check password (implementação real usaria bcrypt.compare)
+      if (user.password !== password) {
+        return {
+          data: null,
+          error: { message: 'Credenciais inválidas' }
+        };
+      }
+      
+      const sessionUser = {
+        id: user._id.toString(),
+        email: user.email,
+        user_metadata: user.user_metadata || {}
+      };
+      
+      const session = {
+        id: user._id.toString(),
+        email: user.email,
+        user: sessionUser,
+        access_token: 'mock-token-' + Math.random().toString(36).substring(2),
         role: 'user'
       };
       
       return {
         data: {
-          user: mockUser,
-          session: mockSession
+          user: sessionUser,
+          session
         },
         error: null
       };

@@ -1,15 +1,13 @@
 
-// API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-export const API_TIMEOUT = 30000; // 30 seconds
 export const SESSION_STORAGE_KEY = 'deliveryapp_session';
 
 export const apiConfig = {
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
   endpoints: {
     auth: {
       register: '/api/auth/register',
       login: '/api/auth/login',
-      logout: '/api/auth/logout',
+      logout: '/api/auth/logout', 
       refreshToken: '/api/auth/refresh-token'
     },
     restaurants: {
