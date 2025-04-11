@@ -208,3 +208,5 @@ export default function RestaurantList({
     </div>
   );
 }
+
+export default RestaurantList;
