@@ -1,69 +1,98 @@
-# Welcome to your Lovable project
 
-## Project info
+# DeliveryAI - Aplicativo de Delivery de Comida
 
-**URL**: https://lovable.dev/projects/9f7aea45-58d8-4542-bb67-e678b727fb06
+## Sobre o Projeto
 
-## How can I edit this code?
+DeliveryAI é uma aplicação de delivery de comida que oferece funcionalidades como:
+- Exploração de restaurantes
+- Pedidos online
+- Acompanhamento de entregas
+- Integração com MongoDB Atlas
 
-There are several ways of editing your application.
+## Estrutura do Projeto
 
-**Use Lovable**
+O projeto é dividido em duas partes principais:
+- **Frontend**: Aplicação React com TypeScript usando Vite
+- **Backend**: API RESTful em Express.js conectada ao MongoDB Atlas
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9f7aea45-58d8-4542-bb67-e678b727fb06) and start prompting.
+## Requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (versão 14 ou superior)
+- Conta no MongoDB Atlas
+- NPM ou Yarn
 
-**Use your preferred IDE**
+## Como Iniciar o Projeto Localmente
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone o repositório
+2. Instale as dependências:
+   ```
+   npm install
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. Configure as variáveis de ambiente:
+   - Crie um arquivo `.env` na raiz do diretório `server/`
+   - Adicione as seguintes variáveis:
+     ```
+     MONGODB_URI=sua_string_de_conexao_mongodb
+     JWT_SECRET=seu_jwt_secret
+     ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+     PORT=5000
+     ```
 
-Follow these steps:
+4. Inicie o servidor:
+   ```
+   node start-server.js
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+5. Inicie o frontend:
+   ```
+   npm run dev
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Deploy em Plataformas Gratuitas
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Opção 1: Render
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+1. Crie uma conta no [Render](https://render.com/)
+2. Crie um novo Web Service
+3. Conecte ao repositório Git
+4. Configure:
+   - **Nome**: deliveryai-backend
+   - **Ambiente**: Node
+   - **Comando de build**: npm install
+   - **Comando de start**: node server/server.js
+   - **Variáveis de ambiente**: Adicione as mesmas do arquivo .env
 
-**Edit a file directly in GitHub**
+### Opção 2: Railway
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Crie uma conta no [Railway](https://railway.app/)
+2. Crie um novo projeto
+3. Conecte ao repositório Git
+4. Configure variáveis de ambiente
+5. Configure o comando de start: `node server/server.js`
 
-**Use GitHub Codespaces**
+### Opção 3: Vercel
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Crie uma conta no [Vercel](https://vercel.com/)
+2. Crie um novo projeto
+3. Conecte ao repositório Git
+4. Configure:
+   - **Output Directory**: ./dist
+   - **Install Command**: npm install
+   - **Build Command**: npm run build
+   - **Development Command**: npm run dev
+   - **Variáveis de ambiente**: Adicione as mesmas do arquivo .env
+5. Na aba "Function Settings", configure:
+   - **Root Directory**: ./server
+   - **Handler**: server.js
 
-## What technologies are used for this project?
+## Observações para Deploy
 
-This project is built with .
+1. Certifique-se que as variáveis de ambiente estejam configuradas na plataforma escolhida
+2. Configure a origem CORS (ALLOWED_ORIGINS) para incluir o domínio do frontend
+3. Para o frontend, atualize os endpoints de API para apontar para o URL do seu backend implantado
+4. Certifique-se que sua conta MongoDB Atlas permite conexões da plataforma que você escolheu (na aba Network Access)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Contribuindo
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9f7aea45-58d8-4542-bb67-e678b727fb06) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Sinta-se à vontade para contribuir com o projeto. Abra issues ou envie pull requests para melhorias e correções.

@@ -19,9 +19,9 @@ app.use(helmet());
 
 app.use(express.json({ limit: '1mb' }));
 
-// Configuração de CORS mais restritiva
+// Configuração de CORS mais permissiva para ambiente de produção
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : 'http://localhost:8080',
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -496,6 +496,15 @@ app.get('/api/check-connection', async (req, res) => {
   }
 });
 
+// Rota raiz para verificar se o servidor está rodando (útil para plataformas de hospedagem)
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Servidor DeliveryAI funcionando!',
+    timestamp: new Date(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 5000;
 let db;
@@ -518,3 +527,4 @@ process.on('SIGINT', async () => {
   console.log('Conexão com MongoDB fechada');
   process.exit(0);
 });
+
