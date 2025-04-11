@@ -49,6 +49,7 @@ const RestaurantList: React.FC<RestaurantListProps> = ({
   showSearch = false,
   showFilters = false,
 }) => {
+  
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,7 +193,7 @@ const RestaurantList: React.FC<RestaurantListProps> = ({
               deliveryTime={restaurant.deliveryTime}
               deliveryFee={restaurant.deliveryFee}
               distance={restaurant.distance}
-              minOrder={restaurant.minOrder || 10}
+              minOrder={restaurant.minOrder ? restaurant.minOrder.toString() : '10'}
             />
           ))}
         </div>
