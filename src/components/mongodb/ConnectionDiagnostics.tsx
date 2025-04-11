@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Database, ExternalLink, Globe, RefreshCw, Laptop, Shield } from 'lucide-react';
+import { Database, ExternalLink, Globe, RefreshCw, Laptop, Shield, AlertCircle, User } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '@/config/apiConfig';
@@ -9,18 +9,21 @@ interface ConnectionDiagnosticsProps {
   mongoStatus: 'idle' | 'connecting' | 'connected' | 'error';
   apiStatus: 'idle' | 'checking' | 'connected' | 'error';
   corsError?: boolean;
+  authError?: boolean;
 }
 
 export const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({
   mongoStatus,
   apiStatus,
-  corsError = false
+  corsError = false,
+  authError = false
 }) => {
   // Only show diagnostics when there's something to diagnose
   const showMongoSuccessApiError = mongoStatus === 'connected' && apiStatus === 'error';
   const showBothFailed = mongoStatus === 'error' && apiStatus === 'error';
+  const showAuthError = authError && mongoStatus === 'connected';
   
-  if (!showMongoSuccessApiError && !showBothFailed) return null;
+  if (!showMongoSuccessApiError && !showBothFailed && !showAuthError) return null;
 
   // Esta função testa se um domínio está acessível
   const testDomainConnection = async () => {
@@ -54,6 +57,47 @@ export const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({
 
   return (
     <>
+      {/* Authentication Error */}
+      {showAuthError && (
+        <Alert variant="default" className="bg-amber-50 border-amber-200 mb-4">
+          <AlertCircle className="h-4 w-4 text-amber-600 mr-2" />
+          <AlertTitle className="text-amber-700">Erro de Autenticação</AlertTitle>
+          <AlertDescription className="text-amber-600">
+            <p className="mb-2">O servidor rejeitou suas credenciais. Isso pode ocorrer pelos seguintes motivos:</p>
+            <div className="bg-white/50 border border-amber-100 rounded p-2 text-sm mt-2">
+              <p className="font-medium">Possíveis causas:</p>
+              <ol className="list-decimal pl-5 mt-1">
+                <li>Email ou senha incorretos</li>
+                <li>Conta não registrada no sistema</li>
+                <li>Conta desativada ou bloqueada</li>
+                <li>Servidor funcionando em modo de demonstração</li>
+              </ol>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-amber-600 border-amber-300 hover:bg-amber-100"
+                onClick={() => window.location.href = '/register'}
+              >
+                <User className="h-3 w-3 mr-2" />
+                Criar conta
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-amber-600 border-amber-300 hover:bg-amber-100"
+                onClick={() => window.location.reload()}
+              >
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Tentar novamente
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* MongoDB connected but API failed */}
       {showMongoSuccessApiError && (
         <Alert variant="default" className="bg-blue-50 border-blue-200">

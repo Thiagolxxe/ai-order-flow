@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { API_BASE_URL } from '@/config/apiConfig';
+import { ConnectionDiagnostics } from '@/components/mongodb/ConnectionDiagnostics';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<boolean>(false);
+  const [corsError, setCorsError] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<boolean>(false);
   const [mongodbStatus, setMongodbStatus] = useState<'connecting' | 'connected' | 'error' | null>(null);
   
   const { signIn, isAuthenticated } = useUser();
@@ -53,6 +56,8 @@ const Login = () => {
     e.preventDefault();
     setError(null);
     setApiError(false);
+    setCorsError(false);
+    setAuthError(false);
     setLoading(true);
 
     try {
@@ -81,8 +86,23 @@ const Login = () => {
             error.message?.includes('ECONNREFUSED') ||
             error.message?.includes('NetworkError')) {
           setApiError(true);
+          
+          // Check specifically for CORS errors
+          if (error.code === 'CORS_ERROR' || error.message?.includes('CORS')) {
+            setCorsError(true);
+          }
+          
           throw new Error(`Não foi possível conectar ao servidor ${API_BASE_URL}. Verifique se o serviço no Render está ativo.`);
         }
+        
+        // Authentication error (invalid credentials)
+        if (error.message?.includes('Credenciais inválidas') || 
+            error.message?.includes('invalid') ||
+            error.message?.includes('credentials')) {
+          setAuthError(true);
+          throw new Error(error.message || 'Credenciais inválidas');
+        }
+        
         throw new Error(error.message || 'Credenciais inválidas');
       }
       
@@ -114,7 +134,14 @@ const Login = () => {
               </div>
             )}
             
-            {apiError && (
+            <ConnectionDiagnostics 
+              mongoStatus={mongodbStatus || 'idle'} 
+              apiStatus={apiError ? 'error' : 'idle'}
+              corsError={corsError}
+              authError={authError}
+            />
+            
+            {apiError && !corsError && !authError && (
               <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
