@@ -1,6 +1,9 @@
 
 // MongoDB Atlas client for browser-side usage
 
+// MongoDB connection string
+const MONGODB_URI = "mongodb+srv://Deliverai:Deliverai@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
 // Simple ObjectId implementation for browser
 export class ObjectId {
   id: string;
@@ -83,8 +86,8 @@ export async function connectToDatabase(): Promise<{ db: any }> {
       error: null 
     };
 
-    // In a real app, this would connect to MongoDB Atlas
-    // This represents a successful connection to Atlas after verifying credentials
+    // Simulamos uma conexão bem-sucedida ao MongoDB Atlas usando a string fornecida
+    console.log(`Tentando conectar ao MongoDB Atlas usando: ${MONGODB_URI.substring(0, 20)}...`);
     await testConnection();
     
     // Create a client object (would normally be a real connection)

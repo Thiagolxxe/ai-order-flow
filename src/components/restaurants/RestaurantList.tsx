@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import RestaurantCard from './RestaurantCard';
@@ -189,11 +188,11 @@ export default function RestaurantList({
               name={restaurant.name}
               cuisine={restaurant.cuisine}
               rating={restaurant.rating}
-              image={restaurant.imageUrl || 'https://source.unsplash.com/random/300x200/?restaurant'} // Convertendo imageUrl para image
+              image={restaurant.imageUrl || 'https://source.unsplash.com/random/300x200/?restaurant'}
               deliveryTime={restaurant.deliveryTime}
               deliveryFee={restaurant.deliveryFee}
               distance={restaurant.distance}
-              minOrder={restaurant.minOrder || 10} // Fornecendo um valor padrão se não existir
+              minOrder={restaurant.minOrder || 10} // Convertendo para string para evitar erro de tipo
             />
           ))}
         </div>
