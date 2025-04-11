@@ -14,6 +14,10 @@ if (typeof window !== 'undefined' && !window.global) {
 const initialPath = window.location.pathname === '/' ? '/videos' : window.location.pathname;
 window.history.replaceState(null, '', initialPath);
 
+// Log application start
+console.log('Starting DeliveryAI application...');
+console.log('Initial path:', initialPath);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

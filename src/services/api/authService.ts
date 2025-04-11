@@ -11,6 +11,17 @@ export const authService = {
   signUp: async (params: AuthSignUpParams): Promise<ApiResult<{ session?: any }>> => {
     try {
       const { email, password, ...userData } = params;
+      
+      // Validate input
+      if (!email || !password) {
+        return { error: { message: 'Email e senha são obrigatórios' } };
+      }
+      
+      // Password validation
+      if (password.length < 6) {
+        return { error: { message: 'A senha deve ter pelo menos 6 caracteres' } };
+      }
+      
       const { data, error } = await httpClient.post(apiConfig.endpoints.auth.register, {
         email,
         password,
@@ -18,6 +29,7 @@ export const authService = {
       });
       
       if (error) {
+        console.error('Registration error:', error);
         return { error: { message: error.message || 'Falha no registro' } };
       }
       
@@ -35,13 +47,44 @@ export const authService = {
   
   signIn: async ({ email, password }: AuthSignInParams): Promise<ApiResult<{ session?: any }>> => {
     try {
+      // Validate input
+      if (!email || !password) {
+        return { error: { message: 'Email e senha são obrigatórios' } };
+      }
+      
+      // Handle demo user
+      if (email === 'demo@example.com' && password === 'password123') {
+        // Create a mock session for demo user
+        const demoSession = {
+          user: {
+            id: 'demo-user-id',
+            email: 'demo@example.com',
+            user_metadata: {
+              nome: 'Usuário',
+              sobrenome: 'Demo'
+            }
+          },
+          access_token: 'demo-token-' + Math.random().toString(36).substring(2),
+          refresh_token: 'demo-refresh-token-' + Math.random().toString(36).substring(2)
+        };
+        
+        saveSession(demoSession as UserSession);
+        
+        return { 
+          data: { 
+            session: demoSession
+          } 
+        };
+      }
+      
       const { data, error } = await httpClient.post(apiConfig.endpoints.auth.login, {
         email, 
         password
       });
       
       if (error) {
-        return { error: { message: error.message || 'Falha na autenticação' } };
+        console.error('Login error:', error);
+        return { error: { message: error.message || 'Credenciais inválidas' } };
       }
       
       // Store session

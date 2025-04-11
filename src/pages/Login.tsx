@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, Info, Database } from 'lucide-react';
+import { Loader2, Info, Database, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { connectToDatabase } from '@/integrations/mongodb/client';
@@ -22,6 +22,7 @@ const Login = () => {
   const [corsError, setCorsError] = useState<boolean>(false);
   const [authError, setAuthError] = useState<boolean>(false);
   const [mongodbStatus, setMongodbStatus] = useState<'connecting' | 'connected' | 'error' | null>(null);
+  const [showDemoCredentials, setShowDemoCredentials] = useState<boolean>(false);
   
   const { signIn, isAuthenticated } = useUser();
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ const Login = () => {
             error.message?.includes('invalid') ||
             error.message?.includes('credentials')) {
           setAuthError(true);
-          throw new Error(error.message || 'Credenciais inválidas');
+          throw new Error('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
         }
         
         throw new Error(error.message || 'Credenciais inválidas');
@@ -116,6 +117,12 @@ const Login = () => {
     }
   };
 
+  const handleDemoLogin = () => {
+    setEmail('demo@example.com');
+    setPassword('password123');
+    setShowDemoCredentials(false);
+  };
+
   return (
     <div className="container flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md">
@@ -129,9 +136,11 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-                {error}
-              </div>
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erro de autenticação</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
             
             <ConnectionDiagnostics 
@@ -140,6 +149,42 @@ const Login = () => {
               corsError={corsError}
               authError={authError}
             />
+            
+            {authError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Credenciais inválidas</AlertTitle>
+                <AlertDescription>
+                  Email ou senha incorretos. Verifique suas credenciais e tente novamente.
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-sm mt-1 text-white underline"
+                    onClick={() => setShowDemoCredentials(!showDemoCredentials)}
+                  >
+                    {showDemoCredentials ? 'Ocultar credenciais de demonstração' : 'Usar credenciais de demonstração?'}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {showDemoCredentials && (
+              <Alert className="mb-4 bg-blue-100 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-700">Credenciais de demonstração</AlertTitle>
+                <AlertDescription className="text-blue-600">
+                  Email: demo@example.com<br />
+                  Senha: password123
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-2 bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                    onClick={handleDemoLogin}
+                  >
+                    Preencher automaticamente
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             
             {apiError && !corsError && !authError && (
               <Alert variant="destructive" className="mb-4">

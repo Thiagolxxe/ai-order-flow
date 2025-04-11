@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { User, Session } from '@/types/user';
@@ -21,6 +20,34 @@ export const useUserAuth = () => {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // Handle demo user
+      if (email === 'demo@example.com' && password === 'password123') {
+        const demoUser = {
+          id: 'demo-user-id',
+          email: 'demo@example.com',
+          user_metadata: {
+            nome: 'Usuário',
+            sobrenome: 'Demo'
+          }
+        };
+        
+        setUser(demoUser as User);
+        setSession({ access_token: 'demo-token-' + Math.random().toString(36).substring(2) });
+        setRole('cliente');
+        
+        // Save session to localStorage
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          session: {
+            user: demoUser,
+            access_token: 'demo-token-' + Math.random().toString(36).substring(2)
+          },
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+        }));
+        
+        toast.success('Login com usuário de demonstração realizado com sucesso!');
+        return {};
+      }
+      
       // First, verify MongoDB Atlas connection
       try {
         await connectToDatabase();
