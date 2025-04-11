@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -79,8 +80,14 @@ const VideoPlayer = ({
       {/* Background image for all states */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-30 blur-sm"
-        style={{ backgroundImage: `url(${thumbnailUrl || backgroundImage})` }}
-      />
+      >
+        <ImageWithFallback
+          src={thumbnailUrl}
+          fallbackSrc={backgroundImage}
+          alt={dishName}
+          className="w-full h-full object-cover"
+        />
+      </div>
       
       {/* Loading state */}
       {isLoading && (

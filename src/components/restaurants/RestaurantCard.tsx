@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,7 @@ import {
   StarIcon
 } from '@/assets/icons';
 import { Badge } from '@/components/ui/badge';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface RestaurantCardProps {
   id: string;
@@ -37,18 +39,6 @@ const RestaurantCard = ({
   isNew = false,
   className
 }: RestaurantCardProps) => {
-  // Ensure image has a valid URL by checking if it starts with http or https
-  const [imageUrl, setImageUrl] = React.useState(
-    image && (image.startsWith('http://') || image.startsWith('https://')) 
-      ? image 
-      : DEFAULT_IMAGE
-  );
-
-  const handleImageError = () => {
-    console.log('Image failed to load:', imageUrl);
-    setImageUrl(DEFAULT_IMAGE);
-  };
-
   return (
     <Link 
       to={`/restaurant/${id}`}
@@ -61,12 +51,12 @@ const RestaurantCard = ({
       <div className="relative">
         {/* Imagem do restaurante */}
         <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-          <img 
-            src={imageUrl}
+          <ImageWithFallback 
+            src={image}
+            fallbackSrc={DEFAULT_IMAGE}
             alt={name}
             loading="lazy"
             className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-            onError={handleImageError}
           />
         </div>
         

@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface RestaurantImageProps {
   imageUrl: string;
@@ -8,22 +9,13 @@ interface RestaurantImageProps {
 }
 
 const RestaurantImage: React.FC<RestaurantImageProps> = ({ imageUrl, name, defaultImage }) => {
-  const [currentImage, setCurrentImage] = useState(imageUrl);
-
-  const handleImageError = () => {
-    if (currentImage !== defaultImage) {
-      console.error("Image failed to load:", currentImage);
-      setCurrentImage(defaultImage);
-    }
-  };
-
   return (
     <div className="w-full h-64 relative rounded-md overflow-hidden">
-      <img
-        src={currentImage}
+      <ImageWithFallback
+        src={imageUrl}
+        fallbackSrc={defaultImage}
         alt={name}
         className="w-full h-full object-cover"
-        onError={handleImageError}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MinusIcon, PlusIcon, Trash as TrashIcon } from 'lucide-react';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 interface CartItem {
   id: string;
@@ -30,27 +31,15 @@ const CartItemCard = ({ item, onIncrease, onDecrease, onRemove }: CartItemCardPr
   
   const totalPrice = item.price * item.quantity;
   
-  // Validate image URL
-  const [imageUrl, setImageUrl] = React.useState(
-    item.image && (item.image.startsWith('http://') || item.image.startsWith('https://')) 
-      ? item.image 
-      : DEFAULT_ITEM_IMAGE
-  );
-
-  const handleImageError = () => {
-    console.log('Cart item image failed to load:', imageUrl);
-    setImageUrl(DEFAULT_ITEM_IMAGE);
-  };
-  
   return (
     <div className="flex items-center gap-4 pb-4 border-b last:border-b-0 last:pb-0">
       {/* Imagem do produto */}
       <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
-        <img
-          src={imageUrl}
+        <ImageWithFallback
+          src={item.image}
+          fallbackSrc={DEFAULT_ITEM_IMAGE}
           alt={item.name}
           className="w-full h-full object-cover"
-          onError={handleImageError}
         />
       </div>
       

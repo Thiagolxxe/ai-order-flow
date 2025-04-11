@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, MinusIcon, Flame, Leaf } from 'lucide-react';
+import ImageWithFallback from '@/components/ui/image-with-fallback';
 
 export interface MenuItem {
   id: string;
@@ -66,30 +67,18 @@ const MenuItemCard: React.FC<MenuItemCardProps> = (props) => {
   const formattedPrice = item.price.toFixed(2).replace('.', ',');
   
   // Use imageUrl if provided as a direct prop, or use item.image
-  const initialImageUrl = props.imageUrl || item.image || DEFAULT_ITEM_IMAGE;
-  
-  // Validate image URL
-  const [imageUrl, setImageUrl] = React.useState(
-    initialImageUrl && (initialImageUrl.startsWith('http://') || initialImageUrl.startsWith('https://')) 
-      ? initialImageUrl 
-      : DEFAULT_ITEM_IMAGE
-  );
-
-  const handleImageError = () => {
-    console.log('Menu item image failed to load:', imageUrl);
-    setImageUrl(DEFAULT_ITEM_IMAGE);
-  };
+  const imageUrl = props.imageUrl || item.image || DEFAULT_ITEM_IMAGE;
   
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300">
       <div className="flex flex-col md:flex-row">
         {/* Imagem do item */}
         <div className="md:w-1/3 aspect-square md:aspect-auto">
-          <img
+          <ImageWithFallback
             src={imageUrl}
+            fallbackSrc={DEFAULT_ITEM_IMAGE}
             alt={item.name}
             className="w-full h-full object-cover"
-            onError={handleImageError}
           />
         </div>
         
