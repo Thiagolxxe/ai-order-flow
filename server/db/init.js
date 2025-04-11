@@ -50,7 +50,8 @@ const createCollectionsAndIndexes = async (db) => {
   await db.collection('users').createIndex({ email: 1 }, { unique: true });
   
   // Profiles collection
-  await db.collection('profiles').createIndex({ _id: 1 }, { unique: true });
+  // Remove the unique:true option for _id as it's already unique by default
+  await db.collection('profiles').createIndex({ userId: 1 });
   
   // Restaurants collection
   await db.collection('restaurants').createIndex({ proprietario_id: 1 });
@@ -81,7 +82,8 @@ const createCollectionsAndIndexes = async (db) => {
   await db.collection('addresses').createIndex({ usuario_id: 1, isdefault: 1 });
   
   // Drivers collection
-  await db.collection('drivers').createIndex({ _id: 1 }, { unique: true });
+  // Remove the unique:true option for _id as it's already unique by default
+  await db.collection('drivers').createIndex({ usuario_id: 1 });
   
   // User roles collection
   await db.collection('user_roles').createIndex({ userId: 1, role: 1 }, { unique: true });

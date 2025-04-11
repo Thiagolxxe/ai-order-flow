@@ -14,6 +14,7 @@ export const MongoDBStatusChecker: React.FC = () => {
   const [apiStatus, setApiStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
   const [apiError, setApiError] = useState<string | null>(null);
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
+  const [serverDetailedError, setServerDetailedError] = useState<string | null>(null);
 
   const addLog = (message: string, type: 'info' | 'error' | 'warning' = 'info') => {
     const timestamp = new Date().toISOString();
@@ -26,6 +27,7 @@ export const MongoDBStatusChecker: React.FC = () => {
     try {
       setStatus('connecting');
       setError(null);
+      setServerDetailedError(null);
       
       addLog('Iniciando verificação de conexão com MongoDB Atlas');
       
@@ -53,6 +55,7 @@ export const MongoDBStatusChecker: React.FC = () => {
     try {
       setApiStatus('checking');
       setApiError(null);
+      setServerDetailedError(null);
       
       const apiUrl = apiConfig.endpoints.system.healthCheck;
       addLog(`Tentando conectar à API em: ${apiUrl}`);
@@ -66,6 +69,17 @@ export const MongoDBStatusChecker: React.FC = () => {
       
       addLog(`API respondeu com status ${status}. Resposta: ${JSON.stringify(data)}`);
       
+      // Check if the response contains detailed error information
+      if (data && data.error) {
+        setServerDetailedError(typeof data.error === 'string' ? 
+          data.error : JSON.stringify(data.error, null, 2));
+      }
+      
+      if (data && data.details) {
+        setServerDetailedError(typeof data.details === 'string' ? 
+          data.details : JSON.stringify(data.details, null, 2));
+      }
+      
       setApiStatus('connected');
       toast.success('Conexão com API estabelecida com sucesso!');
     } catch (err: any) {
@@ -77,6 +91,20 @@ export const MongoDBStatusChecker: React.FC = () => {
         addLog(`A API ${apiConfig.baseURL} não respondeu no tempo esperado. O servidor pode estar inativo ou sobrecarregado.`, 'warning');
       } else if (err.message?.includes('Failed to fetch')) {
         addLog(`Não foi possível estabelecer conexão com ${apiConfig.baseURL}. Verifique se o serviço Render está ativo.`, 'warning');
+      }
+      
+      // Try to extract detailed error from the error object if available
+      try {
+        if (err.response && err.response.data) {
+          const responseData = err.response.data;
+          if (responseData.error || responseData.details) {
+            const detailedError = responseData.error || responseData.details;
+            setServerDetailedError(typeof detailedError === 'string' ? 
+              detailedError : JSON.stringify(detailedError, null, 2));
+          }
+        }
+      } catch (parseError) {
+        console.error('Erro ao analisar detalhes do erro:', parseError);
       }
       
       console.error('Erro ao conectar à API:', err);
@@ -116,6 +144,16 @@ export const MongoDBStatusChecker: React.FC = () => {
         error={apiError} 
         onRetry={checkApiConnection} 
       />
+      
+      {/* Server Detailed Error */}
+      {serverDetailedError && (
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+          <h3 className="text-sm font-medium text-red-800 mb-2">Erro detalhado do servidor:</h3>
+          <pre className="bg-white p-3 rounded text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto border border-red-100 whitespace-pre-wrap text-red-700">
+            {serverDetailedError}
+          </pre>
+        </div>
+      )}
       
       {/* Diagnostic Information */}
       <ConnectionDiagnostics 
