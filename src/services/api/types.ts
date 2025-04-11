@@ -35,3 +35,7 @@ export interface AuthSignInParams {
   email: string;
   password: string;
 }
+
+// MongoDB Status Types
+export type MongoDBConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
+export type ApiConnectionStatus = 'idle' | 'checking' | 'connected' | 'error';
