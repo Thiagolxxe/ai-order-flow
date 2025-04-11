@@ -16,7 +16,8 @@ export const apiConfig = {
       register: '/api/auth/register',
       login: '/api/auth/login',
       logout: '/api/auth/logout', 
-      refreshToken: '/api/auth/refresh-token'
+      refreshToken: '/api/auth/refresh-token',
+      csrf: '/api/auth/csrf-token'
     },
     restaurants: {
       base: '/api/restaurants',
@@ -30,7 +31,8 @@ export const apiConfig = {
     },
     users: {
       profile: '/api/users/profile',
-      updateProfile: '/api/users/profile'
+      updateProfile: '/api/users/profile',
+      roles: '/api/users/roles'
     },
     notifications: {
       base: '/api/notifications',
@@ -52,7 +54,11 @@ export const apiConfig = {
       upload: '/api/videos/upload',
       byRestaurant: (restaurantId: string) => `/api/videos/restaurant/${restaurantId}`,
       trending: '/api/videos/trending',
-      recommended: '/api/videos/recommended'
+      recommended: '/api/videos/recommended',
+      like: (id: string) => `/api/videos/${id}/like`,
+      unlike: (id: string) => `/api/videos/${id}/unlike`,
+      comment: (id: string) => `/api/videos/${id}/comments`,
+      share: (id: string) => `/api/videos/${id}/share`
     },
     // New connection check endpoint
     system: {
