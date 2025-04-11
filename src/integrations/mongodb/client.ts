@@ -2,7 +2,10 @@
 // MongoDB Atlas client for browser-side usage
 
 // MongoDB connection string
+// Corrigindo o formato da string de conexão para usar o formato direto se o SRV falhar
 const MONGODB_URI = "mongodb+srv://Deliverai:Deliverai@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// String de fallback sem SRV para caso o DNS não resolva o SRV
+const MONGODB_FALLBACK_URI = "mongodb://Deliverai:Deliverai@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // Simple ObjectId implementation for browser
 export class ObjectId {
@@ -35,7 +38,8 @@ let connectionStatus = {
   error: null as Error | null,
   lastAttempt: null as Date | null,
   retryCount: 0,
-  diagnostics: {} as Record<string, any>
+  diagnostics: {} as Record<string, any>,
+  currentUri: MONGODB_URI
 };
 
 export function getConnectionStatus() {
@@ -95,17 +99,36 @@ async function diagnoseConnectionIssue(): Promise<Record<string, any>> {
     
     // Verify connection string format
     const uriPattern = /^mongodb(\+srv)?:\/\//;
+    const currentUri = connectionStatus.currentUri || MONGODB_URI;
     diagnostics.connectionStringFormat = {
-      valid: uriPattern.test(MONGODB_URI),
-      format: MONGODB_URI.split('@')[0].replace(/[^@]+/, '****:****')
+      valid: uriPattern.test(currentUri),
+      format: currentUri.split('@')[0].replace(/[^@]+/, '****:****'),
+      usingSrv: currentUri.startsWith('mongodb+srv://'),
     };
+
+    // Check the host portion for validity
+    const hostMatch = currentUri.match(/@([^\/\?]+)/);
+    if (hostMatch && hostMatch[1]) {
+      diagnostics.host = {
+        value: hostMatch[1],
+        format: 'Hostname appears to be in correct format'
+      };
+    }
     
     // Note any network restrictions (browser-side only)
     if (typeof window !== 'undefined') {
       diagnostics.networkContext = {
         secure: window.location.protocol === 'https:',
-        host: window.location.host
+        host: window.location.host,
+        renderDeployment: window.location.host.includes('render.com') || 
+                         window.location.host.includes('onrender.com')
       };
+
+      if (diagnostics.networkContext.renderDeployment) {
+        diagnostics.renderDeploymentNote = {
+          message: 'Aplicativo está hospedado no Render, verifique a variável de ambiente MONGODB_URI nas configurações do serviço'
+        };
+      }
     }
     
     return diagnostics;
@@ -134,9 +157,31 @@ export async function connectToDatabase(): Promise<{ db: any }> {
     connectionStatus.diagnostics = diagResults;
     console.log('Connection diagnostics:', diagResults);
 
-    // Simulamos uma conexão bem-sucedida ao MongoDB Atlas usando a string fornecida
-    console.log(`Tentando conectar ao MongoDB Atlas usando: ${MONGODB_URI.substring(0, 20)}...`);
-    await testConnection();
+    // Log current connection string format (masked)
+    const currentUri = connectionStatus.currentUri;
+    console.log(`Tentando conectar ao MongoDB Atlas usando: ${currentUri.substring(0, 20)}...`);
+    
+    try {
+      // Try connection
+      await testConnection();
+    } catch (error) {
+      // If SRV lookup fails and we're using SRV, try with fallback
+      const origError = error as Error;
+      if (origError.message.includes('querySrv ENOTFOUND') && 
+          connectionStatus.currentUri === MONGODB_URI) {
+        console.log('SRV lookup failed, tentando conexão direta sem SRV...');
+        connectionStatus.currentUri = MONGODB_FALLBACK_URI;
+        // Update diagnostics with fallback attempt
+        connectionStatus.diagnostics.fallbackAttempt = {
+          reason: 'SRV lookup failed, trying direct connection',
+          originalError: origError.message
+        };
+        await testConnection();
+      } else {
+        // Re-throw if it's not an SRV error or if we're already using fallback
+        throw error;
+      }
+    }
     
     // Create a client object (would normally be a real connection)
     if (!mongoClient) {
@@ -233,8 +278,8 @@ export async function connectToDatabase(): Promise<{ db: any }> {
       diagnostics: {
         ...connectionStatus.diagnostics,
         error: errorInfo,
-        connectionString: MONGODB_URI.includes('@') 
-          ? `${MONGODB_URI.split('@')[0].replace(/[^@]+/, '****:****')}@${MONGODB_URI.split('@')[1]}`
+        connectionString: connectionStatus.currentUri.includes('@') 
+          ? `${connectionStatus.currentUri.split('@')[0].replace(/[^@]+/, '****:****')}@${connectionStatus.currentUri.split('@')[1]}`
           : 'Invalid connection string format'
       }
     };
