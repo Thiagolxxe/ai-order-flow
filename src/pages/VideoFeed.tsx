@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import VideoFeedContainer from '@/components/video-feed/VideoFeedContainer';
 import VideoControls from '@/components/video-feed/VideoControls';
 import { useVideoFeed } from '@/hooks/useVideoFeed';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Helmet } from 'react-helmet-async';
+import { toast } from 'sonner';
 
 const VideoFeed = () => {
   const {
@@ -24,6 +26,26 @@ const VideoFeed = () => {
     videos,
     isLoading
   } = useVideoFeed();
+  
+  // Set proper metadata for OpenGraph when sharing
+  useEffect(() => {
+    if (activeVideo) {
+      // Update document title when active video changes
+      document.title = `${activeVideo.dishName} - ${activeVideo.restaurantName} | DeliveryAI`;
+    }
+  }, [activeVideo]);
+  
+  // Show adaptive streaming notice
+  useEffect(() => {
+    const connection = navigator.connection as any;
+    if (connection && connection.effectiveType === '2g' || connection?.effectiveType === '3g') {
+      setTimeout(() => {
+        toast.info("Qualidade de vídeo ajustada para sua conexão atual", {
+          duration: 3000,
+        });
+      }, 2000);
+    }
+  }, []);
   
   if (isLoading) {
     return (
@@ -51,29 +73,48 @@ const VideoFeed = () => {
   }
   
   return (
-    <div className="fixed inset-0 bg-black">
-      <VideoFeedContainer
-        videos={videos}
-        activeVideoIndex={activeVideoIndex}
-        muted={muted}
-        likedVideos={likedVideos || []}
-        onMuteToggle={toggleMute}
-        onViewRestaurant={handleViewRestaurant}
-        onLike={handleLike}
-        onShare={handleShare}
-        onComment={handleComment}
-        containerRef={feedContainerRef}
-        onScroll={handleScroll}
-      />
+    <>
+      <Helmet>
+        {activeVideo && (
+          <>
+            <title>{`${activeVideo.dishName} - ${activeVideo.restaurantName}`}</title>
+            <meta property="og:title" content={activeVideo.dishName} />
+            <meta property="og:description" content={activeVideo.description} />
+            <meta property="og:image" content={activeVideo.thumbnailUrl} />
+            <meta property="og:type" content="video" />
+            <meta property="og:video" content={activeVideo.videoUrl} />
+            <meta name="twitter:card" content="player" />
+            <meta name="twitter:title" content={activeVideo.dishName} />
+            <meta name="twitter:description" content={activeVideo.description} />
+            <meta name="twitter:image" content={activeVideo.thumbnailUrl} />
+          </>
+        )}
+      </Helmet>
       
-      <VideoControls 
-        video={activeVideo}
-        onNext={handleNext}
-        onPrevious={handlePrevious}
-        onMuteToggle={toggleMute}
-        muted={muted}
-      />
-    </div>
+      <div className="fixed inset-0 bg-black">
+        <VideoFeedContainer
+          videos={videos}
+          activeVideoIndex={activeVideoIndex}
+          muted={muted}
+          likedVideos={likedVideos || []}
+          onMuteToggle={toggleMute}
+          onViewRestaurant={handleViewRestaurant}
+          onLike={handleLike}
+          onShare={handleShare}
+          onComment={handleComment}
+          containerRef={feedContainerRef}
+          onScroll={handleScroll}
+        />
+        
+        <VideoControls 
+          video={activeVideo}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onMuteToggle={toggleMute}
+          muted={muted}
+        />
+      </div>
+    </>
   );
 };
 

@@ -53,18 +53,18 @@ export const useVideoFeed = () => {
           return;
         }
         
-        if (data && data.length > 0) {
+        if (data && data.items && data.items.length > 0) {
           // Map API video format to app video format
-          const mappedVideos: Video[] = data.map((video: any) => ({
-            id: video.id || video._id,
-            restaurantId: video.restaurantId || video.restaurante_id,
-            restaurantName: video.restaurantName || video.restaurante_nome || "Restaurante",
-            dishName: video.dishName || video.titulo,
-            price: video.price || video.preco || 0,
-            videoUrl: video.videoUrl || video.video_url,
-            thumbnailUrl: video.thumbnailUrl || video.thumbnail_url || "",
+          const mappedVideos: Video[] = data.items.map((video: any) => ({
+            id: video.id,
+            restaurantId: video.restaurantId,
+            restaurantName: video.restaurantName || "Restaurante",
+            dishName: video.title,
+            price: video.price || 0,
+            videoUrl: video.url,
+            thumbnailUrl: video.thumbnailUrl || "",
             likes: video.likes || 0,
-            description: video.description || video.descricao || "",
+            description: video.description || "",
           }));
           
           setVideos(mappedVideos);
@@ -117,6 +117,22 @@ export const useVideoFeed = () => {
   const handleCommentWithAI = useCallback((video: Video) => {
     openChat(video.dishName, video.restaurantName);
   }, [openChat]);
+  
+  // Report watch progress for analytics
+  useEffect(() => {
+    if (activeVideo) {
+      const reportInterval = setInterval(() => {
+        // Report every 5 seconds of watching
+        apiService.videos.reportWatchProgress(
+          activeVideo.id, 
+          Math.random(), // Simulate watch progress percentage
+          Date.now()
+        ).catch(err => console.error("Error reporting watch progress:", err));
+      }, 5000);
+      
+      return () => clearInterval(reportInterval);
+    }
+  }, [activeVideo]);
   
   return {
     activeVideoIndex,

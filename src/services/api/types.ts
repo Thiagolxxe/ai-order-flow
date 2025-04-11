@@ -21,8 +21,8 @@ export interface AuthSignUpParams {
   password: string;
   options?: {
     data?: {
-      nome?: string;
-      sobrenome?: string;
+      firstName?: string;
+      lastName?: string;
       [key: string]: any;
     }
   };
@@ -46,7 +46,6 @@ export interface PaginatedResponse<T> {
   pagination: Pagination;
 }
 
-// Adicionar tipos faltantes
 export interface Notification {
   id: string;
   title: string;
@@ -104,6 +103,11 @@ export interface VideoShare {
   videoId: string;
   platform: string;
   createdAt: Date;
+  metadata?: {
+    shareUrl?: string;
+    recipientCount?: number;
+    previewImage?: string;
+  };
 }
 
 export interface Video {
@@ -120,4 +124,56 @@ export interface Video {
   likes: number;
   shares: number;
   comments: number;
+  fileHash?: string;
+  fileSize?: number;
+  resolution?: string;
+  encoding?: {
+    codec: string;
+    bitrate: number;
+    format: string;
+  };
+  moderation?: {
+    status: 'pending' | 'approved' | 'rejected';
+    reviewedAt?: Date;
+    notes?: string;
+  };
+}
+
+// Content Delivery Types
+export interface CDNConfig {
+  provider: string;
+  region: string;
+  bucketName: string;
+  publicUrl: string;
+}
+
+export interface VideoProcessingJob {
+  id: string;
+  videoId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  operations: string[];
+  progress: number;
+  startedAt: Date;
+  completedAt?: Date;
+  error?: string;
+}
+
+// Analytics Types
+export interface VideoEngagement {
+  videoId: string;
+  viewCompletion: number;
+  avgWatchTime: number;
+  dropOffPoints: number[];
+  heatmapData?: any;
+}
+
+// Enhanced Video Sharing Types
+export interface SocialShareMetadata {
+  title: string;
+  description: string;
+  imageUrl: string;
+  url: string;
+  ogTags?: Record<string, string>;
+  qrCodeUrl?: string;
+  utm?: Record<string, string>;
 }

@@ -18,11 +18,30 @@ export const notificationService = {
   },
   
   /**
+   * Get notifications by user ID
+   */
+  getByUserId: async (userId: string, params: any = {}): Promise<ApiResult<PaginatedResponse<Notification>>> => {
+    return baseApiService.get(
+      `${apiConfig.endpoints.notifications.base}/user/${userId}`,
+      params
+    );
+  },
+  
+  /**
    * Get unread notifications count
    */
   getUnreadCount: async (): Promise<ApiResult<{ count: number }>> => {
     return baseApiService.get(
       apiConfig.endpoints.notifications.unread
+    );
+  },
+  
+  /**
+   * Get unread notifications 
+   */
+  getUnread: async (): Promise<ApiResult<Notification[]>> => {
+    return baseApiService.get(
+      `${apiConfig.endpoints.notifications.base}/unread`
     );
   },
   
