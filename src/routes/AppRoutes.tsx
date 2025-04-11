@@ -1,6 +1,6 @@
 
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import SuspenseLoader from '@/components/ui/SuspenseLoader';
 import Index from '@/pages/Index';
 
@@ -21,7 +21,8 @@ const Notifications = lazy(() => import('@/pages/Notifications'));
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      {/* Redirect root path to videos */}
+      <Route path="/" element={<Navigate to="/videos" replace />} />
       
       {/* Lazy loaded routes */}
       <Route path="/videos" element={

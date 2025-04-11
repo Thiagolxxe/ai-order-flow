@@ -10,6 +10,10 @@ if (typeof window !== 'undefined' && !window.global) {
   window.global = window;
 }
 
+// Redirect to /videos automatically
+const initialPath = window.location.pathname === '/' ? '/videos' : window.location.pathname;
+window.history.replaceState(null, '', initialPath);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
