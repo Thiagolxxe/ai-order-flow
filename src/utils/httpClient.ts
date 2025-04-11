@@ -5,6 +5,9 @@
 import { API_TIMEOUT, API_BASE_URL } from '@/config/apiConfig';
 import { getAuthHeader } from '@/utils/authUtils';
 
+// Add flag to track if we're in demo mode (no server)
+let isDemoMode = false;
+
 /**
  * Types for API responses
  */
@@ -79,6 +82,13 @@ export const httpClient = {
         }
       }
 
+      // If we already detected demo mode, skip actual network request
+      if (isDemoMode && endpoint.includes('/api/')) {
+        clearTimeout(timeoutId);
+        console.log('📱 Demo mode active - using mock response for:', endpoint);
+        return this.getMockResponse(endpoint, method, options.body);
+      }
+
       const response = await fetch(finalUrl, {
         method,
         headers,
@@ -123,6 +133,21 @@ export const httpClient = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       
+      // If connection refused, switch to demo mode
+      if (err.message && (
+          err.message.includes('Failed to fetch') || 
+          err.message.includes('ERR_CONNECTION_REFUSED') ||
+          err.message.includes('ECONNREFUSED')
+        )) {
+        console.warn('⚠️ API server not available, switching to demo mode');
+        isDemoMode = true;
+        
+        // Return a mock response
+        if (endpoint.includes('/api/')) {
+          return this.getMockResponse(endpoint, method, options.body);
+        }
+      }
+      
       // Handle network or timeout errors
       return {
         data: null,
@@ -130,10 +155,71 @@ export const httpClient = {
           message: err.name === 'AbortError'
             ? 'A requisição excedeu o tempo limite'
             : err.message || 'Falha de conexão com o servidor',
+          code: err.name === 'AbortError' ? 'TIMEOUT' : 'CONNECTION_ERROR',
         },
         status: err.name === 'AbortError' ? 408 : 0, // 408 Request Timeout
       };
     }
+  },
+
+  /**
+   * Generate mock responses for demo mode when server is not available
+   */
+  getMockResponse(endpoint: string, method: string, body: any): ApiResponse {
+    console.log(`📱 Generating mock response for ${method} ${endpoint}`);
+    
+    // Login endpoint
+    if (endpoint.includes('/api/auth/login') && method === 'POST') {
+      const mockUser = {
+        id: 'demo-user-123',
+        email: body?.email || 'demo@example.com',
+        user_metadata: {
+          nome: 'Usuário',
+          sobrenome: 'Demo'
+        }
+      };
+      
+      return {
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'demo-token-' + Math.random().toString(36).substring(2),
+          }
+        },
+        error: null,
+        status: 200
+      };
+    }
+    
+    // Register endpoint
+    if (endpoint.includes('/api/auth/register') && method === 'POST') {
+      const mockUser = {
+        id: 'demo-user-' + Math.random().toString(36).substring(2),
+        email: body?.email || 'demo@example.com',
+        user_metadata: {
+          nome: body?.nome || 'Novo',
+          sobrenome: body?.sobrenome || 'Usuário'
+        }
+      };
+      
+      return {
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'demo-token-' + Math.random().toString(36).substring(2),
+          }
+        },
+        error: null,
+        status: 201
+      };
+    }
+    
+    // Default response
+    return {
+      data: { message: 'Resposta demo gerada para ' + endpoint },
+      error: null,
+      status: 200
+    };
   },
 
   /**

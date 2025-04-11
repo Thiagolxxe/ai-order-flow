@@ -72,7 +72,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session.user as User);
           setSession({ access_token: session.access_token });
           
-          // Check user role
+          // Try to check user role, but don't fail if it can't connect
           try {
             const { db } = await connectToDatabase();
             const userRolesResult = await db.collection('user_roles').findOne({
@@ -84,6 +84,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (error) {
             console.error('Erro ao verificar função do usuário:', error);
+            // Don't fail the whole application if we can't check roles
           }
         } catch (e) {
           console.error('Error parsing session:', e);
@@ -104,7 +105,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Authenticate with MongoDB server API
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`;
+        console.log('Attempting to connect to:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,7 +125,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData.user as User);
         setSession({ access_token: userData.session.access_token });
         
-        // Check user role
+        // Try to check user role, but don't fail if it can't connect
         try {
           const { db } = await connectToDatabase();
           const userRolesResult = await db.collection('user_roles').findOne({
@@ -147,6 +151,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success('Login realizado com sucesso!');
         return {};
       } catch (serverError: any) {
+        console.error('Server connection error:', serverError);
+        // Add enhanced error for connection issues
+        if (serverError instanceof TypeError && serverError.message === 'Failed to fetch') {
+          return { 
+            error: { 
+              message: 'Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.',
+              code: 'CONNECTION_ERROR'
+            } 
+          };
+        }
         return { error: serverError };
       }
     } catch (error: any) {

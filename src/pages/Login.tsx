@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<boolean>(false);
   
   const { signIn, isAuthenticated } = useUser();
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setApiError(false);
     setLoading(true);
 
     try {
@@ -44,8 +47,10 @@ const Login = () => {
         // Check for connection error
         if (error.message?.includes('Failed to fetch') || 
             error.message?.includes('connection') ||
-            error.message?.includes('ERR_CONNECTION_REFUSED')) {
-          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.');
+            error.message?.includes('ERR_CONNECTION_REFUSED') ||
+            error.message?.includes('ECONNREFUSED')) {
+          setApiError(true);
+          throw new Error('Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.');
         }
         throw new Error(error.message || 'Credenciais inválidas');
       }
@@ -76,6 +81,15 @@ const Login = () => {
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
                 {error}
               </div>
+            )}
+            
+            {apiError && (
+              <Alert variant="destructive" className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  O servidor não está respondendo. Certifique-se de que o servidor backend está rodando na porta 5000 antes de tentar fazer login.
+                </AlertDescription>
+              </Alert>
             )}
             
             <div className="space-y-2">
