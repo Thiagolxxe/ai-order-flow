@@ -48,9 +48,10 @@ const Login = () => {
         if (error.message?.includes('Failed to fetch') || 
             error.message?.includes('connection') ||
             error.message?.includes('ERR_CONNECTION_REFUSED') ||
-            error.message?.includes('ECONNREFUSED')) {
+            error.message?.includes('ECONNREFUSED') ||
+            error.message?.includes('NetworkError')) {
           setApiError(true);
-          throw new Error('Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.');
+          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o servidor MongoDB Atlas está disponível.');
         }
         throw new Error(error.message || 'Credenciais inválidas');
       }
@@ -87,7 +88,7 @@ const Login = () => {
               <Alert variant="destructive" className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  O servidor não está respondendo. Certifique-se de que o servidor backend está rodando na porta 5000 antes de tentar fazer login.
+                  O servidor não está respondendo. Verifique sua conexão com a internet ou se o servidor MongoDB Atlas está disponível.
                 </AlertDescription>
               </Alert>
             )}

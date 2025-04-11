@@ -137,7 +137,8 @@ export const httpClient = {
       if (err.message && (
           err.message.includes('Failed to fetch') || 
           err.message.includes('ERR_CONNECTION_REFUSED') ||
-          err.message.includes('ECONNREFUSED')
+          err.message.includes('ECONNREFUSED') ||
+          err.message.includes('NetworkError')
         )) {
         console.warn('⚠️ API server not available, switching to demo mode');
         isDemoMode = true;

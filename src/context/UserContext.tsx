@@ -153,10 +153,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (serverError: any) {
         console.error('Server connection error:', serverError);
         // Add enhanced error for connection issues
-        if (serverError instanceof TypeError && serverError.message === 'Failed to fetch') {
+        if (serverError instanceof TypeError && 
+           (serverError.message === 'Failed to fetch' || 
+            serverError.message.includes('NetworkError'))) {
           return { 
             error: { 
-              message: 'Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.',
+              message: 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou se o servidor está disponível.',
               code: 'CONNECTION_ERROR'
             } 
           };

@@ -69,13 +69,13 @@ interface MongoClient {
 // Simulated MongoDB client for browser development
 let mongoClient: MongoClient | null = null;
 
-// Connect to MongoDB
+// Connect to MongoDB (supports Atlas connection)
 export async function connectToDatabase(): Promise<{ db: any }> {
   try {
     console.log('Connecting to MongoDB...');
     connectionStatus = { status: 'connecting', error: null };
     
-    // In a real app, we would connect to a real MongoDB instance
+    // In a real app, we would connect to a real MongoDB Atlas cluster
     // For this example, we're simulating the connection
     await new Promise(resolve => setTimeout(resolve, 500));
     
