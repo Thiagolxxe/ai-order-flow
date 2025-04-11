@@ -10,7 +10,7 @@ export const useVideoInteractions = (
   const navigate = useNavigate();
   
   const handleViewRestaurant = useCallback((restaurantId: string) => {
-    navigate(`/restaurante/${restaurantId}`);
+    navigate(`/restaurants/${restaurantId}`);
   }, [navigate]);
 
   const handleLike = useCallback((videoId: string) => {
