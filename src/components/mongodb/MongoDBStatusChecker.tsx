@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { connectToDatabase, getConnectionStatus } from '@/integrations/mongodb/client';
 import { toast } from 'sonner';
-import { Database, AlertCircle, CheckCircle, Server, RefreshCw } from 'lucide-react';
+import { Database, AlertCircle, CheckCircle, Server, RefreshCw, ExternalLink } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
@@ -41,11 +41,15 @@ export const MongoDBStatusChecker: React.FC = () => {
       
       // Tenta conectar à API local
       const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/check-connection`;
+      console.log(`Tentando conectar à API em: ${apiUrl}`);
+      
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        // Adicionando timeout para a requisição
+        signal: AbortSignal.timeout(5000) // 5 segundos de timeout
       }).catch(error => {
         throw new Error('Não foi possível conectar ao servidor da API. Verifique se o servidor está em execução.');
       });
@@ -131,11 +135,16 @@ export const MongoDBStatusChecker: React.FC = () => {
                   <div>
                     <p className="mb-2">{apiError || 'Não foi possível conectar ao servidor da API'}</p>
                     <p className="text-sm mb-2">
-                      O aplicativo não consegue se conectar ao servidor da API. 
-                      Verifique se o servidor está em execução na porta 5000 ou configure a URL correta.
+                      O aplicativo não consegue se conectar ao servidor da API (http://localhost:5000). 
+                      <strong> Este é o motivo do erro "Cannot connect to the server" no login.</strong>
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-sm text-yellow-800 mt-2">
-                      <p><strong>Nota:</strong> Para autenticação e outras operações do servidor, será usado o modo de demonstração com dados simulados.</p>
+                      <p><strong>Nota:</strong> Você está tentando conectar ao API server local, mas ele não está em execução.</p>
+                      <ul className="list-disc pl-5 mt-1">
+                        <li>Verifique se você iniciou o servidor Express na pasta server/ com <code>npm start</code></li>
+                        <li>Confirme que o servidor está rodando na porta 5000</li>
+                        <li>Se você está usando o serviço hospedado, o erro é esperado (modo de demonstração será usado)</li>
+                      </ul>
                     </div>
                     <Button 
                       variant="outline" 
@@ -151,6 +160,40 @@ export const MongoDBStatusChecker: React.FC = () => {
               </AlertDescription>
             </div>
           </div>
+        </Alert>
+      )}
+      
+      {/* Informações adicionais quando MongoDB conectou mas a API falhou */}
+      {status === 'connected' && apiStatus === 'error' && (
+        <Alert variant="default" className="bg-blue-50 border-blue-200">
+          <Database className="h-4 w-4 text-blue-600 mr-2" />
+          <AlertTitle className="text-blue-700">Diagnóstico do problema</AlertTitle>
+          <AlertDescription className="text-blue-600">
+            <p className="mb-2">A conexão com MongoDB Atlas foi bem-sucedida, mas o servidor API local não está disponível.</p>
+            <p className="text-sm mb-2">
+              O erro <strong>"Cannot connect to the server"</strong> na tela de login ocorre porque a aplicação está tentando
+              autenticar através do servidor API local (http://localhost:5000), mas este servidor não está respondendo.
+            </p>
+            <div className="bg-white/50 border border-blue-100 rounded p-2 text-sm mt-2">
+              <p className="font-medium">Soluções possíveis:</p>
+              <ol className="list-decimal pl-5 mt-1">
+                <li>Inicie o servidor Express na pasta server/ com <code>npm start</code></li>
+                <li>Configure uma variável de ambiente <code>VITE_API_URL</code> apontando para um servidor válido</li>
+                <li>Utilize o modo de demonstração com dados simulados (já configurado como fallback)</li>
+              </ol>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                onClick={() => window.location.href = '/login'}
+              >
+                <ExternalLink className="h-3 w-3 mr-2" />
+                Voltar ao login
+              </Button>
+            </div>
+          </AlertDescription>
         </Alert>
       )}
       

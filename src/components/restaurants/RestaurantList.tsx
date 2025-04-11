@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import RestaurantCard from './RestaurantCard';
@@ -42,13 +43,13 @@ interface RestaurantListProps {
   showFilters?: boolean;
 }
 
-export default function RestaurantList({
+const RestaurantList: React.FC<RestaurantListProps> = ({
   title = 'Restaurantes',
   filter,
   maxItems,
   showSearch = false,
   showFilters = false,
-}: RestaurantListProps) {
+}) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,6 +208,6 @@ export default function RestaurantList({
       )}
     </div>
   );
-}
+};
 
 export default RestaurantList;
