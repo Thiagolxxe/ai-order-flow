@@ -192,7 +192,7 @@ export default function RestaurantList({
               deliveryTime={restaurant.deliveryTime}
               deliveryFee={restaurant.deliveryFee}
               distance={restaurant.distance}
-              minOrder={restaurant.minOrder || 10} // Convertendo para string para evitar erro de tipo
+              minOrder={restaurant.minOrder || 10}
             />
           ))}
         </div>
