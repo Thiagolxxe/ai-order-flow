@@ -31,6 +31,7 @@ export interface RequestOptions {
   timeout?: number;
   body?: any;
   params?: Record<string, any>; 
+  mode?: 'cors' | 'no-cors' | 'same-origin';
 }
 
 /**
@@ -98,11 +99,16 @@ export const httpClient = {
       // Measure request time
       const startTime = performance.now();
       
+      // Explicitly set mode to 'cors' by default
+      const mode = options.mode || 'cors';
+      
       const response = await fetch(finalUrl, {
         method,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
         signal,
+        mode,
+        credentials: 'same-origin'
       });
 
       const endTime = performance.now();
@@ -147,24 +153,33 @@ export const httpClient = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       
+      // Check specifically for CORS errors
+      const isCORSError = 
+        err.message?.includes('NetworkError') || 
+        err.message?.includes('Failed to fetch') ||
+        err.message?.includes('Network request failed') ||
+        err.message?.includes('CORS');
+      
       // Log detailed connection error
       console.error(`Erro na conexão com ${url}:`, {
         message: err.message,
         name: err.name,
         stack: err.stack,
         endpoint,
-        method
+        method,
+        isCORSError
       });
+      
+      // Run a CORS diagnostic
+      if (isCORSError) {
+        this.runCORSDiagnostic(url);
+      }
       
       // If connection refused, switch to demo mode
       if (err.name === 'AbortError') {
         console.warn(`⚠️ Requisição excedeu o tempo limite de ${requestTimeout}ms para: ${url}`);
-      } else if (err.message && (
-          err.message.includes('Failed to fetch') || 
-          err.message.includes('ERR_CONNECTION_REFUSED') ||
-          err.message.includes('ECONNREFUSED') ||
-          err.message.includes('NetworkError')
-        )) {
+      } else if (isCORSError) {
+        console.warn(`⚠️ Possível erro de CORS ao acessar ${url}, ativando modo demo`);
         console.warn(`⚠️ API server não está disponível em ${url}, ativando modo demo`);
         isDemoMode = true;
         
@@ -180,11 +195,42 @@ export const httpClient = {
         error: {
           message: err.name === 'AbortError'
             ? 'A requisição excedeu o tempo limite'
-            : err.message || 'Falha de conexão com o servidor',
-          code: err.name === 'AbortError' ? 'TIMEOUT' : 'CONNECTION_ERROR',
+            : isCORSError
+              ? `Erro de CORS: Falha no acesso cross-origin a ${API_BASE_URL}. Verifique se o servidor permite solicitações de ${window.location.origin}`
+              : err.message || 'Falha de conexão com o servidor',
+          code: err.name === 'AbortError' 
+            ? 'TIMEOUT' 
+            : isCORSError 
+              ? 'CORS_ERROR' 
+              : 'CONNECTION_ERROR',
         },
         status: err.name === 'AbortError' ? 408 : 0, // 408 Request Timeout
       };
+    }
+  },
+
+  /**
+   * Run a CORS diagnostic test
+   */
+  async runCORSDiagnostic(url: string) {
+    console.log('🔍 Executando diagnóstico de CORS...');
+    
+    try {
+      // Try a simple HEAD request to check basic connectivity
+      const response = await fetch(`${API_BASE_URL}/api/cors-test`, {
+        method: 'HEAD',
+        mode: 'no-cors' // Use no-cors mode to at least see if the server is responding
+      });
+      
+      console.log('✅ Servidor respondeu a requisição no-cors: ', response.type);
+      
+      console.log('Diagnóstico CORS:');
+      console.log(`- URL da API: ${API_BASE_URL}`);
+      console.log(`- Origem atual: ${window.location.origin}`);
+      console.log(`- Protocolo: ${window.location.protocol}`);
+      console.log('- Sugestão: Verifique se o servidor está configurado para aceitar requisições CORS dessa origem');
+    } catch (err) {
+      console.error('❌ Falha no diagnóstico de CORS:', err);
     }
   },
 

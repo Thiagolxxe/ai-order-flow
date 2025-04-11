@@ -19,15 +19,33 @@ app.use(helmet());
 
 app.use(express.json({ limit: '1mb' }));
 
-// Configuração de CORS mais permissiva para ambiente de produção
+// Configuração de CORS mais permissiva para ambiente de desenvolvimento
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: '*', // Permite qualquer origem (para desenvolvimento)
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  maxAge: 86400 // 24 horas em segundos
+  maxAge: 86400, // 24 horas em segundos
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
+
+// Habilitar CORS para todas as rotas
 app.use(cors(corsOptions));
+
+// Middleware específico para OPTIONS (preflight)
+app.options('*', cors(corsOptions));
+
+// Rota de diagnóstico CORS
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CORS está configurado corretamente',
+    origin: req.headers.origin || 'Desconhecido',
+    requestHeaders: req.headers
+  });
+});
 
 // String de conexão MongoDB
 const uri = process.env.MONGODB_URI;
@@ -474,6 +492,15 @@ app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
 
 // Rota para verificar a conexão com o MongoDB
 app.get('/api/check-connection', async (req, res) => {
+  // Log de diagnóstico CORS
+  console.log('Header de origem da requisição:', req.headers.origin);
+  console.log('Headers completos:', req.headers);
+  
+  // Configurar headers CORS manualmente para esta rota específica
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   try {
     await client.db("admin").command({ ping: 1 });
     const status = {
@@ -481,7 +508,11 @@ app.get('/api/check-connection', async (req, res) => {
       message: 'Conectado ao MongoDB',
       timestamp: new Date(),
       server: 'MongoDB Atlas',
-      database: 'delivery_app'
+      database: 'delivery_app',
+      corsInfo: {
+        origin: req.headers.origin || 'unknown',
+        method: req.method
+      }
     };
     console.log('Ping ao MongoDB bem-sucedido:', status);
     res.status(200).json(status);
@@ -491,17 +522,30 @@ app.get('/api/check-connection', async (req, res) => {
       success: false, 
       error: 'Falha na conexão com o MongoDB',
       details: error.message,
-      timestamp: new Date()
+      timestamp: new Date(),
+      corsInfo: {
+        origin: req.headers.origin || 'unknown',
+        method: req.method
+      }
     });
   }
 });
 
 // Rota raiz para verificar se o servidor está rodando (útil para plataformas de hospedagem)
 app.get('/', (req, res) => {
+  // Configurar headers CORS manualmente para esta rota específica
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   res.status(200).json({
     message: 'Servidor DeliveryAI funcionando!',
     timestamp: new Date(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    cors: {
+      origin: req.headers.origin || 'unknown',
+      method: req.method
+    }
   });
 });
 
