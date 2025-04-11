@@ -11,14 +11,14 @@ export interface UserSession {
 }
 
 /**
- * Remove a sessão do armazenamento local
+ * Removes the session from local storage
  */
 export const removeSession = () => {
   localStorage.removeItem(SESSION_STORAGE_KEY);
 };
 
 /**
- * Salva a sessão no armazenamento local
+ * Saves the session to local storage
  */
 export const saveSession = (session: UserSession) => {
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
@@ -28,7 +28,7 @@ export const saveSession = (session: UserSession) => {
 };
 
 /**
- * Obtém a sessão do armazenamento local
+ * Gets the session from local storage
  */
 export const getSession = (): { session: UserSession | null } => {
   const sessionStr = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -41,7 +41,7 @@ export const getSession = (): { session: UserSession | null } => {
     const sessionData = JSON.parse(sessionStr);
     const { session, expires_at } = sessionData;
     
-    // Verificar se a sessão expirou
+    // Check if the session expired
     if (expires_at && new Date(expires_at) < new Date()) {
       removeSession();
       return { session: null };
@@ -52,4 +52,19 @@ export const getSession = (): { session: UserSession | null } => {
     console.error('Error parsing session:', error);
     return { session: null };
   }
+};
+
+/**
+ * Gets the authorization header for API requests
+ */
+export const getAuthHeader = () => {
+  const { session } = getSession();
+  
+  if (!session || !session.access_token) {
+    return {};
+  }
+  
+  return {
+    Authorization: `Bearer ${session.access_token}`
+  };
 };

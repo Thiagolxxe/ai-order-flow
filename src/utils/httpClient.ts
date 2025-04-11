@@ -1,12 +1,12 @@
 
 /**
- * Cliente HTTP centralizado para requisições à API
+ * Centralized HTTP client for API requests
  */
 import { API_TIMEOUT, API_BASE_URL } from '@/config/apiConfig';
 import { getAuthHeader } from '@/utils/authUtils';
 
 /**
- * Tipos para responses da API
+ * Types for API responses
  */
 export interface ApiResponse<T = any> {
   data: T | null;
@@ -21,21 +21,21 @@ export interface ApiError {
 }
 
 /**
- * Opções para requisições
+ * Options for requests
  */
 export interface RequestOptions {
   headers?: Record<string, string>;
   timeout?: number;
   body?: any;
-  params?: Record<string, any>; // Add params to interface
+  params?: Record<string, any>; 
 }
 
 /**
- * Cliente HTTP com métodos para interagir com a API
+ * HTTP client with methods to interact with the API
  */
 export const httpClient = {
   /**
-   * Função auxiliar para fazer requisições
+   * Helper function for making requests
    */
   async request(
     endpoint: string,
@@ -57,7 +57,7 @@ export const httpClient = {
     const controller = new AbortController();
     const { signal } = controller;
 
-    // Configura timeout
+    // Configure timeout
     const timeoutId = setTimeout(() => {
       controller.abort();
     }, options.timeout || API_TIMEOUT);
@@ -91,7 +91,7 @@ export const httpClient = {
       let data = null;
       let error = null;
 
-      // Tenta parsear o response como JSON
+      // Try to parse the response as JSON
       try {
         if (response.status !== 204) { // No Content
           const contentType = response.headers.get('content-type');
@@ -105,7 +105,7 @@ export const httpClient = {
         console.error('Error parsing response:', e);
       }
 
-      // Se não for sucesso, prepara o objeto de erro
+      // If not successful, prepare the error object
       if (!response.ok) {
         error = {
           message: data?.message || data?.error || 'Ocorreu um erro na requisição',
@@ -123,7 +123,7 @@ export const httpClient = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       
-      // Trata erros de rede ou timeout
+      // Handle network or timeout errors
       return {
         data: null,
         error: {

@@ -1,234 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import RestaurantCard from './RestaurantCard';
-import { cn } from '@/lib/utils';
-import { SearchIcon, RestaurantIcon } from '@/assets/icons';
-import { Input } from '@/components/ui/input';
-import { supabaseClient } from '@/integrations/supabase/client'; // Fixed import
-import { toast } from 'sonner';
 
-// Filter categories
-const cuisineFilters = [
-  'Todos',
-  'Americana',
-  'Japonesa',
-  'Italiana',
-  'Mexicana',
-  'Saudável',
-  'Indiana'
-];
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import RestaurantCard from './RestaurantCard';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { connectToDatabase } from '@/integrations/mongodb/client';
+import { apiConfig } from '@/config/apiConfig';
+import { httpClient } from '@/utils/httpClient';
 
 interface Restaurant {
   id: string;
-  nome: string;
-  logo_url: string;
-  banner_url?: string;
-  tipo_cozinha: string;
-  taxa_entrega: number;
-  valor_pedido_minimo: number;
-  tempo_entrega_estimado: number;
-  faixa_preco: number;
-  featured?: boolean;
-  isNew?: boolean;
+  name: string;
+  image: string;
+  cuisine: string;
+  rating: number;
+  deliveryTime: string;
+  minimumOrder: number;
+  deliveryFee: number;
 }
 
 interface RestaurantListProps {
   title?: string;
-  subtitle?: string;
-  maxItems?: number;
-  showFilters?: boolean;
-  showSearch?: boolean;
-  className?: string;
+  featured?: boolean;
+  limit?: number;
+  showViewAll?: boolean;
+  viewAllLink?: string;
 }
 
-// Default placeholder images for restaurants
-const DEFAULT_LOGO_URL = 'https://images.unsplash.com/photo-1562157873-818bc0726f68?q=80&w=500&auto=format&fit=crop';
-
-const RestaurantList = ({
-  title = 'Restaurantes Próximos de Você',
-  subtitle,
-  maxItems = 100,
-  showFilters = true,
-  showSearch = true,
-  className
-}: RestaurantListProps) => {
-  const [activeFilter, setActiveFilter] = useState('Todos');
-  const [searchQuery, setSearchQuery] = useState('');
+const RestaurantList: React.FC<RestaurantListProps> = ({
+  title = 'Restaurantes',
+  featured = false,
+  limit = 4,
+  showViewAll = true,
+  viewAllLink = '/restaurants'
+}) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Fetch restaurants from Supabase
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabaseClient
-          .from('restaurantes')
-          .select('*');
         
-        if (error) {
-          throw error;
-        }
+        // Use MongoDB connection
+        const { db } = await connectToDatabase();
         
-        // Process restaurant data and ensure valid UUIDs
-        const formattedData = data.map(restaurant => {
-          // Check if ID is a valid UUID
-          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurant.id)) {
-            console.warn(`Restaurant with invalid UUID format: ${restaurant.id}, ${restaurant.nome}`);
-          }
+        // Use the appropriate endpoint based on whether we want featured restaurants
+        const endpoint = featured 
+          ? apiConfig.endpoints.restaurants.featured
+          : apiConfig.endpoints.restaurants.base;
           
-          // Validate and ensure logo_url has a value or use placeholder
-          let logoUrl = restaurant.logo_url;
-          if (!logoUrl || !(logoUrl.startsWith('http://') || logoUrl.startsWith('https://'))) {
-            logoUrl = DEFAULT_LOGO_URL;
-          }
-          
-          return {
-            id: restaurant.id,
-            nome: restaurant.nome,
-            logo_url: logoUrl,
-            banner_url: restaurant.banner_url,
-            tipo_cozinha: restaurant.tipo_cozinha || 'Variada',
-            taxa_entrega: restaurant.taxa_entrega || 0,
-            valor_pedido_minimo: restaurant.valor_pedido_minimo || 0,
-            tempo_entrega_estimado: restaurant.tempo_entrega_estimado || 30,
-            faixa_preco: restaurant.faixa_preco || 2,
-            featured: Math.random() > 0.7, // Example: some restaurants are randomly highlighted
-            isNew: restaurant.criado_em && (new Date(restaurant.criado_em)).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000) // Is new if created in the last 30 days
-          };
+        // Fetch restaurants using MongoDB or API
+        const { data, error } = await httpClient.get(endpoint, {
+          params: { limit }
         });
         
-        setRestaurants(formattedData);
-      } catch (error) {
-        console.error('Erro ao buscar restaurantes:', error);
-        toast.error('Não foi possível carregar os restaurantes');
+        if (error) {
+          throw new Error(error.message);
+        }
         
-        // Fallback to mock data if there's an error
-        setRestaurants([
-          {
-            id: '00000000-0000-0000-0000-000000000r01',
-            nome: 'Pizzaria Bella Napoli',
-            logo_url: 'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=500',
-            banner_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000',
-            tipo_cozinha: 'Italiana',
-            taxa_entrega: 5,
-            valor_pedido_minimo: 20,
-            tempo_entrega_estimado: 45,
-            faixa_preco: 2,
-            featured: true,
-            isNew: false
-          },
-          {
-            id: '00000000-0000-0000-0000-000000000r02',
-            nome: 'Sabor Oriental',
-            logo_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500',
-            banner_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000',
-            tipo_cozinha: 'Japonesa',
-            taxa_entrega: 6,
-            valor_pedido_minimo: 30,
-            tempo_entrega_estimado: 50,
-            faixa_preco: 3,
-            featured: false,
-            isNew: true
-          }
-        ]);
+        if (data && Array.isArray(data)) {
+          setRestaurants(data.map((restaurant: any) => ({
+            id: restaurant._id || restaurant.id,
+            name: restaurant.nome || restaurant.name,
+            image: restaurant.imagem || restaurant.image || '/placeholder.svg',
+            cuisine: restaurant.tipo_cozinha || restaurant.cuisine || 'Variada',
+            rating: restaurant.avaliacao || restaurant.rating || 0,
+            deliveryTime: restaurant.tempo_entrega || restaurant.deliveryTime || '30-45 min',
+            minimumOrder: restaurant.pedido_minimo || restaurant.minimumOrder || 0,
+            deliveryFee: restaurant.taxa_entrega || restaurant.deliveryFee || 0
+          })));
+        } else {
+          setRestaurants([]);
+        }
+      } catch (err: any) {
+        console.error('Error fetching restaurants:', err);
+        setError(err.message || 'Erro ao carregar restaurantes');
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchRestaurants();
-  }, []);
-  
-  // Filtrar restaurantes com base no filtro ativo e consulta de pesquisa
-  const filteredRestaurants = restaurants
-    .filter(restaurant => 
-      activeFilter === 'Todos' || restaurant.tipo_cozinha.includes(activeFilter)
-    )
-    .filter(restaurant =>
-      restaurant.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.tipo_cozinha.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .slice(0, maxItems);
-  
-  return (
-    
-    <div className={cn('', className)}>
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        {subtitle && <p className="text-foreground/70 mt-1">{subtitle}</p>}
+  }, [featured, limit]);
+
+  // Render loading state
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array(limit).fill(0).map((_, index) => (
+            <div key={index} className="border rounded-lg p-4 space-y-3">
+              <Skeleton className="h-40 w-full rounded-md" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <div className="flex justify-between pt-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      
-      {/* Filters and search */}
-      {(showFilters || showSearch) && (
-        <div className="mb-6 flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0">
-          {/* Filtros de culinária */}
-          {showFilters && (
-            <div className="flex flex-wrap gap-2">
-              {cuisineFilters.map(filter => (
-                <button
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={cn(
-                    'px-3 py-1.5 text-sm rounded-full transition-all',
-                    activeFilter === filter
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-secondary text-foreground/70 hover:bg-secondary/80'
-                  )}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
-          )}
-          
-          {/* Pesquisa */}
-          {showSearch && (
-            <div className="relative max-w-xs w-full">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Buscar restaurantes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-secondary"
-              />
-            </div>
-          )}
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg text-red-600 dark:text-red-400">
+          <p>Erro ao carregar restaurantes: {error}</p>
         </div>
-      )}
-      
-      {/* Restaurant grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((_, index) => (
-            <div key={index} className="h-72 rounded-xl bg-muted animate-pulse"></div>
-          ))}
+      </div>
+    );
+  }
+
+  // Render empty state
+  if (restaurants.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        <div className="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-lg text-center">
+          <p className="text-gray-500 dark:text-gray-400">Nenhum restaurante encontrado</p>
         </div>
-      ) : filteredRestaurants.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRestaurants.map(restaurant => (
-            <RestaurantCard
-              key={restaurant.id}
-              id={restaurant.id}
-              name={restaurant.nome}
-              image={restaurant.logo_url}
-              cuisine={restaurant.tipo_cozinha}
-              rating={4.5 + Math.random() * 0.5} // Example: random rating between 4.5 and 5.0
-              deliveryTime={`${restaurant.tempo_entrega_estimado-10}-${restaurant.tempo_entrega_estimado} min`}
-              minOrder={`R$${restaurant.valor_pedido_minimo.toFixed(2).replace('.', ',')}`}
-              featured={restaurant.featured}
-              isNew={restaurant.isNew}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-secondary/50 rounded-lg">
-          <RestaurantIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-          <h3 className="text-lg font-medium">Nenhum restaurante encontrado</h3>
-          <p className="text-muted-foreground">Tente ajustar seus critérios de busca ou filtro</p>
-        </div>
-      )}
+      </div>
+    );
+  }
+
+  // Render restaurants
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        {showViewAll && restaurants.length >= limit && (
+          <Link to={viewAllLink}>
+            <Button variant="ghost">Ver Todos</Button>
+          </Link>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {restaurants.map(restaurant => (
+          <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+        ))}
+      </div>
     </div>
   );
 };

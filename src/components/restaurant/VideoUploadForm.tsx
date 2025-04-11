@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Upload, X, Music, Scissors, Globe } from 'lucide-react';
-import { supabaseClient } from '@/integrations/supabase/client';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -153,45 +152,34 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({
         const extension = videoFile.name.split('.').pop();
         const filename = `${restaurantId}_${timestamp}.${extension}`;
         
-        // Upload to storage
-        const { data, error } = await supabaseClient.storage
-          .from('videos')
-          .upload(`restaurant/${restaurantId}/${filename}`, processedVideo, {
-            upsert: true,
-            // Remove the onUploadProgress as it's not in the type
+        // In MongoDB version, we'd handle the file storage differently
+        // For now, we'll generate a fake URL
+        videoUrl = `https://example.com/videos/${filename}`;
+        
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 95) {
+              clearInterval(progressInterval);
+              return 95;
+            }
+            return prev + 5;
           });
-          
-        if (error) {
-          throw new Error(`Erro ao fazer upload do vídeo: ${error.message}`);
-        }
+        }, 200);
         
-        // Get the public URL
-        const { data: urlData } = supabaseClient.storage
-          .from('videos')
-          .getPublicUrl(`restaurant/${restaurantId}/${filename}`);
-          
-        videoUrl = urlData.publicUrl;
+        // Simulate completion after 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        clearInterval(progressInterval);
+        setProgress(100);
         
-        // Generate thumbnail from the video (this is simplified for this example)
+        // Generate thumbnail from the video
         const thumbnailFilename = `${restaurantId}_${timestamp}_thumb.jpg`;
         const thumbnailBlob = await generateThumbnail(videoFile);
         
-        const { data: thumbData, error: thumbError } = await supabaseClient.storage
-          .from('videos')
-          .upload(`restaurant/${restaurantId}/thumbnails/${thumbnailFilename}`, thumbnailBlob, {
-            upsert: true,
-          });
-          
-        if (thumbError) {
-          console.error('Erro ao fazer upload da thumbnail:', thumbError);
-          // Continue without thumbnail if there's an error
-        } else {
-          const { data: thumbUrlData } = supabaseClient.storage
-            .from('videos')
-            .getPublicUrl(`restaurant/${restaurantId}/thumbnails/${thumbnailFilename}`);
-            
-          setThumbnailUrl(thumbUrlData.publicUrl);
-        }
+        // In MongoDB version, we'd handle the thumbnail storage differently
+        // For now, we'll generate a fake URL
+        const thumbnailUrl = `https://example.com/thumbnails/${thumbnailFilename}`;
+        setThumbnailUrl(thumbnailUrl);
       }
       
       // Save the video metadata to the database

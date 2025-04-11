@@ -20,7 +20,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // Se já estiver autenticado, redireciona
+  // If already authenticated, redirect
   useEffect(() => {
     if (isAuthenticated) {
       navigate(redirectTo);
@@ -41,6 +41,12 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (error) {
+        // Check for connection error
+        if (error.message?.includes('Failed to fetch') || 
+            error.message?.includes('connection') ||
+            error.message?.includes('ERR_CONNECTION_REFUSED')) {
+          throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.');
+        }
         throw new Error(error.message || 'Credenciais inválidas');
       }
       
