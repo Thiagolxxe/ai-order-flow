@@ -1,26 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import RestaurantCard from './RestaurantCard';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Search, SlidersHorizontal, Store } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { connectToDatabase } from '@/integrations/mongodb/client';
 import { toast } from 'sonner';
 import { normalizeMongoData } from '@/utils/mongodb-helpers';
-
-// Definindo a interface do RestaurantCard para garantir compatibilidade
-interface RestaurantCardProps {
-  id: string;
-  name: string;
-  cuisine: string;
-  rating: number;
-  image: string; // Alterado de imageUrl para image (obrigatório)
-  deliveryTime?: string;
-  deliveryFee?: number;
-  distance?: string;
-  minOrder: string; // Alterado para string para compatibilidade com o componente
-}
+import RestaurantListHeader from './RestaurantListHeader';
+import RestaurantFilters from './RestaurantFilters';
+import RestaurantListSkeleton from './RestaurantListSkeleton';
+import RestaurantEmptyState from './RestaurantEmptyState';
 
 interface Restaurant {
   id: string;
@@ -130,56 +117,17 @@ const RestaurantList: React.FC<RestaurantListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-        {!maxItems && (
-          <Link to="/restaurants">
-            <Button variant="outline" size="sm">
-              Ver todos
-            </Button>
-          </Link>
-        )}
-      </div>
+      <RestaurantListHeader title={title} maxItems={maxItems} />
       
-      {showSearch && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Buscar restaurantes ou culinária..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      )}
-      
-      {showFilters && (
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
-          <Button size="sm" variant="outline" className="flex items-center gap-1">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filtros
-          </Button>
-          <Button size="sm" variant="outline">Mais próximos</Button>
-          <Button size="sm" variant="outline">Melhor avaliação</Button>
-          <Button size="sm" variant="outline">Menor preço</Button>
-          <Button size="sm" variant="outline">Mais rápidos</Button>
-        </div>
-      )}
+      <RestaurantFilters 
+        showSearch={showSearch} 
+        showFilters={showFilters} 
+        searchTerm={searchTerm} 
+        setSearchTerm={setSearchTerm} 
+      />
       
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-[150px] w-full rounded-lg" />
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
-              <div className="flex justify-between">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-4 w-1/4" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <RestaurantListSkeleton />
       ) : restaurantsToShow.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {restaurantsToShow.map((restaurant) => (
@@ -191,19 +139,12 @@ const RestaurantList: React.FC<RestaurantListProps> = ({
               rating={restaurant.rating}
               image={restaurant.imageUrl || 'https://source.unsplash.com/random/300x200/?restaurant'}
               deliveryTime={restaurant.deliveryTime}
-              distance={restaurant.distance}
               minOrder={restaurant.minOrder ? restaurant.minOrder.toString() : '10'}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center py-8">
-          <Store className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">Nenhum restaurante encontrado</h3>
-          <p className="text-muted-foreground">
-            Tente ajustar seus filtros ou pesquisa para encontrar o que você está procurando.
-          </p>
-        </div>
+        <RestaurantEmptyState />
       )}
     </div>
   );
