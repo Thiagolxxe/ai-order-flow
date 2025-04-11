@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +33,13 @@ const Notifications = () => {
           return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
         });
         
-        setNotifications(sortedNotifications);
+        // Convert to NotificationType[] by ensuring criado_em is a Date
+        const typedNotifications: NotificationType[] = sortedNotifications.map(notification => ({
+          ...notification,
+          criado_em: new Date(notification.criado_em)
+        }));
+        
+        setNotifications(typedNotifications);
       } catch (error) {
         console.error('Error fetching notifications:', error);
         toast.error('Erro ao buscar notificações');
@@ -110,14 +117,14 @@ const Notifications = () => {
 
   return (
     <div className="container py-8 px-4 max-w-3xl mx-auto">
-      <Card>
-        <CardHeader className="flex flex-row items-center space-y-0 gap-2">
-          <Bell className="h-5 w-5" />
+      <Card className="shadow-md">
+        <CardHeader className="flex flex-row items-center space-y-0 gap-2 border-b pb-4">
+          <Bell className="h-5 w-5" aria-hidden="true" />
           <CardTitle>Notificações</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-4">
           {loading ? (
-            <div className="flex justify-center items-center h-40">
+            <div className="flex justify-center items-center h-40" aria-label="Carregando notificações">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           ) : notifications.length > 0 ? (
@@ -131,8 +138,8 @@ const Notifications = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <div className="text-center py-8" aria-label="Nenhuma notificação">
+              <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
               <h3 className="text-lg font-medium text-gray-900">Nenhuma notificação</h3>
               <p className="text-gray-500">Você não tem notificações para visualizar no momento.</p>
             </div>

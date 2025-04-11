@@ -1,124 +1,82 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { Bell, ShoppingCart, UserCircle, LogOut, Settings, Heart, ClipboardList } from 'lucide-react';
-import RoleIndicator from './RoleIndicator';
+import { User, Settings, LogOut, Store } from 'lucide-react';
+import NotificationIndicator from '@/components/notifications/NotificationIndicator';
 
 interface UserActionsProps {
   isAuthenticated: boolean;
   userRole: string | null;
 }
 
-const UserActions: React.FC<UserActionsProps> = ({ isAuthenticated, userRole }) => {
-  const { user, signOut } = useUser();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  const handleLogout = async () => {
-    await signOut();
-  };
+const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
+  const { user, logout } = useUser();
   
   const getInitials = (name: string) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
   
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button variant="outline" asChild>
-          <Link to="/login">Entrar</Link>
-        </Button>
-        <Button asChild>
-          <Link to="/register">Cadastrar</Link>
-        </Button>
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/cart">
-            <ShoppingCart className="h-5 w-5" />
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-  
   return (
     <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/favorites">
-          <Heart className="h-5 w-5" />
-        </Link>
-      </Button>
-      
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/notifications">
-          <Bell className="h-5 w-5" />
-        </Link>
-      </Button>
-      
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/cart">
-          <ShoppingCart className="h-5 w-5" />
-        </Link>
-      </Button>
-      
-      <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="/placeholder.svg" alt={user?.name || "User"} />
-              <AvatarFallback>{getInitials(user?.name || "")}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user?.name || "Usuário"}</p>
-              <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-              {userRole && <RoleIndicator role={userRole} />}
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link to="/profile" className="w-full cursor-pointer">
-                <UserCircle className="mr-2 h-4 w-4" />
-                <span>Meu Perfil</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/orders" className="w-full cursor-pointer">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                <span>Meus Pedidos</span>
-              </Link>
-            </DropdownMenuItem>
-            {userRole === 'restaurante' && (
+      {isAuthenticated ? (
+        <>
+          <NotificationIndicator />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0 rounded-full" aria-label="Open user menu">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="/placeholder.svg" alt={user?.name || 'User'} />
+                  <AvatarFallback>{getInitials(user?.name || 'User')}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
               <DropdownMenuItem asChild>
-                <Link to="/admin/restaurant" className="w-full cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Painel do Restaurante</span>
+                <Link to="/profile" className="flex items-center gap-2">
+                  <User className="h-4 w-4 mr-2" />
+                  <span>Perfil</span>
                 </Link>
               </DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Sair</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              {userRole === 'restaurante' && (
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/restaurant" className="flex items-center gap-2">
+                    <Store className="h-4 w-4 mr-2" />
+                    <span>Painel do Restaurante</span>
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span>Configurações</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      ) : (
+        <>
+          <Link to="/login">
+            <Button variant="outline" size="sm">
+              Entrar
+            </Button>
+          </Link>
+          <Link to="/register">
+            <Button size="sm">Cadastrar</Button>
+          </Link>
+        </>
+      )}
     </div>
   );
 };

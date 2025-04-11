@@ -1,70 +1,87 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Bell, Package, ThumbsUp, AlertTriangle } from 'lucide-react';
+import { Check, Bell, Info, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Notification as NotificationApiType } from '@/services/api/types';
 
-export interface NotificationType {
-  _id: string;
-  titulo: string;
-  mensagem: string;
-  tipo: 'info' | 'success' | 'warning' | 'error';
-  lida: boolean;
-  usuario_id: string; 
+// Export NotificationType interface to make it accessible for other components
+export interface NotificationType extends Omit<NotificationApiType, 'criado_em'> {
   criado_em: Date;
 }
 
-interface NotificationProps {
+interface NotificationItemProps {
   notification: NotificationType;
-  onMarkAsRead?: (id: string) => void;
+  onMarkAsRead: (id: string) => void;
 }
 
-const NotificationItem: React.FC<NotificationProps> = ({ notification, onMarkAsRead }) => {
-  const handleMarkAsRead = () => {
-    if (onMarkAsRead && !notification.lida) {
-      onMarkAsRead(notification._id);
-    }
-  };
+const getIconByType = (type: string) => {
+  switch (type) {
+    case 'success':
+      return <Check className="h-5 w-5 text-green-500" />;
+    case 'warning':
+      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    case 'error':
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
+    case 'info':
+    default:
+      return <Info className="h-5 w-5 text-blue-500" />;
+  }
+};
 
-  const getIcon = () => {
-    switch (notification.tipo) {
+const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMarkAsRead }) => {
+  const timeAgo = formatDistanceToNow(new Date(notification.criado_em), {
+    addSuffix: true,
+    locale: ptBR,
+  });
+
+  const getBadgeVariant = (type: string) => {
+    switch (type) {
       case 'success':
-        return <ThumbsUp className="h-5 w-5 text-green-500" />;
+        return 'success';
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        return 'warning';
       case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+        return 'destructive';
       case 'info':
       default:
-        return <Bell className="h-5 w-5 text-blue-500" />;
+        return 'default';
     }
   };
 
-  const formattedDate = notification.criado_em 
-    ? format(new Date(notification.criado_em), "d 'de' MMMM', às' HH:mm", { locale: ptBR })
-    : '';
-
   return (
-    <div 
-      className={`p-4 border-b last:border-b-0 cursor-pointer ${notification.lida ? 'bg-gray-50' : 'bg-white'}`}
-      onClick={handleMarkAsRead}
-    >
-      <div className="flex items-start">
-        <div className="flex-shrink-0 mr-3">
-          {getIcon()}
+    <div className="py-4 flex flex-col sm:flex-row items-start gap-3 group hover:bg-muted/50 p-3 rounded-md transition-colors">
+      <div className="flex-shrink-0 mt-1">
+        {getIconByType(notification.tipo)}
+      </div>
+      
+      <div className="flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+          <h4 className="font-medium text-base">{notification.titulo}</h4>
+          <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
-        <div className="flex-1">
-          <h4 className={`text-sm font-medium ${notification.lida ? 'text-gray-600' : 'text-gray-900'}`}>
-            {notification.titulo}
-          </h4>
-          <p className="text-sm text-gray-500 mt-1">{notification.mensagem}</p>
-          <p className="text-xs text-gray-400 mt-2">{formattedDate}</p>
+        
+        <p className="text-sm text-muted-foreground mb-2">{notification.mensagem}</p>
+        
+        <div className="flex items-center justify-between mt-1">
+          <Badge variant={getBadgeVariant(notification.tipo) as any} className="text-xs">
+            {notification.tipo}
+          </Badge>
+          
+          {!notification.lida && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs flex items-center gap-1 h-7"
+              onClick={() => onMarkAsRead(notification._id)}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Marcar como lida
+            </Button>
+          )}
         </div>
-        {!notification.lida && (
-          <div className="ml-3 flex-shrink-0">
-            <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-          </div>
-        )}
       </div>
     </div>
   );
