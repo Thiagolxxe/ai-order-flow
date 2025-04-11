@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import RestaurantCard from './RestaurantCard';
@@ -19,7 +20,7 @@ interface RestaurantCardProps {
   deliveryTime?: string;
   deliveryFee?: number;
   distance?: string;
-  minOrder: number; // Adicionando propriedade obrigatória
+  minOrder: string; // Alterado para string para compatibilidade com o componente
 }
 
 interface Restaurant {
@@ -191,7 +192,6 @@ const RestaurantList: React.FC<RestaurantListProps> = ({
               rating={restaurant.rating}
               image={restaurant.imageUrl || 'https://source.unsplash.com/random/300x200/?restaurant'}
               deliveryTime={restaurant.deliveryTime}
-              deliveryFee={restaurant.deliveryFee}
               distance={restaurant.distance}
               minOrder={restaurant.minOrder ? restaurant.minOrder.toString() : '10'}
             />
