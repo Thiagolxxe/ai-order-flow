@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Database, ExternalLink } from 'lucide-react';
+import { Database, ExternalLink, Globe, RefreshCw, Laptop } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '@/config/apiConfig';
@@ -19,6 +19,31 @@ export const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({
   const showBothFailed = mongoStatus === 'error' && apiStatus === 'error';
   
   if (!showMongoSuccessApiError && !showBothFailed) return null;
+
+  // Esta função testa se um domínio está acessível
+  const testDomainConnection = async () => {
+    try {
+      // Apenas tentamos acessar a URL raiz para ver se o domínio está respondendo
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(API_BASE_URL, { 
+        method: 'HEAD',
+        signal: controller.signal 
+      });
+      clearTimeout(id);
+      const success = response.ok;
+      console.log(`Teste de conexão para ${API_BASE_URL}: ${success ? 'Sucesso' : 'Falha'}`);
+      
+      if (success) {
+        alert(`Servidor responde na URL: ${API_BASE_URL}, mas a API pode estar com problemas internos.`);
+      } else {
+        alert(`Servidor respondeu com código ${response.status} em ${API_BASE_URL}`);
+      }
+    } catch (error) {
+      console.error('Erro ao testar domínio:', error);
+      alert(`Não foi possível acessar o domínio ${API_BASE_URL}. O servidor parece estar offline.`);
+    }
+  };
 
   return (
     <>
@@ -41,7 +66,27 @@ export const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({
                 <li>Utilize o modo de demonstração com dados simulados (já configurado como fallback)</li>
               </ol>
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                onClick={() => window.open(`${API_BASE_URL}`, '_blank')}
+              >
+                <Globe className="h-3 w-3 mr-2" />
+                Verificar servidor
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                onClick={testDomainConnection}
+              >
+                <Laptop className="h-3 w-3 mr-2" />
+                Testar conexão
+              </Button>
+              
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -63,10 +108,31 @@ export const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({
           <AlertTitle className="text-blue-700">Informações de depuração</AlertTitle>
           <AlertDescription className="text-blue-600">
             <p className="mb-2">O aplicativo está enfrentando problemas de conexão com o MongoDB Atlas e com o servidor da API no Render.</p>
-            <p className="text-sm">
+            <p className="text-sm mb-2">
               Para autenticação, o aplicativo usará o modo de demonstração. As operações de banco de dados
               serão simuladas localmente. O aplicativo funcionará, mas com funcionalidade limitada.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                onClick={() => window.open(`${API_BASE_URL}`, '_blank')}
+              >
+                <Globe className="h-3 w-3 mr-2" />
+                Verificar servidor
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                onClick={() => window.open('https://status.render.com', '_blank')}
+              >
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Status do Render
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}

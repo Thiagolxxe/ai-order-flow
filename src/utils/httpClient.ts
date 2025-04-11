@@ -59,11 +59,15 @@ export const httpClient = {
 
     const controller = new AbortController();
     const { signal } = controller;
+    
+    // Use specified timeout or default
+    const requestTimeout = options.timeout || API_TIMEOUT;
 
     // Configure timeout
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, options.timeout || API_TIMEOUT);
+      console.log(`Requisição para ${url} abortada após ${requestTimeout}ms`);
+    }, requestTimeout);
 
     try {
       // Handle URL params if present
@@ -91,6 +95,9 @@ export const httpClient = {
 
       console.log(`Making ${method} request to: ${finalUrl}`);
       
+      // Measure request time
+      const startTime = performance.now();
+      
       const response = await fetch(finalUrl, {
         method,
         headers,
@@ -98,6 +105,10 @@ export const httpClient = {
         signal,
       });
 
+      const endTime = performance.now();
+      const requestTime = Math.round(endTime - startTime);
+      console.log(`Resposta recebida de ${finalUrl} em ${requestTime}ms com status ${response.status}`);
+      
       clearTimeout(timeoutId);
 
       let data = null;
@@ -125,6 +136,7 @@ export const httpClient = {
           details: data?.details,
         };
         data = null;
+        console.error(`Erro na requisição para ${finalUrl}:`, error);
       }
 
       return {
@@ -135,14 +147,25 @@ export const httpClient = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       
+      // Log detailed connection error
+      console.error(`Erro na conexão com ${url}:`, {
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        endpoint,
+        method
+      });
+      
       // If connection refused, switch to demo mode
-      if (err.message && (
+      if (err.name === 'AbortError') {
+        console.warn(`⚠️ Requisição excedeu o tempo limite de ${requestTimeout}ms para: ${url}`);
+      } else if (err.message && (
           err.message.includes('Failed to fetch') || 
           err.message.includes('ERR_CONNECTION_REFUSED') ||
           err.message.includes('ECONNREFUSED') ||
           err.message.includes('NetworkError')
         )) {
-        console.warn('⚠️ API server not available, switching to demo mode');
+        console.warn(`⚠️ API server não está disponível em ${url}, ativando modo demo`);
         isDemoMode = true;
         
         // Return a mock response

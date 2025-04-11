@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ interface UserActionsProps {
 }
 
 const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
-  const { user, logout } = useUser();
+  const { user, signOut } = useUser();
   
   const getInitials = (name: string) => {
     if (!name) return 'U';
@@ -58,7 +59,7 @@ const UserActions = ({ isAuthenticated, userRole }: UserActionsProps) => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="cursor-pointer">
+              <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
               </DropdownMenuItem>
