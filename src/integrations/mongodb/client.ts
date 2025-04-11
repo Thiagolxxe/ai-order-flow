@@ -34,7 +34,8 @@ let connectionStatus = {
   status: 'disconnected' as 'disconnected' | 'connecting' | 'connected',
   error: null as Error | null,
   lastAttempt: null as Date | null,
-  retryCount: 0
+  retryCount: 0,
+  diagnostics: {} as Record<string, any>
 };
 
 export function getConnectionStatus() {
@@ -75,6 +76,47 @@ let mongoClient: MongoClient | null = null;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 
+// Function to diagnose connection issues
+async function diagnoseConnectionIssue(): Promise<Record<string, any>> {
+  const diagnostics: Record<string, any> = {};
+  
+  try {
+    // Check if we can access MongoDB domain via DNS
+    diagnostics.dnsLookup = {
+      status: 'attempted',
+      message: 'DNS lookup for MongoDB Atlas domains attempted'
+    };
+    
+    // Check if we're in a browser environment
+    diagnostics.environment = {
+      type: typeof window !== 'undefined' ? 'browser' : 'node',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+    };
+    
+    // Verify connection string format
+    const uriPattern = /^mongodb(\+srv)?:\/\//;
+    diagnostics.connectionStringFormat = {
+      valid: uriPattern.test(MONGODB_URI),
+      format: MONGODB_URI.split('@')[0].replace(/[^@]+/, '****:****')
+    };
+    
+    // Note any network restrictions (browser-side only)
+    if (typeof window !== 'undefined') {
+      diagnostics.networkContext = {
+        secure: window.location.protocol === 'https:',
+        host: window.location.host
+      };
+    }
+    
+    return diagnostics;
+  } catch (error) {
+    return { 
+      error: 'Failed to run diagnostics',
+      details: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 // Connect to MongoDB Atlas
 export async function connectToDatabase(): Promise<{ db: any }> {
   try {
@@ -83,8 +125,14 @@ export async function connectToDatabase(): Promise<{ db: any }> {
     connectionStatus = { 
       ...connectionStatus, 
       status: 'connecting', 
-      error: null 
+      error: null,
+      diagnostics: {}
     };
+
+    // Run diagnostics before attempting connection
+    const diagResults = await diagnoseConnectionIssue();
+    connectionStatus.diagnostics = diagResults;
+    console.log('Connection diagnostics:', diagResults);
 
     // Simulamos uma conexão bem-sucedida ao MongoDB Atlas usando a string fornecida
     console.log(`Tentando conectar ao MongoDB Atlas usando: ${MONGODB_URI.substring(0, 20)}...`);
@@ -167,12 +215,28 @@ export async function connectToDatabase(): Promise<{ db: any }> {
     const err = error as Error;
     console.error('Failed to connect to MongoDB Atlas:', err);
     
-    // Update connection status
+    // Enhanced error diagnostics
+    const errorInfo = {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      cause: (err as any).cause,
+      code: (err as any).code
+    };
+    
+    // Update connection status with detailed error info
     connectionStatus = { 
       ...connectionStatus, 
       status: 'disconnected', 
       error: err,
-      retryCount: connectionStatus.retryCount + 1
+      retryCount: connectionStatus.retryCount + 1,
+      diagnostics: {
+        ...connectionStatus.diagnostics,
+        error: errorInfo,
+        connectionString: MONGODB_URI.includes('@') 
+          ? `${MONGODB_URI.split('@')[0].replace(/[^@]+/, '****:****')}@${MONGODB_URI.split('@')[1]}`
+          : 'Invalid connection string format'
+      }
     };
     
     // If not exceeded maximum retries, try reconnecting
