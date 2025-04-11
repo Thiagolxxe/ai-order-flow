@@ -39,3 +39,34 @@ export interface AuthSignInParams {
 // MongoDB Status Types
 export type MongoDBConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 export type ApiConnectionStatus = 'idle' | 'checking' | 'connected' | 'error';
+
+// User profile types
+export interface UserProfile {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  [key: string]: any;
+}
+
+// Notification types
+export interface Notification {
+  _id: string;
+  titulo: string;
+  mensagem: string;
+  tipo: 'info' | 'success' | 'warning' | 'error';
+  lida: boolean;
+  usuario_id: string;
+  criado_em: Date | string;
+}
+
+// Address types
+export interface Address {
+  id: string;
+  label?: string;
+  endereco: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  [key: string]: any;
+}

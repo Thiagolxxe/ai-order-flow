@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,18 +20,19 @@ import {
   Settings,
   Loader2
 } from 'lucide-react';
+import { UserProfile as UserProfileType, Address } from '@/services/api/types';
 
 const UserProfile = () => {
   const { user, updateUserData } = useUser();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<UserProfileType>({
     name: '',
     email: '',
     phone: '',
     address: ''
   });
-  const [addresses, setAddresses] = useState([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -55,9 +55,11 @@ const UserProfile = () => {
           }
           
           if (data) {
+            // Safely merge profile data
+            const userData = data as Partial<UserProfileType>;
             setProfile(prevProfile => ({
               ...prevProfile,
-              ...data,
+              ...(userData || {}),
               email: user.email // Keep email from auth
             }));
           }
@@ -65,7 +67,8 @@ const UserProfile = () => {
           // Fetch user addresses
           const addressesResponse = await apiService.addresses.getAll();
           if (addressesResponse.data) {
-            setAddresses(addressesResponse.data);
+            // Type assertion to Address[]
+            setAddresses(addressesResponse.data as Address[]);
           }
         }
       } catch (error) {
@@ -292,7 +295,7 @@ const UserProfile = () => {
                     </div>
                   ) : (
                     <div className="grid gap-2">
-                      {addresses.map((address: any) => (
+                      {addresses.map((address: Address) => (
                         <Card key={address.id}>
                           <CardContent className="p-4">
                             <div className="flex justify-between items-center">

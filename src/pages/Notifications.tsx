@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import NotificationItem, { NotificationType } from '@/components/notifications/N
 import { apiService } from '@/services/apiService';
 import { useUser } from '@/context/UserContext';
 import { toast } from 'sonner';
+import { Notification } from '@/services/api/types';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
@@ -24,8 +24,11 @@ const Notifications = () => {
           throw new Error(error.message);
         }
         
+        // Cast data to Notification[] before sorting
+        const notificationsData = data as Notification[];
+        
         // Sort notifications by date (newest first)
-        const sortedNotifications = data.sort((a: any, b: any) => {
+        const sortedNotifications = notificationsData.sort((a, b) => {
           return new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime();
         });
         
