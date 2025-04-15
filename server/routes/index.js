@@ -8,6 +8,10 @@ router.use((req, res, next) => {
   const db = req.app.get('db');
   if (!db) {
     console.error('Database connection not available in routes');
+    return res.status(503).json({ 
+      error: 'Serviço de banco de dados indisponível',
+      message: 'A conexão com o banco de dados não está disponível. Verifique a conexão com MongoDB.'
+    });
   }
   next();
 });

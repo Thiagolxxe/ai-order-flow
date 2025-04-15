@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongodb');
@@ -47,17 +48,13 @@ app.get('/api/cors-test', (req, res) => {
 });
 
 // String de conexão MongoDB
-const uri = process.env.MONGODB_URI;
-if (!uri) {
-  console.error('MONGODB_URI environment variable is required');
-  process.exit(1);
-}
+const uri = process.env.MONGODB_URI || "mongodb+srv://Deliverai:Deliverai@cluster0.cbela9s.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+console.log(`Tentando conectar ao MongoDB com URI: ${uri.substring(0, 20)}...`);
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error('JWT_SECRET environment variable is required');
-  process.exit(1);
+const JWT_SECRET = process.env.JWT_SECRET || "deliverai-secret-jwt-development-key";
+if (!process.env.JWT_SECRET) {
+  console.warn('AVISO: JWT_SECRET não definido no ambiente. Usando chave padrão para desenvolvimento.');
 }
 
 // Configurar rate limiting para todas as requisições
@@ -184,10 +181,15 @@ const client = new MongoClient(uri, {
 // Conectar ao MongoDB e inicializar o banco de dados
 async function connectToMongoDB() {
   try {
+    console.log("Tentando conectar ao MongoDB Atlas...");
     await client.connect();
     console.log("Conectado com sucesso ao MongoDB Atlas!");
     
     const db = client.db("delivery_app");
+    
+    // Disponibilizar a conexão para toda a aplicação
+    app.set('db', db);
+    app.set('mongoClient', client);
     
     // Inicializar o banco de dados com collections e indexes
     await createCollectionsAndIndexes(db);
@@ -195,12 +197,38 @@ async function connectToMongoDB() {
     return db;
   } catch (err) {
     console.error("Erro ao conectar ao MongoDB:", err);
-    process.exit(1);
+    // Não vamos encerrar o processo, apenas retornar null
+    return null;
   }
 }
 
 // Import API routes
 const apiRoutes = require('./routes/index');
+
+// Verificar status da conexão com o banco de dados em cada requisição
+app.use((req, res, next) => {
+  const db = req.app.get('db');
+  if (!db) {
+    console.error('Database connection not available');
+    // Tentar reconectar ao MongoDB
+    connectToMongoDB()
+      .then(reconnectedDb => {
+        if (reconnectedDb) {
+          console.log('Reconectado ao MongoDB com sucesso!');
+          next();
+        } else {
+          console.error('Falha ao reconectar ao MongoDB');
+          next();
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao reconectar:', err);
+        next();
+      });
+  } else {
+    next();
+  }
+});
 
 // Apply API routes
 app.use('/api', apiRoutes);
@@ -499,7 +527,6 @@ app.patch('/api/notifications/:id', authenticateToken, async (req, res) => {
 app.get('/api/check-connection', async (req, res) => {
   // Log de diagnóstico CORS
   console.log('Header de origem da requisição:', req.headers.origin);
-  console.log('Headers completos:', req.headers);
   
   // Configurar headers CORS manualmente para esta rota específica
   res.header('Access-Control-Allow-Origin', '*');
@@ -507,6 +534,19 @@ app.get('/api/check-connection', async (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   try {
+    const db = req.app.get('db');
+    if (!db) {
+      // Tentar reconectar
+      const reconnectedDb = await connectToMongoDB();
+      if (!reconnectedDb) {
+        return res.status(503).json({
+          success: false,
+          error: 'Conexão com MongoDB não disponível',
+          timestamp: new Date()
+        });
+      }
+    }
+    
     await client.db("admin").command({ ping: 1 });
     const status = {
       success: true,
@@ -561,14 +601,18 @@ app.get('/', (req, res) => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 5000;
-let db;
 
 const startServer = async () => {
-  db = await connectToMongoDB();
+  // Tentar conectar ao MongoDB antes de iniciar o servidor
+  const db = await connectToMongoDB();
+  
+  if (!db) {
+    console.warn('AVISO: Servidor iniciando sem conexão ao MongoDB. As rotas que dependem de banco de dados não funcionarão.');
+  }
   
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`MongoDB conectado na base de dados: delivery_app`);
+    console.log(`MongoDB ${db ? 'conectado' : 'NÃO conectado'} na base de dados: delivery_app`);
     console.log(`Verifique a conexão em: http://localhost:${PORT}/api/check-connection`);
   });
 };
@@ -577,7 +621,13 @@ startServer().catch(console.error);
 
 // Gerenciar encerramento do servidor
 process.on('SIGINT', async () => {
-  await client.close();
-  console.log('Conexão com MongoDB fechada');
+  try {
+    if (client) {
+      await client.close();
+      console.log('Conexão com MongoDB fechada');
+    }
+  } catch (err) {
+    console.error('Erro ao fechar conexão com MongoDB:', err);
+  }
   process.exit(0);
 });

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
@@ -70,22 +69,23 @@ const validateBody = (schema) => {
 const checkDatabase = (req, res, next) => {
   const db = req.app.get('db');
   if (!db) {
-    console.error('Database connection not available');
-    return res.status(500).json({ error: 'Erro de conexão com o banco de dados' });
+    console.error('Database connection not available in videoRoutes');
+    return res.status(503).json({ 
+      error: 'Serviço de banco de dados indisponível',
+      message: 'A conexão com o banco de dados não está disponível no momento. Tente novamente mais tarde.'
+    });
   }
   next();
 };
 
-// Aplica middleware de verificação de DB em todas as rotas
+// Aplica middleware de verificação de DB em todas as rotas do videoRoutes
 router.use(checkDatabase);
 
 // Get all videos with pagination
 router.get('/', async (req, res) => {
   try {
     const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
+    // A verificação de db já é feita pelo middleware checkDatabase
     
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
@@ -109,7 +109,7 @@ router.get('/', async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching videos:', error);
-    res.status(500).json({ error: 'Erro ao buscar vídeos' });
+    res.status(500).json({ error: 'Erro ao buscar vídeos', details: error.message });
   }
 });
 
