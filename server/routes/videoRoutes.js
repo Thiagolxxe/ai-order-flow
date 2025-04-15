@@ -81,12 +81,10 @@ const checkDatabase = (req, res, next) => {
 // Aplica middleware de verificação de DB em todas as rotas do videoRoutes
 router.use(checkDatabase);
 
-// Get all videos with pagination
+// Modify route handlers to use req.db
 router.get('/', async (req, res) => {
   try {
-    const db = req.app.get('db');
-    // A verificação de db já é feita pelo middleware checkDatabase
-    
+    const db = req.db; // Use global database
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -109,7 +107,10 @@ router.get('/', async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching videos:', error);
-    res.status(500).json({ error: 'Erro ao buscar vídeos', details: error.message });
+    res.status(500).json({ 
+      error: 'Erro ao buscar vídeos', 
+      details: error.message 
+    });
   }
 });
 
