@@ -18,6 +18,16 @@ router.use((req, res, next) => {
       });
     }
     
+    // Verificar se a conexão está ativa
+    if (typeof db.collection !== 'function') {
+      console.error('⚠️ Invalid database object detected');
+      return res.status(503).json({
+        error: 'Objeto de banco de dados inválido',
+        message: 'A conexão com o banco de dados está em um estado inválido. Reinicie o servidor.',
+        code: 'INVALID_DB_OBJECT'
+      });
+    }
+    
     // Atribuir db ao objeto req para uso pelas rotas
     req.db = db;
     next();
@@ -55,30 +65,47 @@ router.use('/videos', videoRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
-  const db = req.db;
-  
-  // Verificar a conexão com o banco de dados executando uma operação simples
   try {
-    // Verificar status de componentes
-    const components = [
-      { name: 'api', status: 'ok' },
-      { name: 'database', status: db ? 'ok' : 'error' }
-    ];
+    const db = req.db;
     
-    const anyError = components.some(component => component.status === 'error');
-    
-    res.status(anyError ? 503 : 200).json({ 
-      status: anyError ? 'error' : 'ok', 
-      timestamp: new Date().toISOString(),
-      components,
-      dbConnected: !!db
-    });
+    // Verificar a conexão com o banco de dados executando uma operação simples
+    if (db && typeof db.collection === 'function') {
+      // Verificar status de componentes
+      const components = [
+        { name: 'api', status: 'ok' },
+        { name: 'database', status: 'ok' }
+      ];
+      
+      res.status(200).json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        components,
+        dbConnected: true
+      });
+    } else {
+      const components = [
+        { name: 'api', status: 'ok' },
+        { name: 'database', status: 'error' }
+      ];
+      
+      res.status(503).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        error: 'Database connection unavailable',
+        components,
+        dbConnected: false
+      });
+    }
   } catch (error) {
     console.error('Health check error:', error);
     res.status(503).json({
       status: 'error',
       timestamp: new Date().toISOString(),
       error: error.message,
+      components: [
+        { name: 'api', status: 'error' },
+        { name: 'database', status: 'error' }
+      ],
       dbConnected: false
     });
   }

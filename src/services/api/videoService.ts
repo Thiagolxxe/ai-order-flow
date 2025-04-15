@@ -1,4 +1,3 @@
-
 /**
  * Video API service
  */
@@ -186,7 +185,7 @@ export const videoService = {
   /**
    * Report watch progress (for heatmap generation) - com timeout e tratamento de erros aprimorado
    */
-  reportWatchProgress: async (videoId: string, progress: number, timestamp: number): Promise<ApiResult<void>> => {
+  reportWatchProgress: async (videoId: string, progress: number, timestamp: number): Promise<ApiResult<any>> => {
     try {
       // Criar um controlador de timeout para esta requisição
       const controller = new AbortController();

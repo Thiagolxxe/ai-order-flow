@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
+const Joi = require('joi');
 
 // Validation schemas
-const Joi = require('joi');
 const schemas = {
   createVideo: Joi.object({
     titulo: Joi.string().min(3).required().messages({
@@ -69,7 +69,9 @@ const validateBody = (schema) => {
 // Verificação do objeto db
 const checkDatabase = (req, res, next) => {
   try {
+    // Tentar obter a conexão do banco de dados de múltiplas fontes possíveis
     const db = req.app.get('db') || global.database || req.db;
+    
     if (!db) {
       console.error('⚠️ Database connection not available in videoRoutes');
       return res.status(503).json({ 
@@ -78,6 +80,17 @@ const checkDatabase = (req, res, next) => {
         code: 'DB_CONNECTION_ERROR'
       });
     }
+    
+    // Verificar se o objeto db é válido
+    if (typeof db.collection !== 'function') {
+      console.error('⚠️ Invalid database object in videoRoutes');
+      return res.status(503).json({
+        error: 'Objeto de banco de dados inválido',
+        message: 'O objeto de banco de dados está em um estado inválido. Contate o administrador.',
+        code: 'INVALID_DB_OBJECT'
+      });
+    }
+    
     // Atribuir db ao objeto req para uso posterior
     req.db = db;
     next();
@@ -98,6 +111,10 @@ router.use(checkDatabase);
 router.get('/', async (req, res) => {
   try {
     const db = req.db; // Use database from request
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -361,12 +378,6 @@ router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (r
     
     const videoId = req.params.id;
     const { progress, timestamp } = req.body;
-    
-    // Verificar se o vídeo existe - opcional em produção para melhor performance
-    // const video = await videoRepo.findById(videoId);
-    // if (!video) {
-    //   return res.status(404).json({ error: 'Vídeo não encontrado' });
-    // }
     
     // Registrar progresso de visualização
     await db.collection('video_watch_progress').insertOne({

@@ -7,7 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Type definition for Navigator with NetworkInformation
 interface ExtendedNavigator extends Navigator {
@@ -83,8 +84,17 @@ const VideoFeed = () => {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-white text-center p-4 max-w-md">
-          <h2 className="text-xl font-bold mb-2">Erro ao carregar vídeos</h2>
-          <p className="mb-4">{errorState}</p>
+          <div className="mb-4">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+            <h2 className="text-xl font-bold mb-2">Erro ao carregar vídeos</h2>
+            <p className="mb-4">{errorState}</p>
+          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Problema de conexão</AlertTitle>
+            <AlertDescription>
+              Não foi possível estabelecer conexão com o servidor. Verifique sua internet e tente novamente.
+            </AlertDescription>
+          </Alert>
           <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             Tentar novamente
@@ -98,8 +108,19 @@ const VideoFeed = () => {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-white text-center p-4 max-w-md">
+          <Info className="h-12 w-12 text-blue-500 mx-auto mb-2" />
           <h2 className="text-xl font-bold mb-2">Nenhum vídeo encontrado</h2>
-          <p className="mb-4">Estamos mostrando vídeos de exemplo enquanto trabalhamos para trazer mais conteúdo.</p>
+          <p className="mb-4">Estamos preparando novos conteúdos para você. Tente novamente mais tarde.</p>
+          <Alert className="mb-4">
+            <AlertTitle>Modo de demonstração</AlertTitle>
+            <AlertDescription>
+              Você está vendo vídeos de demonstração enquanto trabalhamos para trazer mais conteúdo.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
         </div>
       </div>
     );

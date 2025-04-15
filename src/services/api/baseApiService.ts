@@ -23,12 +23,12 @@ export const baseApiService = {
         console.debug(`Erro na requisição GET para ${endpoint}:`, error);
         return { 
           error,
-          serverError: true,
+          success: false,
           message: error.message || 'Erro na requisição'
         };
       }
       
-      return { data: data as T };
+      return { data: data as T, success: true };
     } catch (error: any) {
       console.error(`GET ${endpoint} error:`, error);
       
@@ -38,12 +38,12 @@ export const baseApiService = {
                               error.name === 'AbortError';
       
       return { 
+        success: false,
         error: { 
           message: error.message || 'Falha na requisição',
           isConnectionError,
           originalError: error
-        },
-        serverError: true
+        }
       };
     }
   },
@@ -59,8 +59,7 @@ export const baseApiService = {
         console.debug(`Erro na requisição POST para ${endpoint}:`, error);
         return { 
           success: false, 
-          error,
-          serverError: true
+          error
         };
       }
       
@@ -82,8 +81,7 @@ export const baseApiService = {
           message: error.message || 'Falha na requisição',
           isConnectionError,
           originalError: error
-        },
-        serverError: true
+        }
       };
     }
   },
@@ -99,8 +97,7 @@ export const baseApiService = {
         console.debug(`Erro na requisição PATCH para ${endpoint}:`, error);
         return { 
           success: false, 
-          error,
-          serverError: true
+          error
         };
       }
       
@@ -122,8 +119,7 @@ export const baseApiService = {
           message: error.message || 'Falha na requisição',
           isConnectionError,
           originalError: error 
-        },
-        serverError: true
+        }
       };
     }
   }
