@@ -48,15 +48,19 @@ export const useVideoFeed = () => {
         return data;
       } catch (err) {
         console.error('Error in query function:', err);
-        // Usar dados simulados com URLs comprovadamente funcionais
-        const workingVideos = MOCK_VIDEOS.map(video => ({
-          ...video,
-          videoUrl: video.videoUrl.replace('large.mp4', 'medium.mp4') // Usar versões de menor qualidade para melhor compatibilidade
-        }));
-        setVideos(workingVideos);
-        toast.info("Usando dados de demonstração", {
-          description: "Não foi possível conectar ao servidor de vídeos"
+        // Mostrar um toast mais informativo sobre o problema
+        toast.error("Erro de conexão com o servidor", {
+          description: "Usando dados de demonstração enquanto tentamos reconectar",
+          duration: 4000,
         });
+        
+        // Usar vídeos locais em vez de fazer requisições que falharão
+        console.log("Usando vídeos locais devido à falha no servidor");
+        const localVideos = MOCK_VIDEOS.map(video => ({
+          ...video,
+          videoUrl: '/videos/food1.mp4', // Usar vídeos locais armazenados na pasta public/videos
+        }));
+        setVideos(localVideos);
         return { items: [] };
       }
     },
@@ -64,12 +68,12 @@ export const useVideoFeed = () => {
       onSettled: (data: any, error: Error | null) => {
         if (error) {
           console.error("Error fetching videos:", error);
-          // Usar dados simulados com URLs comprovadamente funcionais
-          const workingVideos = MOCK_VIDEOS.map(video => ({
+          // Usar dados simulados com links para vídeos locais
+          const localVideos = MOCK_VIDEOS.map(video => ({
             ...video,
-            videoUrl: video.videoUrl.replace('large.mp4', 'medium.mp4') // Usar versões de menor qualidade para melhor compatibilidade
+            videoUrl: '/videos/food1.mp4', // Usar vídeos locais
           }));
-          setVideos(workingVideos);
+          setVideos(localVideos);
           return;
         }
         
@@ -89,18 +93,19 @@ export const useVideoFeed = () => {
           
           setVideos(mappedVideos);
         } else {
-          // Usar dados simulados com URLs comprovadamente funcionais
-          console.log("No videos found, using mock data");
-          const workingVideos = MOCK_VIDEOS.map(video => ({
+          // Usar dados simulados com URLs locais
+          console.log("No videos found, using mock data with local videos");
+          const localVideos = MOCK_VIDEOS.map(video => ({
             ...video,
-            videoUrl: video.videoUrl.replace('large.mp4', 'medium.mp4') // Usar versões de menor qualidade para melhor compatibilidade
+            videoUrl: '/videos/food1.mp4', // Usar vídeos locais
           }));
-          setVideos(workingVideos);
+          setVideos(localVideos);
         }
       }
     },
-    retry: 1, // Only retry once to avoid too many failed requests
-    retryDelay: 1000 // Wait 1 second before retrying
+    retry: 1, // Tentar apenas uma vez para evitar muitas requisições
+    retryDelay: 1000, // Aguardar 1 segundo antes de tentar novamente
+    staleTime: 1000 * 60 * 5, // 5 minutos - dados permanecem frescos por mais tempo
   });
   
   // State updaters
@@ -147,15 +152,30 @@ export const useVideoFeed = () => {
   // Report watch progress for analytics com tratamento de erros aprimorado
   useEffect(() => {
     if (activeVideo) {
+      let reportCount = 0;
+      const maxReportAttempts = 3;
+      
       const reportInterval = setInterval(() => {
+        // Limitar o número de tentativas em caso de falha constante
+        if (reportCount >= maxReportAttempts) {
+          console.log("Cancelando reportagem de progresso após múltiplas falhas");
+          clearInterval(reportInterval);
+          return;
+        }
+        
         // Report every 5 seconds of watching
         apiService.videos.reportWatchProgress(
           activeVideo.id, 
           Math.random(), // Simulate watch progress percentage
           Date.now()
         ).catch(err => {
+          reportCount++;
           // Silenciar erros de progresso para não afetar a experiência do usuário
           console.debug("Info: Erro reportando watch progress (esperado em ambiente de teste):", err);
+          
+          if (reportCount >= maxReportAttempts) {
+            console.log("Limite de tentativas de reportagem atingido. Desativando monitoramento.");
+          }
         });
       }, 5000);
       

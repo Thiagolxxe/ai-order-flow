@@ -14,6 +14,9 @@ import {
   VideoProcessingJob
 } from './types';
 
+// Definir timeout curto para operações de menor prioridade
+const LOW_PRIORITY_TIMEOUT = 3000; // 3 segundos
+
 export const videoService = {
   /**
    * Get all videos with pagination
@@ -181,13 +184,45 @@ export const videoService = {
   },
   
   /**
-   * Report watch progress (for heatmap generation)
+   * Report watch progress (for heatmap generation) - com timeout e tratamento de erros aprimorado
    */
   reportWatchProgress: async (videoId: string, progress: number, timestamp: number): Promise<ApiResult<void>> => {
-    return baseApiService.post(
-      `${apiConfig.endpoints.videos.base}/${videoId}/watch-progress`,
-      { progress, timestamp }
-    );
+    try {
+      // Criar um controlador de timeout para esta requisição
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), LOW_PRIORITY_TIMEOUT);
+      
+      const result = await baseApiService.post(
+        `${apiConfig.endpoints.videos.base}/${videoId}/watch-progress`,
+        { progress, timestamp },
+        { signal: controller.signal }
+      );
+      
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error) {
+      // Se a requisição foi abortada por timeout, retornamos um erro específico
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.debug('Requisição de progresso cancelada por timeout');
+        return { 
+          success: false, 
+          error: { 
+            message: 'Timeout ao reportar progresso', 
+            code: 'TIMEOUT' 
+          } 
+        };
+      }
+      
+      // Para outros erros, apenas logamos e retornamos
+      console.debug('Erro ao reportar progresso de visualização:', error);
+      return { 
+        success: false, 
+        error: { 
+          message: 'Erro ao reportar progresso', 
+          code: 'ERROR'
+        } 
+      };
+    }
   }
 };
 

@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
@@ -67,24 +68,36 @@ const validateBody = (schema) => {
 
 // Verificação do objeto db
 const checkDatabase = (req, res, next) => {
-  const db = req.app.get('db');
-  if (!db) {
-    console.error('Database connection not available in videoRoutes');
+  try {
+    const db = req.app.get('db') || global.database || req.db;
+    if (!db) {
+      console.error('⚠️ Database connection not available in videoRoutes');
+      return res.status(503).json({ 
+        error: 'Serviço de banco de dados indisponível',
+        message: 'A conexão com o banco de dados não está disponível no momento. Tente novamente mais tarde.',
+        code: 'DB_CONNECTION_ERROR'
+      });
+    }
+    // Atribuir db ao objeto req para uso posterior
+    req.db = db;
+    next();
+  } catch (error) {
+    console.error('⚠️ Error checking database in videoRoutes:', error);
     return res.status(503).json({ 
-      error: 'Serviço de banco de dados indisponível',
-      message: 'A conexão com o banco de dados não está disponível no momento. Tente novamente mais tarde.'
+      error: 'Erro ao verificar conexão com banco de dados',
+      message: error.message || 'Ocorreu um erro ao verificar a conexão com o banco de dados',
+      code: 'DB_CHECK_ERROR'
     });
   }
-  next();
 };
 
 // Aplica middleware de verificação de DB em todas as rotas do videoRoutes
 router.use(checkDatabase);
 
-// Modify route handlers to use req.db
+// GET - Obter todos os vídeos (com paginação)
 router.get('/', async (req, res) => {
   try {
-    const db = req.db; // Use global database
+    const db = req.db; // Use database from request
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -109,7 +122,8 @@ router.get('/', async (req, res) => {
     console.error('Error fetching videos:', error);
     res.status(500).json({ 
       error: 'Erro ao buscar vídeos', 
-      details: error.message 
+      details: error.message,
+      code: 'FETCH_VIDEOS_ERROR'
     });
   }
 });
@@ -117,11 +131,7 @@ router.get('/', async (req, res) => {
 // Get trending videos
 router.get('/trending', async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -131,18 +141,17 @@ router.get('/trending', async (req, res) => {
     res.status(200).json(videos);
   } catch (error) {
     console.error('Error fetching trending videos:', error);
-    res.status(500).json({ error: 'Erro ao buscar vídeos em tendência' });
+    res.status(500).json({ 
+      error: 'Erro ao buscar vídeos em tendência',
+      code: 'FETCH_TRENDING_ERROR'
+    });
   }
 });
 
 // Get video by ID
 router.get('/:id', async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -150,7 +159,7 @@ router.get('/:id', async (req, res) => {
     const video = await videoRepo.findById(videoId);
     
     if (!video) {
-      return res.status(404).json({ error: 'Vídeo não encontrado' });
+      return res.status(404).json({ error: 'Vídeo não encontrado', code: 'VIDEO_NOT_FOUND' });
     }
     
     // Increment view count
@@ -159,18 +168,17 @@ router.get('/:id', async (req, res) => {
     res.status(200).json(video);
   } catch (error) {
     console.error('Error fetching video:', error);
-    res.status(500).json({ error: 'Erro ao buscar vídeo' });
+    res.status(500).json({ 
+      error: 'Erro ao buscar vídeo',
+      code: 'FETCH_VIDEO_ERROR'
+    });
   }
 });
 
 // Create a new video
 router.post('/', authenticateToken, validateBody(schemas.createVideo), async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -183,11 +191,14 @@ router.post('/', authenticateToken, validateBody(schemas.createVideo), async (re
     const restaurant = await restaurantRepo.findById(req.body.restaurante_id);
     
     if (!restaurant) {
-      return res.status(404).json({ error: 'Restaurante não encontrado' });
+      return res.status(404).json({ error: 'Restaurante não encontrado', code: 'RESTAURANT_NOT_FOUND' });
     }
     
     if (restaurant.proprietario_id !== userId) {
-      return res.status(403).json({ error: 'Sem permissão para adicionar vídeos a este restaurante' });
+      return res.status(403).json({ 
+        error: 'Sem permissão para adicionar vídeos a este restaurante',
+        code: 'PERMISSION_DENIED'
+      });
     }
     
     const videoData = {
@@ -210,7 +221,8 @@ router.post('/', authenticateToken, validateBody(schemas.createVideo), async (re
     console.error('Error creating video:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro ao criar vídeo' 
+      error: error.message || 'Erro ao criar vídeo',
+      code: 'CREATE_VIDEO_ERROR'
     });
   }
 });
@@ -218,11 +230,7 @@ router.post('/', authenticateToken, validateBody(schemas.createVideo), async (re
 // Update a video
 router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -233,11 +241,11 @@ router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (
     const video = await videoRepo.findById(videoId);
     
     if (!video) {
-      return res.status(404).json({ error: 'Vídeo não encontrado' });
+      return res.status(404).json({ error: 'Vídeo não encontrado', code: 'VIDEO_NOT_FOUND' });
     }
     
     if (video.usuario_id !== userId) {
-      return res.status(403).json({ error: 'Sem permissão para editar este vídeo' });
+      return res.status(403).json({ error: 'Sem permissão para editar este vídeo', code: 'PERMISSION_DENIED' });
     }
     
     const result = await videoRepo.update(videoId, req.body);
@@ -250,7 +258,8 @@ router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (
     console.error('Error updating video:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro ao atualizar vídeo' 
+      error: error.message || 'Erro ao atualizar vídeo',
+      code: 'UPDATE_VIDEO_ERROR'
     });
   }
 });
@@ -258,11 +267,7 @@ router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (
 // Delete a video
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -273,11 +278,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const video = await videoRepo.findById(videoId);
     
     if (!video) {
-      return res.status(404).json({ error: 'Vídeo não encontrado' });
+      return res.status(404).json({ error: 'Vídeo não encontrado', code: 'VIDEO_NOT_FOUND' });
     }
     
     if (video.usuario_id !== userId) {
-      return res.status(403).json({ error: 'Sem permissão para excluir este vídeo' });
+      return res.status(403).json({ error: 'Sem permissão para excluir este vídeo', code: 'PERMISSION_DENIED' });
     }
     
     // Soft delete - update status to inactive
@@ -291,7 +296,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     console.error('Error deleting video:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro ao excluir vídeo' 
+      error: error.message || 'Erro ao excluir vídeo',
+      code: 'DELETE_VIDEO_ERROR'
     });
   }
 });
@@ -299,11 +305,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // Like/unlike a video
 router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
-    const db = req.app.get('db');
-    if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
-    }
-    
+    const db = req.db;
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -312,14 +314,17 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     const { action } = req.body; // 'like' or 'unlike'
     
     if (action !== 'like' && action !== 'unlike') {
-      return res.status(400).json({ error: 'Ação inválida. Use "like" ou "unlike"' });
+      return res.status(400).json({ 
+        error: 'Ação inválida. Use "like" ou "unlike"',
+        code: 'INVALID_ACTION'
+      });
     }
     
     // Check if video exists
     const video = await videoRepo.findById(videoId);
     
     if (!video) {
-      return res.status(404).json({ error: 'Vídeo não encontrado' });
+      return res.status(404).json({ error: 'Vídeo não encontrado', code: 'VIDEO_NOT_FOUND' });
     }
     
     const isLiking = action === 'like';
@@ -334,7 +339,8 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     console.error('Error liking/unliking video:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro ao curtir/descurtir vídeo' 
+      error: error.message || 'Erro ao curtir/descurtir vídeo',
+      code: 'LIKE_ERROR'
     });
   }
 });
@@ -342,9 +348,12 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
 // Report watch progress (for heatmap generation)
 router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (req, res) => {
   try {
-    const db = req.app.get('db');
+    const db = req.db;
     if (!db) {
-      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+      return res.status(503).json({ 
+        error: 'Serviço de banco de dados indisponível', 
+        code: 'DB_CONNECTION_ERROR' 
+      });
     }
     
     const VideoRepository = require('../repositories/videoRepository');
@@ -353,12 +362,11 @@ router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (r
     const videoId = req.params.id;
     const { progress, timestamp } = req.body;
     
-    // Verificar se o vídeo existe
-    const video = await videoRepo.findById(videoId);
-    
-    if (!video) {
-      return res.status(404).json({ error: 'Vídeo não encontrado' });
-    }
+    // Verificar se o vídeo existe - opcional em produção para melhor performance
+    // const video = await videoRepo.findById(videoId);
+    // if (!video) {
+    //   return res.status(404).json({ error: 'Vídeo não encontrado' });
+    // }
     
     // Registrar progresso de visualização
     await db.collection('video_watch_progress').insertOne({
@@ -373,7 +381,8 @@ router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (r
     console.error('Error reporting watch progress:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro ao reportar progresso de visualização' 
+      error: error.message || 'Erro ao reportar progresso de visualização',
+      code: 'REPORT_PROGRESS_ERROR'
     });
   }
 });
