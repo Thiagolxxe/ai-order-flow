@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
@@ -65,10 +66,27 @@ const validateBody = (schema) => {
   };
 };
 
+// Verificação do objeto db
+const checkDatabase = (req, res, next) => {
+  const db = req.app.get('db');
+  if (!db) {
+    console.error('Database connection not available');
+    return res.status(500).json({ error: 'Erro de conexão com o banco de dados' });
+  }
+  next();
+};
+
+// Aplica middleware de verificação de DB em todas as rotas
+router.use(checkDatabase);
+
 // Get all videos with pagination
 router.get('/', async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -99,6 +117,10 @@ router.get('/', async (req, res) => {
 router.get('/trending', async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -116,6 +138,10 @@ router.get('/trending', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -140,6 +166,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateToken, validateBody(schemas.createVideo), async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -188,6 +218,10 @@ router.post('/', authenticateToken, validateBody(schemas.createVideo), async (re
 router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -224,6 +258,10 @@ router.put('/:id', authenticateToken, validateBody(schemas.updateVideo), async (
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -261,6 +299,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
@@ -300,6 +342,10 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
 router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (req, res) => {
   try {
     const db = req.app.get('db');
+    if (!db) {
+      return res.status(503).json({ error: 'Serviço de banco de dados indisponível' });
+    }
+    
     const VideoRepository = require('../repositories/videoRepository');
     const videoRepo = new VideoRepository(db);
     
