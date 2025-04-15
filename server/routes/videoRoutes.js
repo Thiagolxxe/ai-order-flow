@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
@@ -42,6 +41,16 @@ const schemas = {
       'string.uri': 'URL da thumbnail inválida'
     }),
     status: Joi.string().valid('draft', 'active', 'inactive')
+  }),
+  watchProgress: Joi.object({
+    progress: Joi.number().min(0).max(1).required().messages({
+      'number.min': 'O progresso deve ser um valor entre 0 e 1',
+      'number.max': 'O progresso deve ser um valor entre 0 e 1',
+      'any.required': 'Progresso é obrigatório'
+    }),
+    timestamp: Joi.number().required().messages({
+      'any.required': 'Timestamp é obrigatório'
+    })
   })
 };
 
@@ -283,6 +292,41 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Erro ao curtir/descurtir vídeo' 
+    });
+  }
+});
+
+// Report watch progress (for heatmap generation)
+router.post('/:id/watch-progress', validateBody(schemas.watchProgress), async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const VideoRepository = require('../repositories/videoRepository');
+    const videoRepo = new VideoRepository(db);
+    
+    const videoId = req.params.id;
+    const { progress, timestamp } = req.body;
+    
+    // Verificar se o vídeo existe
+    const video = await videoRepo.findById(videoId);
+    
+    if (!video) {
+      return res.status(404).json({ error: 'Vídeo não encontrado' });
+    }
+    
+    // Registrar progresso de visualização
+    await db.collection('video_watch_progress').insertOne({
+      video_id: videoId,
+      progress,
+      timestamp,
+      created_at: new Date()
+    });
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error reporting watch progress:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Erro ao reportar progresso de visualização' 
     });
   }
 });
