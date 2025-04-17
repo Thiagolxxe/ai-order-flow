@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import VideoFeedContainer from '@/components/video-feed/VideoFeedContainer';
 import VideoControls from '@/components/video-feed/VideoControls';
 import { useVideoFeed } from '@/hooks/useVideoFeed';
@@ -7,8 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { RefreshCw, AlertCircle, Info, Wifi, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MOCK_VIDEOS } from '@/hooks/video-feed/mock-data';
 
 // Type definition for Navigator with NetworkInformation
 interface ExtendedNavigator extends Navigator {
@@ -20,6 +21,9 @@ interface ExtendedNavigator extends Navigator {
 }
 
 const VideoFeed = () => {
+  const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
+  const [isUsingMockData, setIsUsingMockData] = useState<boolean>(false);
+  
   const {
     activeVideoIndex,
     muted,
@@ -36,8 +40,74 @@ const VideoFeed = () => {
     handleShare,
     handleComment,
     videos,
-    isLoading
+    isLoading,
+    resetErrorState,
+    useMockData
   } = useVideoFeed();
+  
+  // Verificar estado de conexão
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success("Conexão restaurada", {
+        icon: <Wifi className="h-4 w-4 text-green-500" />,
+      });
+      resetErrorState?.();
+    };
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.error("Sem conexão com internet", {
+        icon: <WifiOff className="h-4 w-4 text-red-500" />,
+      });
+      
+      // Ativar dados simulados quando offline
+      if (!isUsingMockData) {
+        setIsUsingMockData(true);
+        useMockData?.();
+        toast.info("Usando dados de demonstração", { duration: 5000 });
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Verificar conexão com API logo na inicialização
+    const checkApiConnection = async () => {
+      try {
+        const response = await fetch('https://deliverai.onrender.com/api/health', { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
+          cache: 'no-cache',
+          signal: AbortSignal.timeout(5000) // 5 segundos timeout
+        });
+        
+        if (!response.ok) {
+          // Se a API responder mas com erro, usar dados mock
+          if (!isUsingMockData) {
+            setIsUsingMockData(true);
+            useMockData?.();
+            toast.info("Usando dados de demonstração devido a problemas no servidor", { duration: 5000 });
+          }
+        }
+      } catch (error) {
+        // Se a API não responder, usar dados mock
+        if (!isUsingMockData) {
+          setIsUsingMockData(true);
+          useMockData?.();
+          toast.info("Usando dados de demonstração devido a problemas de conexão", { duration: 5000 });
+        }
+      }
+    };
+    
+    checkApiConnection();
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [isUsingMockData, resetErrorState, useMockData]);
   
   // Set proper metadata for OpenGraph when sharing
   useEffect(() => {
@@ -66,6 +136,13 @@ const VideoFeed = () => {
     window.location.reload();
   };
   
+  // Mostrar indicador offline quando não há conexão
+  if (isOffline) {
+    toast.warning("Você está offline. Alguns recursos podem não funcionar corretamente.", {
+      duration: 5000,
+    });
+  }
+  
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -80,7 +157,7 @@ const VideoFeed = () => {
     );
   }
   
-  if (errorState) {
+  if (errorState && !isUsingMockData) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="text-white text-center p-4 max-w-md">
@@ -95,10 +172,23 @@ const VideoFeed = () => {
               Não foi possível estabelecer conexão com o servidor. Verifique sua internet e tente novamente.
             </AlertDescription>
           </Alert>
-          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Tentar novamente
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Tentar novamente
+            </Button>
+            <Button 
+              onClick={() => {
+                useMockData?.();
+                setIsUsingMockData(true);
+              }} 
+              variant="default" 
+              className="flex items-center gap-2 mt-2 sm:mt-0"
+            >
+              <Info className="h-4 w-4" />
+              Usar dados de demonstração
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -146,6 +236,18 @@ const VideoFeed = () => {
       </Helmet>
       
       <div className="fixed inset-0 bg-black">
+        {isOffline && (
+          <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-center py-1 text-xs z-50">
+            <WifiOff className="h-3 w-3 inline-block mr-1" /> Você está offline. Usando dados armazenados.
+          </div>
+        )}
+        
+        {isUsingMockData && !isOffline && (
+          <div className="absolute top-0 left-0 right-0 bg-amber-600 text-white text-center py-1 text-xs z-50">
+            <Info className="h-3 w-3 inline-block mr-1" /> Usando dados de demonstração
+          </div>
+        )}
+        
         <VideoFeedContainer
           videos={videos}
           activeVideoIndex={activeVideoIndex}

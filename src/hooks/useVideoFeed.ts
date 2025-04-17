@@ -1,245 +1,195 @@
-
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { Video, VideoFeedState } from './video-feed/types';
-import { MOCK_VIDEOS } from './video-feed/mock-data';
-import { useVideoNavigation } from './video-feed/useVideoNavigation';
-import { useVideoInteractions } from './video-feed/useVideoInteractions';
-import { useChatInteraction } from './video-feed/useChatInteraction';
-import { apiService } from '@/services/apiService';
-import { createPaginationParams } from '@/utils/paginationUtils';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Video } from '@/hooks/video-feed/types';
+import { videoService } from '@/services/api/videoService';
 import { useQuery } from '@tanstack/react-query';
-
-export type { Video } from './video-feed/types';
-
-// Lista de vídeos locais para demonstração
-const LOCAL_DEMO_VIDEOS = [
-  '/videos/food1.mp4',
-  '/videos/food2.mp4',
-  '/videos/food3.mp4',
-  '/videos/food4.mp4',
-  '/videos/food5.mp4',
-];
+import { useVideoNavigation } from '@/hooks/video-feed/useVideoNavigation';
+import { useVideoInteractions } from '@/hooks/video-feed/useVideoInteractions';
+import { toast } from 'sonner';
+import { MOCK_VIDEOS } from '@/hooks/video-feed/mock-data';
 
 export const useVideoFeed = () => {
-  const navigate = useNavigate();
-  const [videos, setVideos] = useState<Video[]>([]);
-  const feedContainerRef = useRef<HTMLDivElement>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
+  const [useMockDataFlag, setUseMockDataFlag] = useState<boolean>(false);
   
-  // Video state management
-  const [state, setState] = useState<VideoFeedState>({
-    activeVideoIndex: 0,
-    muted: true,
-    errorState: null,
-    likedVideos: [],
-  });
-  
-  const { activeVideoIndex, muted, errorState, likedVideos } = state;
-  
-  // Active video
-  const activeVideo = videos[activeVideoIndex] || null;
-
-  // Retorna vídeos de demonstração quando necessário
-  const getLocalDemoVideos = useCallback((): Video[] => {
-    return MOCK_VIDEOS.map((video, index) => ({
-      ...video,
-      videoUrl: LOCAL_DEMO_VIDEOS[index % LOCAL_DEMO_VIDEOS.length],
-    }));
-  }, []);
-
-  // Fetch videos from API using React Query
-  const { isLoading, error } = useQuery({
+  // Consulta para buscar vídeos da API com fallback para dados mock
+  const videosQuery = useQuery({
     queryKey: ['videos'],
     queryFn: async () => {
       try {
         console.log('Fetching videos from API...');
-        const params = createPaginationParams(1, 20);
-        const { data, error, success } = await apiService.videos.getAll(params);
         
+        // Se a flag de mock estiver ativa, usar dados mock
+        if (useMockDataFlag) {
+          console.log('Using mock data instead of API call');
+          return { videos: MOCK_VIDEOS };
+        }
+        
+        const { data, error, success } = await videoService.getAll({
+          page: 1,
+          limit: 20
+        });
+        
+        // Se houver erro na API, registrar e lançar erro
         if (error) {
-          console.error('API returned error:', error);
+          console.log('API returned error:', error);
           throw new Error(error.message || 'Erro ao buscar vídeos');
         }
         
-        return data;
-      } catch (err: any) {
-        console.error('Error in query function:', err);
-        // Mostrar um toast mais informativo sobre o problema
-        toast.error("Erro de conexão com o servidor", {
-          description: "Usando vídeos de demonstração enquanto tentamos reconectar",
-          duration: 4000,
-        });
-        
-        // Usar vídeos locais em vez de fazer requisições que falharão
-        console.log("Usando vídeos locais devido à falha no servidor");
-        const localVideos = getLocalDemoVideos();
-        setVideos(localVideos);
-        return { items: [] };
-      }
-    },
-    meta: {
-      onSettled: (data: any, error: Error | null) => {
-        if (error) {
-          console.error("Error fetching videos:", error);
-          // Usar dados simulados com links para vídeos locais
-          const localVideos = getLocalDemoVideos();
-          setVideos(localVideos);
-          return;
+        // Se não houver dados ou o array estiver vazio, usar dados mock
+        if (!data?.items || data.items.length === 0) {
+          console.log('No videos returned from API, using mock data');
+          toast.info('Usando dados de demonstração', { duration: 3000 });
+          setUseMockDataFlag(true);
+          return { videos: MOCK_VIDEOS };
         }
         
-        if (data && data.items && data.items.length > 0) {
-          // Map API video format to app video format
-          const mappedVideos: Video[] = data.items.map((video: any) => ({
-            id: video.id,
-            restaurantId: video.restaurantId,
-            restaurantName: video.restaurantName || "Restaurante",
-            dishName: video.title,
-            price: video.price || 0,
-            videoUrl: video.url,
-            thumbnailUrl: video.thumbnailUrl || "",
-            likes: video.likes || 0,
-            description: video.description || "",
-          }));
-          
-          setVideos(mappedVideos);
-        } else {
-          // Usar dados simulados com URLs locais
-          console.log("No videos found, using mock data with local videos");
-          const localVideos = getLocalDemoVideos();
-          setVideos(localVideos);
-        }
+        return { videos: data.items };
+      } catch (error: any) {
+        console.error('Error in query function:', error);
+        
+        // Definir mensagem de erro para exibição
+        setErrorState(error.message || 'Falha ao carregar vídeos');
+        
+        // Ativar fallback para dados mock automaticamente
+        console.log('Error fetching videos, using mock data');
+        toast.error('Erro ao buscar vídeos do servidor', { duration: 3000 });
+        toast.info('Usando dados de demonstração', { duration: 3000 });
+        setUseMockDataFlag(true);
+        
+        return { videos: MOCK_VIDEOS };
       }
     },
-    retry: 1, // Tentar apenas uma vez para evitar muitas requisições
-    retryDelay: 1000, // Aguardar 1 segundo antes de tentar novamente
-    staleTime: 1000 * 60 * 5, // 5 minutos - dados permanecem frescos por mais tempo
+    refetchOnWindowFocus: false,
+    retry: 1,
+    retryDelay: 1000,
   });
   
-  // State updaters
-  const setActiveVideoIndex = useCallback((index: number) => {
-    setState(prev => ({ ...prev, activeVideoIndex: index }));
-  }, []);
+  const videos = videosQuery.data?.videos || [];
+  const isLoading = videosQuery.isLoading;
   
-  const setLikedVideos = useCallback((updateFn: (prev: string[]) => string[]) => {
-    setState(prev => ({
-      ...prev,
-      likedVideos: updateFn(prev.likedVideos || []),
-    }));
-  }, []);
+  // Referência ao contêiner de feed para manipulação de scroll
+  const feedContainerRef = useRef<HTMLDivElement | null>(null);
   
-  const setErrorState = useCallback((error: string | null) => {
-    setState(prev => ({ ...prev, errorState: error }));
-  }, []);
-  
-  // Toggle mute
-  const toggleMute = useCallback(() => {
-    setState(prev => ({ ...prev, muted: !prev.muted }));
-  }, []);
-  
-  // Navigation hooks
-  const { handleScroll, handleNext, handlePrevious } = useVideoNavigation(
+  // Gerenciamento de navegação (próximo, anterior, índice ativo)
+  const {
     activeVideoIndex,
-    setActiveVideoIndex,
-    videos.length,
-    feedContainerRef
-  );
+    handleNext,
+    handlePrevious,
+    setActiveVideoIndex
+  } = useVideoNavigation(videos);
   
-  // Interaction hooks
-  const { handleViewRestaurant, handleLike, handleShare, handleComment } = 
-    useVideoInteractions(setLikedVideos);
+  // Gerenciamento de interações (curtir, compartilhar, comentar)
+  const {
+    muted,
+    likedVideos,
+    toggleMute,
+    handleLike,
+    handleShare,
+    handleComment,
+    handleViewRestaurant,
+  } = useVideoInteractions();
   
-  // Chat interaction
-  const { openChat } = useChatInteraction(setErrorState);
+  // Vídeo ativo atual
+  const activeVideo = videos[activeVideoIndex];
   
-  // Handle comment with AI chat
-  const handleCommentWithAI = useCallback((video: Video) => {
-    openChat(video.dishName, video.restaurantName);
-  }, [openChat]);
+  // Manipulador de scroll para navegação baseada em swipe
+  const handleScroll = useCallback((direction: 'up' | 'down') => {
+    if (direction === 'up') {
+      handleNext();
+    } else {
+      handlePrevious();
+    }
+  }, [handleNext, handlePrevious]);
   
-  // Report watch progress for analytics com tratamento de erros aprimorado
+  // Limpar estado de erro
+  const resetErrorState = useCallback(() => {
+    setErrorState(null);
+  }, []);
+  
+  // Forçar uso de dados mock
+  const useMockData = useCallback(() => {
+    setUseMockDataFlag(true);
+    videosQuery.refetch();
+  }, [videosQuery]);
+  
+  // Efeito para reportar progresso de visualização
   useEffect(() => {
     if (!activeVideo) return;
     
-    let reportCount = 0;
-    const maxReportAttempts = 3;
-    let reportInterval: number | null = null;
-    
-    // Função para reportar progresso
-    const reportProgress = async () => {
+    // Intervalo para reportar progresso de visualização a cada 10 segundos
+    const reportingInterval = setInterval(() => {
       try {
-        // Limitar o número de tentativas em caso de falha constante
-        if (reportCount >= maxReportAttempts) {
-          console.log("Cancelando reportagem de progresso após múltiplas falhas");
-          if (reportInterval) {
-            clearInterval(reportInterval);
-            reportInterval = null;
-          }
-          return;
-        }
+        // Se estiver usando dados mock, não reportar progresso
+        if (useMockDataFlag) return;
         
-        // Report watch progress
-        const result = await apiService.videos.reportWatchProgress(
-          activeVideo.id, 
-          Math.random(), // Simulate watch progress percentage
-          Date.now()
-        );
-        
-        // Se houver erro, incrementar contagem de falhas
-        if (!result.success) {
-          reportCount++;
-          console.debug("Info: Erro reportando watch progress (esperado em ambiente de teste):", result.error);
-          
-          if (reportCount >= maxReportAttempts) {
-            console.log("Limite de tentativas de reportagem atingido. Desativando monitoramento.");
-            if (reportInterval) {
-              clearInterval(reportInterval);
-              reportInterval = null;
-            }
-          }
-        }
-      } catch (err) {
-        reportCount++;
-        console.debug("Erro não tratado reportando watch progress:", err);
-        
-        if (reportCount >= maxReportAttempts) {
-          console.log("Limite de tentativas de reportagem atingido após erro não tratado. Desativando monitoramento.");
-          if (reportInterval) {
-            clearInterval(reportInterval);
-            reportInterval = null;
-          }
-        }
+        videoService.reportWatchProgress(activeVideo.id, {
+          progress: 0.5, // Valor de exemplo, idealmente seria calculado com base no tempo atual de reprodução
+          timestamp: Date.now()
+        }).catch(err => {
+          // Não exibir erro ao usuário se falhar, apenas registrar no console
+          console.debug('Failed to report watch progress:', err);
+        });
+      } catch (error) {
+        console.debug('Error in watch progress reporting:', error);
       }
-    };
+    }, 10000);
     
-    // Iniciar intervalo
-    reportInterval = window.setInterval(reportProgress, 5000);
+    return () => clearInterval(reportingInterval);
+  }, [activeVideo, useMockDataFlag]);
+  
+  // Pré-carregar próximo vídeo para melhorar a experiência do usuário
+  useEffect(() => {
+    if (videos.length <= 1 || activeVideoIndex >= videos.length - 1) return;
     
-    // Cleanup function
-    return () => {
-      if (reportInterval) {
-        clearInterval(reportInterval);
-        reportInterval = null;
+    const nextVideo = videos[activeVideoIndex + 1];
+    if (!nextVideo) return;
+    
+    try {
+      // Pré-carregar próximo vídeo
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'preload';
+      preloadLink.as = 'video';
+      preloadLink.href = nextVideo.videoUrl;
+      document.head.appendChild(preloadLink);
+      
+      // Pré-carregar thumbnail
+      if (nextVideo.thumbnailUrl) {
+        const preloadImage = document.createElement('link');
+        preloadImage.rel = 'preload';
+        preloadImage.as = 'image';
+        preloadImage.href = nextVideo.thumbnailUrl;
+        document.head.appendChild(preloadImage);
       }
-    };
-  }, [activeVideo]);
+      
+      return () => {
+        document.head.removeChild(preloadLink);
+        if (nextVideo.thumbnailUrl) {
+          document.head.removeChild(preloadLink);
+        }
+      };
+    } catch (error) {
+      console.debug('Error preloading next video:', error);
+    }
+  }, [activeVideoIndex, videos]);
   
   return {
+    videos,
     activeVideoIndex,
     muted,
-    errorState,
     likedVideos,
     activeVideo,
     feedContainerRef,
-    videos,
+    errorState,
     isLoading,
     handleScroll,
     handleNext,
     handlePrevious,
     toggleMute,
-    handleViewRestaurant,
     handleLike,
     handleShare,
-    handleComment: handleCommentWithAI,
+    handleComment,
+    handleViewRestaurant,
+    resetErrorState,
+    useMockData
   };
 };

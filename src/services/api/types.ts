@@ -105,3 +105,59 @@ export interface VideoProcessingJob {
   createdAt: string;
   updatedAt: string;
 }
+
+// Adicionando interfaces que faltavam e estavam causando erros
+
+export interface Notification {
+  id: string;
+  _id?: string;
+  userId?: string;
+  title?: string;
+  titulo?: string;
+  message?: string;
+  mensagem?: string;
+  type?: string;
+  tipo?: string;
+  read?: boolean;
+  lida?: boolean;
+  createdAt: string;
+  criado_em?: string;
+  link?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  name: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  bio?: string;
+  avatarUrl?: string;
+  preferences?: {
+    theme?: string;
+    notifications?: boolean;
+    language?: string;
+    [key: string]: any;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Address {
+  id: string;
+  userId: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  isDefault?: boolean;
+  label?: string;
+  latitude?: number;
+  longitude?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
